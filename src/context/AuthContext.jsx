@@ -31,13 +31,18 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  async function fetchProfile(userId) {
-    const { data } = await supabase
+async function fetchProfile(userId) {
+    const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
-      .single();
-    setProfile(data);
+      .maybeSingle();
+    if (error) {
+      console.error('Error fetching profile:', error);
+      setProfile(null);
+    } else {
+      setProfile(data);
+    }
   }
 
   async function signOut() {
