@@ -170,9 +170,15 @@ if (bulkCount < 1 || bulkCount > 30) { setError('Please generate between 1 and 3
     setError('Free accounts are limited to 1 class. Contact us to upgrade for unlimited classes.');
     return;
   }
+  setError(null);
   setShowCreateClass(true);
-}} style={btnPrimary}>+ New Class</button>            
-</div>
+}} style={btnPrimary}>+ New Class</button>
+
+{error && !showCreateClass && (
+  <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', color: '#B56840', padding: '0.85rem 1.1rem', marginTop: '1rem', fontSize: '0.85rem' }}>
+    {error}
+  </div>
+)} 
 
             {success && <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', color: '#3A7040', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>{success}</div>}
 
