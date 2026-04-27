@@ -7,8 +7,6 @@ const GRADE_LEVELS = [
   'Elementary (K-5)',
   'Middle School (6-8)',
   'High School (9-12)',
-  'College/University',
-  'Adult Education',
   'Other',
 ];
 
