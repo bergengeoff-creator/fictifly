@@ -1,3 +1,4 @@
+cat > src/pages/Signup.jsx << 'ENDOFFILE'
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -169,4 +170,52 @@ export default function Signup() {
         {isMinor ? (
           <div>
             <label style={labelStyle}>Passcode (4-6 digits)
-              <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} maxLength={6} style={{ ...inputStyle, marginTop: '0
+              <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} maxLength={6} style={{ ...inputStyle, marginTop: '0.4rem' }} />
+            </label>
+            <label style={{ ...labelStyle, marginTop: '0.75rem' }}>Confirm passcode
+              <input type="password" value={confirmPasscode} onChange={(e) => setConfirmPasscode(e.target.value)} maxLength={6} style={{ ...inputStyle, marginTop: '0.4rem' }} />
+            </label>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', marginTop: '1rem', cursor: 'pointer' }}>
+              <input type="checkbox" checked={parentConsent} onChange={(e) => setParentConsent(e.target.checked)} style={{ marginTop: '3px' }} />
+              <span style={{ fontSize: '0.82rem', color: '#6B5D4E' }}>A parent or guardian is aware of and consents to this account.</span>
+            </label>
+          </div>
+        ) : (
+          <div>
+            <label style={labelStyle}>
+              {accountType === 'teacher' ? 'School or institutional email' : 'Email address'}
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={accountType === 'teacher' ? 'you@school.edu' : 'you@example.com'} style={{ ...inputStyle, marginTop: '0.4rem' }} />
+            </label>
+            {accountType === 'teacher' && (
+              <p style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.4rem' }}>Educator accounts require a school or institutional email.</p>
+            )}
+            <label style={{ ...labelStyle, marginTop: '0.75rem' }}>Password
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" style={{ ...inputStyle, marginTop: '0.4rem' }} />
+            </label>
+            <label style={{ ...labelStyle, marginTop: '0.75rem' }}>Confirm password
+              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Repeat your password" style={{ ...inputStyle, marginTop: '0.4rem' }} />
+            </label>
+            {accountType === 'teacher' && (
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', marginTop: '1rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={isTeacher} onChange={(e) => setIsTeacher(e.target.checked)} style={{ marginTop: '3px' }} />
+                <span style={{ fontSize: '0.82rem', color: '#6B5D4E' }}>I confirm I am an educator setting up an account to manage student writers.</span>
+              </label>
+            )}
+          </div>
+        )}
+
+        {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginTop: '1rem' }}>{error}</div>}
+
+        <button onClick={isMinor ? handleMinorSignup : handleStandardSignup} disabled={loading}
+          style={{ background: loading ? '#D9C9B0' : '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer', width: '100%', marginTop: '1.5rem' }}>
+          {loading ? 'Creating account...' : 'Create account'}
+        </button>
+
+        <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.85rem', color: '#6B5D4E' }}>
+          Already have an account? <Link to="/login" style={{ color: '#2E6DA4', fontWeight: 600 }}>Sign in</Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+ENDOFFILE
