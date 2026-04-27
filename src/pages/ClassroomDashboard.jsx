@@ -105,8 +105,10 @@ export default function ClassroomDashboard() {
 
   const handleBulkGenerate = async () => {
     if (!bulkPrefix.trim()) { setError('Please enter a username prefix.'); return; }
-    if (bulkCount < 1 || bulkCount > 50) { setError('Please generate between 1 and 50 accounts.'); return; }
-    setGenerating(true);
+    if (classMembers.length + bulkCount > 30 && profile.account_type !== 'premium') {
+  setError('Free accounts are limited to 30 students per class. Contact us at upgrade@fictifly.com to add more.');
+  return;
+}
     setError(null);
     const accounts = [];
     for (let i = 0; i < bulkCount; i++) {
@@ -159,8 +161,14 @@ export default function ClassroomDashboard() {
                 <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.4rem' }}>Educator</div>
                 <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>My Classes</h1>
               </div>
-              <button onClick={() => setShowCreateClass(true)} style={btnPrimary}>+ New Class</button>
-            </div>
+<button onClick={() => {
+  if (classes.length >= 1 && profile.account_type !== 'premium') {
+    setError('Free accounts are limited to 1 class. Contact us to upgrade for unlimited classes.');
+    return;
+  }
+  setShowCreateClass(true);
+}} style={btnPrimary}>+ New Class</button>            
+</div>
 
             {success && <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', color: '#3A7040', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>{success}</div>}
 
@@ -225,6 +233,11 @@ export default function ClassroomDashboard() {
                 </div>
               </div>
               <button onClick={() => setShowBulkGenerate(!showBulkGenerate)} style={btnPrimary}>Generate student accounts</button>
+              {classMembers.length >= 30 && profile.account_type !== 'premium' && (
+  <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', padding: '0.85rem 1.1rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#B56840' }}>
+    You have reached the 30 student limit for free accounts. <a href="mailto:upgrade@fictifly.com" style={{ color: '#D4845A', fontWeight: 600 }}>Contact us to upgrade.</a>
+  </div>
+)}
             </div>
 
             {showBulkGenerate && (
@@ -269,8 +282,10 @@ export default function ClassroomDashboard() {
 
             <div style={sectionStyle}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Students ({classMembers.length})</h3>
-              </div>
+<h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+  Students ({classMembers.length}{profile.account_type !== 'premium' ? '/30' : ''})
+</h3>              
+</div>
               {classMembers.length === 0 ? (
                 <p style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>No students yet. Generate accounts or share the class code <strong style={{ color: '#2E6DA4' }}>{selectedClass.class_code}</strong> with your students.</p>
               ) : (
