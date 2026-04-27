@@ -30,6 +30,7 @@ export default function ProfileSetup() {
   const navigate = useNavigate();
 
   const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [selectedPreset, setSelectedPreset] = useState(null);
   const [uploadedAvatar, setUploadedAvatar] = useState(null);
@@ -73,6 +74,10 @@ export default function ProfileSetup() {
 
   const handleSubmit = async () => {
     if (!displayName.trim()) { setError('Please enter a display name.'); return; }
+    if (!username.trim()) { setError('Please choose a username.'); return; }
+if (username.trim().includes(' ')) { setError('Username cannot contain spaces.'); return; }
+const { data: existing } = await supabase.from('users').select('id').eq('username', username.trim()).single();
+if (existing) { setError('That username is already taken. Please choose another.'); return; }
     if (profilePublic === null) { setError('Please choose whether your profile is public or private.'); return; }
     setLoading(true);
     let avatarUrl = null;
@@ -84,8 +89,9 @@ export default function ProfileSetup() {
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
       avatarUrl = urlData.publicUrl;
     }
-    const updates = {
-      display_name: displayName.trim(),
+const updates = {
+  username: username.trim(),
+  display_name: displayName.trim(),      display_name: displayName.trim(),
       bio: bio.trim() || null,
       avatar_url: avatarUrl,
       avatar_preset: avatarMode === 'preset' ? selectedPreset : null,
@@ -112,10 +118,13 @@ export default function ProfileSetup() {
           <p style={{ color: '#6B5D4E', fontSize: '0.95rem' }}>Only your display name and privacy setting are required.</p>
         </div>
 
-        <div style={sectionStyle}>
-          <label style={labelStyle}>Display name <span style={{ color: '#D4845A' }}>*</span></label>
-          <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="How should we call you?" maxLength={40} style={inputStyle} />
-        </div>
+       <div style={sectionStyle}>
+  <label style={labelStyle}>Display name <span style={{ color: '#D4845A' }}>*</span></label>
+  <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="How should we call you?" maxLength={40} style={{ ...inputStyle, marginBottom: '0.75rem' }} />
+  <label style={labelStyle}>Username <span style={{ color: '#D4845A' }}>*</span></label>
+  <input type="text" value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))} placeholder="Choose a unique username..." maxLength={30} style={inputStyle} />
+  <div style={{ fontSize: '0.75rem', color: '#9A8878', marginTop: '0.25rem' }}>No spaces allowed. This is how others find you.</div>
+</div>
 
         <div style={sectionStyle}>
           <label style={labelStyle}>Profile picture (optional)</label>
