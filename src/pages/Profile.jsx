@@ -30,6 +30,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(profile ? profile.display_name || '' : '');
+  const [username, setUsername] = useState(profile ? profile.username || '' : '');
   const [bio, setBio] = useState(profile ? profile.bio || '' : '');
   const [selectedPreset, setSelectedPreset] = useState(profile ? profile.avatar_preset || null : null);
   const [uploadedAvatar, setUploadedAvatar] = useState(null);
@@ -47,6 +48,7 @@ export default function Profile() {
   const [avatarError, setAvatarError] = useState(null);
 
   const isTeacher = profile && profile.account_type === 'teacher';
+  const isMinor = profile && profile.account_type === 'minor';
 
   const getAvatarDisplay = () => {
     if (profile.avatar_url) return <img src={profile.avatar_url} alt="avatar" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover' }} />;
@@ -83,8 +85,26 @@ export default function Profile() {
 
   const handleSave = async () => {
     if (!displayName.trim()) { setError('Display name is required.'); return; }
+    if (!username.trim()) { setError('Username is required.'); return; }
+    if (username.trim().includes(' ')) { setError('Username cannot contain spaces.'); return; }
     setLoading(true);
     setError(null);
+
+    // Check if username is already taken by another user
+    if (username.trim() !== profile.username) {
+      const { data: existing } = await supabase
+        .from('users')
+        .select('id')
+        .eq('username', username.trim())
+        .neq('id', user.id)
+        .single();
+      if (existing) {
+        setError('That username is already taken. Please choose another.');
+        setLoading(false);
+        return;
+      }
+    }
+
     let avatarUrl = profile.avatar_url;
     if (avatarMode === 'upload' && uploadedAvatar) {
       const fileExt = uploadedAvatar.name.split('.').pop();
@@ -94,7 +114,9 @@ export default function Profile() {
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
       avatarUrl = urlData.publicUrl;
     }
+
     const updates = {
+      username: username.trim(),
       display_name: displayName.trim(),
       bio: bio.trim() || null,
       avatar_url: avatarMode === 'upload' ? avatarUrl : null,
@@ -106,6 +128,7 @@ export default function Profile() {
       subject: isTeacher && subject ? subject : null,
       region: region || null,
     };
+
     const { error: updateError } = await supabase.from('users').update(updates).eq('id', user.id);
     if (updateError) { setError('Failed to save: ' + updateError.message); setLoading(false); return; }
     await fetchProfile(user.id);
@@ -182,7 +205,31 @@ export default function Profile() {
           <div>
             <div style={sectionStyle}>
               <label style={labelStyle}>Display name <span style={{ color: '#D4845A' }}>*</span></label>
-              <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} style={inputStyle} />
+              <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} style={{ ...inputStyle, marginBottom: '0.75rem' }} />
+              <label style={labelStyle}>
+                Username <span style={{ color: '#D4845A' }}>*</span>
+                {isMinor && <span style={{ color: '#9A8878', fontWeight: 400, marginLeft: '0.5rem' }}>(you can generate a new random one)</span>}
+              </label>
+              {isMinor ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ flex: 1, background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.6rem 0.9rem', color: '#3A3226', fontStyle: 'italic' }}>{username}</div>
+                  <button onClick={() => {
+                    const adjs = ['Swift','Brave','Clever','Bold','Bright','Calm','Keen','Wise','Wild','Quiet'];
+                    const ns = ['Penguin','Narrator','Scribe','Author','Dreamer','Writer','Poet','Falcon','Otter','Fox'];
+                    const adj = adjs[Math.floor(Math.random() * adjs.length)];
+                    const noun = ns[Math.floor(Math.random() * ns.length)];
+                    const num = Math.floor(Math.random() * 90) + 10;
+                    setUsername(adj + noun + num);
+                  }} style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.78rem', padding: '0.6rem 0.75rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    New one
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <input type="text" value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))} placeholder="Your username" maxLength={30} style={inputStyle} />
+                  <div style={{ fontSize: '0.75rem', color: '#9A8878', marginTop: '0.25rem' }}>No spaces allowed. This is how others find you.</div>
+                </div>
+              )}
             </div>
 
             <div style={sectionStyle}>
