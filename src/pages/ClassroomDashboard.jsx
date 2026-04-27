@@ -175,7 +175,7 @@ if (bulkCount < 1 || bulkCount > 30) { setError('Please generate between 1 and 3
     setShowCreateClass(true);
   }} style={btnPrimary}>+ New Class</button>
 
-  {error && !showCreateClass && (
+{error && !showCreateClass && (
     <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', color: '#B56840', padding: '0.85rem 1.1rem', marginTop: '1rem', fontSize: '0.85rem' }}>
       {error}
     </div>
