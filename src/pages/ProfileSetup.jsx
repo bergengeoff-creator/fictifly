@@ -185,29 +185,6 @@ avatar_preset: null,
     {avatarError && <div style={{ color: '#B56840', fontSize: '0.82rem', marginTop: '0.5rem' }}>{avatarError}</div>}
   </div>
 </div>
-          {avatarMode === 'preset' ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.5rem' }}>
-              {PRESET_AVATARS.map((avatar) => (
-                <div key={avatar.id} onClick={() => setSelectedPreset(avatar.id)} style={{ cursor: 'pointer', textAlign: 'center' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: avatar.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '1.1rem', border: selectedPreset === avatar.id ? '3px solid #D4845A' : '3px solid transparent', margin: '0 auto 0.25rem' }}>{avatar.label}</div>
-                  <div style={{ fontSize: '0.6rem', color: '#9A8878' }}>{avatar.name}</div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div>
-              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} style={{ display: 'none' }} id="avatar-upload" />
-              <label htmlFor="avatar-upload" style={{ display: 'block', background: '#F5EFE6', border: '1.5px dashed #D9C9B0', borderRadius: '10px', padding: '1.5rem', textAlign: 'center', cursor: 'pointer' }}>
-                {uploadedAvatarUrl ? (
-                  <img src={uploadedAvatarUrl} alt="Preview" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto' }} />
-                ) : (
-                  <div style={{ color: '#9A8878', fontSize: '0.88rem' }}>Click to upload (JPG, PNG, WebP — max 2MB)</div>
-                )}
-              </label>
-              {avatarError && <div style={{ color: '#B56840', fontSize: '0.82rem', marginTop: '0.5rem' }}>{avatarError}</div>}
-            </div>
-          )}
-        </div>
 
         <div style={sectionStyle}>
           <label style={labelStyle}>Bio (optional)</label>
