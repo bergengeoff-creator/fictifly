@@ -9,13 +9,28 @@ const GENRES = [
   'Romance','Romantic Comedy','Sci-Fi','Spy','Suspense','Thriller','Open Genre'
 ];
 
-const PRESET_AVATARS = [
-  { id: 'quill', label: 'Q', bg: '#5B9EC9', name: 'The Quill' },
-  { id: 'owl', label: 'O', bg: '#D4845A', name: 'The Owl' },
-  { id: 'star', label: 'S', bg: '#6BAF72', name: 'The Star' },
-  { id: 'moon', label: 'M', bg: '#B07AC0', name: 'The Moon' },
-  { id: 'wave', label: 'W', bg: '#2E6DA4', name: 'The Wave' },
-  { id: 'flame', label: 'F', bg: '#E86A3A', name: 'The Flame' },
+const AVATAR_STYLES = {
+  standard: [
+    { id: 'notionists', name: 'Notionists' },
+    { id: 'lorelei', name: 'Lorelei' },
+  ],
+  teacher: [
+    { id: 'notionists', name: 'Notionists' },
+    { id: 'lorelei', name: 'Lorelei' },
+  ],
+  minor: [
+    { id: 'notionists', name: 'Notionists' },
+    { id: 'lorelei', name: 'Lorelei' },
+    { id: 'bottts', name: 'Bottts' },
+    { id: 'fun-emoji', name: 'Fun Emoji' },
+  ],
+  student: [
+    { id: 'bottts', name: 'Bottts' },
+    { id: 'fun-emoji', name: 'Fun Emoji' },
+  ],
+};
+
+const generateSeeds = () => Array.from({ length: 4 }, () => Math.random().toString(36).substring(2, 8));
 ];
 
 const SUBJECTS = ['English','Creative Writing','Language Arts','Literature','Other'];
@@ -231,38 +246,48 @@ export default function Profile() {
               )}
             </div>
 
-            <div style={sectionStyle}>
-              <label style={labelStyle}>Profile picture</label>
-              <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '10px', padding: '4px', gap: '4px', marginBottom: '1rem' }}>
-                {['preset','upload'].map((mode) => (
-                  <button key={mode} onClick={() => setAvatarMode(mode)} style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: 'none', background: avatarMode === mode ? '#FFFCF8' : 'transparent', color: avatarMode === mode ? '#3A3226' : '#9A8878', fontWeight: avatarMode === mode ? 600 : 400, cursor: 'pointer' }}>
-                    {mode === 'preset' ? 'Choose avatar' : 'Upload photo'}
-                  </button>
-                ))}
-              </div>
-              {avatarMode === 'preset' ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.5rem' }}>
-                  {PRESET_AVATARS.map((avatar) => (
-                    <div key={avatar.id} onClick={() => setSelectedPreset(avatar.id)} style={{ cursor: 'pointer', textAlign: 'center' }}>
-                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: avatar.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '1.1rem', border: selectedPreset === avatar.id ? '3px solid #D4845A' : '3px solid transparent', margin: '0 auto 0.25rem' }}>{avatar.label}</div>
-                      <div style={{ fontSize: '0.6rem', color: '#9A8878' }}>{avatar.name}</div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div>
-                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} style={{ display: 'none' }} id="avatar-upload-edit" />
-                  <label htmlFor="avatar-upload-edit" style={{ display: 'block', background: '#F5EFE6', border: '1.5px dashed #D9C9B0', borderRadius: '10px', padding: '1.5rem', textAlign: 'center', cursor: 'pointer' }}>
-                    {uploadedAvatarUrl || profile.avatar_url ? (
-                      <img src={uploadedAvatarUrl || profile.avatar_url} alt="Preview" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto' }} />
-                    ) : (
-                      <div style={{ color: '#9A8878', fontSize: '0.88rem' }}>Click to upload (JPG, PNG, WebP — max 2MB)</div>
-                    )}
-                  </label>
-                  {avatarError && <div style={{ color: '#B56840', fontSize: '0.82rem', marginTop: '0.5rem' }}>{avatarError}</div>}
-                </div>
-              )}
-            </div>
+<div style={sectionStyle}>
+  <label style={labelStyle}>Profile picture (optional)</label>
+
+  {/* Style selector */}
+  <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '10px', padding: '4px', gap: '4px', marginBottom: '1rem', flexWrap: 'wrap' }}>
+    {getAvailableStyles().map((style) => (
+      <button key={style.id} onClick={() => { setAvatarStyle(style.id); setAvatarSeeds(generateSeeds()); }}
+        style={{ flex: 1, padding: '0.4rem 0.5rem', borderRadius: '8px', border: 'none', background: avatarStyle === style.id ? '#FFFCF8' : 'transparent', color: avatarStyle === style.id ? '#3A3226' : '#9A8878', fontWeight: avatarStyle === style.id ? 600 : 400, cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+        {style.name}
+      </button>
+    ))}
+  </div>
+
+  {/* Avatar grid */}
+  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
+    {avatarSeeds.map((seed) => {
+      const url = 'https://api.dicebear.com/7.x/' + avatarStyle + '/svg?seed=' + seed + '&backgroundColor=f5efe6';
+      return (
+        <div key={seed} onClick={() => setSelectedAvatarUrl(url)}
+          style={{ cursor: 'pointer', borderRadius: '10px', border: '2px solid ' + (selectedAvatarUrl === url ? '#D4845A' : 'transparent'), padding: '4px', background: selectedAvatarUrl === url ? '#FDF0E8' : 'transparent' }}>
+          <img src={url} alt="avatar option" style={{ width: '100%', borderRadius: '8px' }} />
+        </div>
+      );
+    })}
+  </div>
+
+  <button onClick={() => setAvatarSeeds(generateSeeds())}
+    style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.78rem', padding: '0.4rem 0.9rem', cursor: 'pointer', marginBottom: '1rem' }}>
+    Regenerate options
+  </button>
+
+  {/* Upload option */}
+  <div style={{ borderTop: '1px solid #EDE3D4', paddingTop: '0.75rem' }}>
+    <div style={{ fontSize: '0.75rem', color: '#9A8878', marginBottom: '0.5rem' }}>Or upload your own photo (JPG, PNG, WebP — max 2MB)</div>
+    <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} style={{ display: 'none' }} id="avatar-upload" />
+    <label htmlFor="avatar-upload" style={{ display: 'inline-block', background: '#F5EFE6', border: '1.5px dashed #D9C9B0', borderRadius: '8px', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.82rem', color: '#6B5D4E' }}>
+      {uploadedAvatarUrl ? 'Photo selected' : 'Choose photo'}
+    </label>
+    {uploadedAvatarUrl && <img src={uploadedAvatarUrl} alt="upload preview" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', marginLeft: '0.75rem', verticalAlign: 'middle' }} />}
+    {avatarError && <div style={{ color: '#B56840', fontSize: '0.82rem', marginTop: '0.5rem' }}>{avatarError}</div>}
+  </div>
+</div>
 
             <div style={sectionStyle}>
               <label style={labelStyle}>Bio</label>
