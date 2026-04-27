@@ -9,14 +9,28 @@ const GENRES = [
   'Romance','Romantic Comedy','Sci-Fi','Spy','Suspense','Thriller','Open Genre'
 ];
 
-const PRESET_AVATARS = [
-  { id: 'quill', label: 'Q', bg: '#5B9EC9', name: 'The Quill' },
-  { id: 'owl', label: 'O', bg: '#D4845A', name: 'The Owl' },
-  { id: 'star', label: 'S', bg: '#6BAF72', name: 'The Star' },
-  { id: 'moon', label: 'M', bg: '#B07AC0', name: 'The Moon' },
-  { id: 'wave', label: 'W', bg: '#2E6DA4', name: 'The Wave' },
-  { id: 'flame', label: 'F', bg: '#E86A3A', name: 'The Flame' },
-];
+const AVATAR_STYLES = {
+  standard: [
+    { id: 'notionists', name: 'Notionists' },
+    { id: 'lorelei', name: 'Lorelei' },
+  ],
+  teacher: [
+    { id: 'notionists', name: 'Notionists' },
+    { id: 'lorelei', name: 'Lorelei' },
+  ],
+  minor: [
+    { id: 'notionists', name: 'Notionists' },
+    { id: 'lorelei', name: 'Lorelei' },
+    { id: 'bottts', name: 'Bottts' },
+    { id: 'fun-emoji', name: 'Fun Emoji' },
+  ],
+  student: [
+    { id: 'bottts', name: 'Bottts' },
+    { id: 'fun-emoji', name: 'Fun Emoji' },
+  ],
+};
+
+const generateSeeds = () => Array.from({ length: 4 }, () => Math.random().toString(36).substring(2, 8));
 
 const SUBJECTS = ['English','Creative Writing','Language Arts','Literature','Other'];
 const REGIONS = ['North America','South America','Europe','Asia','Africa','Australia/Oceania','Other'];

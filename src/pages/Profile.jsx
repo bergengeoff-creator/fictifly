@@ -31,7 +31,6 @@ const AVATAR_STYLES = {
 };
 
 const generateSeeds = () => Array.from({ length: 4 }, () => Math.random().toString(36).substring(2, 8));
-];
 
 const SUBJECTS = ['English','Creative Writing','Language Arts','Literature','Other'];
 const REGIONS = ['North America','South America','Europe','Asia','Africa','Australia/Oceania','Other'];
@@ -63,6 +62,10 @@ export default function Profile() {
 
   const isTeacher = profile && profile.account_type === 'teacher';
   const isMinor = profile && profile.account_type === 'minor';
+  const getAvailableStyles = () => AVATAR_STYLES[profile ? profile.account_type : 'standard'] || AVATAR_STYLES.standard;
+const [avatarStyle, setAvatarStyle] = useState(() => getAvailableStyles()[0].id);
+const [avatarSeeds, setAvatarSeeds] = useState(generateSeeds());
+const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(profile ? profile.avatar_url : null);
 
   const getAvatarDisplay = () => {
     if (profile.avatar_url) return <img src={profile.avatar_url} alt="avatar" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover' }} />;
@@ -119,8 +122,8 @@ export default function Profile() {
       }
     }
 
-    let avatarUrl = profile.avatar_url;
-    if (avatarMode === 'upload' && uploadedAvatar) {
+let avatarUrl = selectedAvatarUrl || profile.avatar_url;
+if (uploadedAvatar) {
       const fileExt = uploadedAvatar.name.split('.').pop();
       const filePath = user.id + '/avatar.' + fileExt;
       const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, uploadedAvatar, { upsert: true });
@@ -133,8 +136,8 @@ export default function Profile() {
       username: username.trim(),
       display_name: displayName.trim(),
       bio: bio.trim() || null,
-      avatar_url: avatarMode === 'upload' ? avatarUrl : null,
-      avatar_preset: avatarMode === 'preset' ? selectedPreset : null,
+      avatar_url: uploadedAvatar ? avatarUrl : selectedAvatarUrl,
+avatar_preset: null,
       favourite_genres: selectedGenres.length > 0 ? selectedGenres : null,
       profile_public: profilePublic,
       profile_complete: true,
