@@ -48,7 +48,6 @@ export default function Profile() {
   const [selectedPreset, setSelectedPreset] = useState(profile ? profile.avatar_preset || null : null);
   const [uploadedAvatar, setUploadedAvatar] = useState(null);
   const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState(null);
-  const [avatarMode, setAvatarMode] = useState(profile && profile.avatar_url ? 'upload' : 'preset');
   const [selectedGenres, setSelectedGenres] = useState(profile ? profile.favourite_genres || [] : []);
   const [customGenre, setCustomGenre] = useState('');
   const [profilePublic, setProfilePublic] = useState(profile ? profile.profile_public : false);

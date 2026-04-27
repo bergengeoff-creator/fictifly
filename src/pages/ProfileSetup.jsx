@@ -46,10 +46,8 @@ export default function ProfileSetup() {
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
-  const [selectedPreset, setSelectedPreset] = useState(null);
   const [uploadedAvatar, setUploadedAvatar] = useState(null);
   const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState(null);
-  const [avatarMode, setAvatarMode] = useState('preset');
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [customGenre, setCustomGenre] = useState('');
   const [profilePublic, setProfilePublic] = useState(null);
