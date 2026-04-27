@@ -1,0 +1,281 @@
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { supabase } from '../supabase';
+import { useAuth } from '../context/AuthContext';
+
+const GENRES = [
+  'Action/Adventure','Comedy','Crime Caper','Drama','Fairy Tale','Fantasy',
+  'Ghost Story','Historical Fiction','Horror','Mystery','Political Satire',
+  'Romance','Romantic Comedy','Sci-Fi','Spy','Suspense','Thriller','Open Genre'
+];
+
+const PRESET_AVATARS = [
+  { id: 'quill', label: 'Q', bg: '#5B9EC9', name: 'The Quill' },
+  { id: 'owl', label: 'O', bg: '#D4845A', name: 'The Owl' },
+  { id: 'star', label: 'S', bg: '#6BAF72', name: 'The Star' },
+  { id: 'moon', label: 'M', bg: '#B07AC0', name: 'The Moon' },
+  { id: 'wave', label: 'W', bg: '#2E6DA4', name: 'The Wave' },
+  { id: 'flame', label: 'F', bg: '#E86A3A', name: 'The Flame' },
+];
+
+const SUBJECTS = ['English','Creative Writing','Language Arts','Literature','Other'];
+const REGIONS = ['North America','South America','Europe','Asia','Africa','Australia/Oceania','Other'];
+
+const inputStyle = { width: '100%', background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#3A3226', fontFamily: 'sans-serif', fontSize: '0.95rem', padding: '0.6rem 0.9rem', outline: 'none' };
+const labelStyle = { fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.5rem' };
+const sectionStyle = { background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', marginBottom: '1rem' };
+
+export default function Profile() {
+  const { user, profile, fetchProfile } = useAuth();
+  const navigate = useNavigate();
+  const [editing, setEditing] = useState(false);
+  const [displayName, setDisplayName] = useState(profile ? profile.display_name || '' : '');
+  const [bio, setBio] = useState(profile ? profile.bio || '' : '');
+  const [selectedPreset, setSelectedPreset] = useState(profile ? profile.avatar_preset || null : null);
+  const [uploadedAvatar, setUploadedAvatar] = useState(null);
+  const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState(null);
+  const [avatarMode, setAvatarMode] = useState(profile && profile.avatar_url ? 'upload' : 'preset');
+  const [selectedGenres, setSelectedGenres] = useState(profile ? profile.favourite_genres || [] : []);
+  const [customGenre, setCustomGenre] = useState('');
+  const [profilePublic, setProfilePublic] = useState(profile ? profile.profile_public : false);
+  const [schoolName, setSchoolName] = useState(profile ? profile.school_name || '' : '');
+  const [subject, setSubject] = useState(profile ? profile.subject || '' : '');
+  const [region, setRegion] = useState(profile ? profile.region || '' : '');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const [avatarError, setAvatarError] = useState(null);
+
+  const isTeacher = profile && profile.account_type === 'teacher';
+
+  const getAvatarDisplay = () => {
+    if (profile.avatar_url) return <img src={profile.avatar_url} alt="avatar" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover' }} />;
+    if (profile.avatar_preset) {
+      const preset = PRESET_AVATARS.find(a => a.id === profile.avatar_preset);
+      if (preset) return <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: preset.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '1.8rem' }}>{preset.label}</div>;
+    }
+    return <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#EDE3D4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9A8878', fontWeight: 700, fontSize: '1.8rem' }}>{profile.username ? profile.username[0].toUpperCase() : 'W'}</div>;
+  };
+
+  const handleAvatarUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const allowedTypes = ['image/jpeg','image/png','image/webp'];
+    if (!allowedTypes.includes(file.type)) { setAvatarError('Only JPG, PNG, and WebP files are allowed.'); return; }
+    if (file.size > 2 * 1024 * 1024) { setAvatarError('File must be under 2MB.'); return; }
+    setAvatarError(null);
+    setUploadedAvatar(file);
+    setUploadedAvatarUrl(URL.createObjectURL(file));
+    setSelectedPreset(null);
+  };
+
+  const toggleGenre = (genre) => {
+    setSelectedGenres(prev => prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]);
+  };
+
+  const addCustomGenre = () => {
+    const trimmed = customGenre.trim();
+    if (trimmed && !selectedGenres.includes(trimmed)) {
+      setSelectedGenres(prev => [...prev, trimmed]);
+      setCustomGenre('');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!displayName.trim()) { setError('Display name is required.'); return; }
+    setLoading(true);
+    setError(null);
+    let avatarUrl = profile.avatar_url;
+    if (avatarMode === 'upload' && uploadedAvatar) {
+      const fileExt = uploadedAvatar.name.split('.').pop();
+      const filePath = user.id + '/avatar.' + fileExt;
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, uploadedAvatar, { upsert: true });
+      if (uploadError) { setError('Avatar upload failed: ' + uploadError.message); setLoading(false); return; }
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      avatarUrl = urlData.publicUrl;
+    }
+    const updates = {
+      display_name: displayName.trim(),
+      bio: bio.trim() || null,
+      avatar_url: avatarMode === 'upload' ? avatarUrl : null,
+      avatar_preset: avatarMode === 'preset' ? selectedPreset : null,
+      favourite_genres: selectedGenres.length > 0 ? selectedGenres : null,
+      profile_public: profilePublic,
+      profile_complete: true,
+      school_name: isTeacher && schoolName ? schoolName.trim() : null,
+      subject: isTeacher && subject ? subject : null,
+      region: region || null,
+    };
+    const { error: updateError } = await supabase.from('users').update(updates).eq('id', user.id);
+    if (updateError) { setError('Failed to save: ' + updateError.message); setLoading(false); return; }
+    await fetchProfile(user.id);
+    setLoading(false);
+    setSuccess(true);
+    setEditing(false);
+    setTimeout(() => setSuccess(false), 3000);
+  };
+
+  if (!profile) return null;
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#F5EFE6', fontFamily: 'sans-serif', color: '#3A3226', padding: '0 1.25rem 5rem' }}>
+      <div style={{ maxWidth: '640px', margin: '0 auto', padding: '1.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #D9C9B0', marginBottom: '2.5rem' }}>
+        <Link to="/dashboard" style={{ color: '#6B5D4E', textDecoration: 'none', fontSize: '0.85rem' }}>Back to dashboard</Link>
+        <div style={{ fontSize: '1.3rem', fontWeight: 700 }}>Fictifly</div>
+      </div>
+
+      <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {getAvatarDisplay()}
+            <div>
+              <h1 style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '0.2rem' }}>{profile.display_name || profile.username}</h1>
+              <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>@{profile.username}</div>
+              <div style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.2rem' }}>
+                {profile.account_type === 'teacher' ? 'Educator' : profile.account_type === 'minor' ? 'Student' : 'Writer'} · {profile.profile_public ? 'Public profile' : 'Private profile'}
+              </div>
+            </div>
+          </div>
+          <button onClick={() => setEditing(!editing)} style={{ background: editing ? 'transparent' : '#2E6DA4', color: editing ? '#6B5D4E' : '#FFFCF8', border: '1px solid ' + (editing ? '#D9C9B0' : '#2E6DA4'), borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+            {editing ? 'Cancel' : 'Edit profile'}
+          </button>
+        </div>
+
+        {success && (
+          <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', color: '#3A7040', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>
+            Profile saved successfully!
+          </div>
+        )}
+
+        {!editing ? (
+          <div>
+            <div style={sectionStyle}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>About</div>
+              {profile.bio ? (
+                <p style={{ color: '#3A3226', lineHeight: 1.65, fontSize: '0.95rem' }}>{profile.bio}</p>
+              ) : (
+                <p style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>No bio yet.</p>
+              )}
+            </div>
+
+            {profile.favourite_genres && profile.favourite_genres.length > 0 && (
+              <div style={sectionStyle}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Favourite genres</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  {profile.favourite_genres.map(g => (
+                    <span key={g} style={{ padding: '0.3rem 0.75rem', borderRadius: '20px', background: '#EDE3D4', color: '#6B5D4E', fontSize: '0.78rem' }}>{g}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {isTeacher && (profile.school_name || profile.subject || profile.region) && (
+              <div style={sectionStyle}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Educator info</div>
+                {profile.school_name && <div style={{ fontSize: '0.9rem', color: '#3A3226', marginBottom: '0.3rem' }}>{profile.school_name}</div>}
+                {profile.subject && <div style={{ fontSize: '0.85rem', color: '#6B5D4E', marginBottom: '0.3rem' }}>{profile.subject}</div>}
+                {profile.region && <div style={{ fontSize: '0.85rem', color: '#9A8878' }}>{profile.region}</div>}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <div style={sectionStyle}>
+              <label style={labelStyle}>Display name <span style={{ color: '#D4845A' }}>*</span></label>
+              <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} style={inputStyle} />
+            </div>
+
+            <div style={sectionStyle}>
+              <label style={labelStyle}>Profile picture</label>
+              <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '10px', padding: '4px', gap: '4px', marginBottom: '1rem' }}>
+                {['preset','upload'].map((mode) => (
+                  <button key={mode} onClick={() => setAvatarMode(mode)} style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: 'none', background: avatarMode === mode ? '#FFFCF8' : 'transparent', color: avatarMode === mode ? '#3A3226' : '#9A8878', fontWeight: avatarMode === mode ? 600 : 400, cursor: 'pointer' }}>
+                    {mode === 'preset' ? 'Choose avatar' : 'Upload photo'}
+                  </button>
+                ))}
+              </div>
+              {avatarMode === 'preset' ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.5rem' }}>
+                  {PRESET_AVATARS.map((avatar) => (
+                    <div key={avatar.id} onClick={() => setSelectedPreset(avatar.id)} style={{ cursor: 'pointer', textAlign: 'center' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: avatar.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '1.1rem', border: selectedPreset === avatar.id ? '3px solid #D4845A' : '3px solid transparent', margin: '0 auto 0.25rem' }}>{avatar.label}</div>
+                      <div style={{ fontSize: '0.6rem', color: '#9A8878' }}>{avatar.name}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div>
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} style={{ display: 'none' }} id="avatar-upload-edit" />
+                  <label htmlFor="avatar-upload-edit" style={{ display: 'block', background: '#F5EFE6', border: '1.5px dashed #D9C9B0', borderRadius: '10px', padding: '1.5rem', textAlign: 'center', cursor: 'pointer' }}>
+                    {uploadedAvatarUrl || profile.avatar_url ? (
+                      <img src={uploadedAvatarUrl || profile.avatar_url} alt="Preview" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', margin: '0 auto' }} />
+                    ) : (
+                      <div style={{ color: '#9A8878', fontSize: '0.88rem' }}>Click to upload (JPG, PNG, WebP — max 2MB)</div>
+                    )}
+                  </label>
+                  {avatarError && <div style={{ color: '#B56840', fontSize: '0.82rem', marginTop: '0.5rem' }}>{avatarError}</div>}
+                </div>
+              )}
+            </div>
+
+            <div style={sectionStyle}>
+              <label style={labelStyle}>Bio</label>
+              <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell the community a little about yourself..." maxLength={200} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+              <div style={{ fontSize: '0.75rem', color: '#9A8878', textAlign: 'right', marginTop: '0.25rem' }}>{bio.length}/200</div>
+            </div>
+
+            <div style={sectionStyle}>
+              <label style={labelStyle}>Favourite genres</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                {GENRES.map((genre) => (
+                  <button key={genre} onClick={() => toggleGenre(genre)} style={{ padding: '0.3rem 0.75rem', borderRadius: '20px', border: '1.5px solid ' + (selectedGenres.includes(genre) ? '#D4845A' : '#D9C9B0'), background: selectedGenres.includes(genre) ? '#D4845A' : 'transparent', color: selectedGenres.includes(genre) ? '#FFFCF8' : '#6B5D4E', fontSize: '0.78rem', cursor: 'pointer' }}>
+                    {genre}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input type="text" value={customGenre} onChange={(e) => setCustomGenre(e.target.value)} placeholder="Add your own genre..." style={{ ...inputStyle, flex: 1 }} onKeyDown={(e) => { if (e.key === 'Enter') addCustomGenre(); }} />
+                <button onClick={addCustomGenre} style={{ background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0 1rem', cursor: 'pointer', fontWeight: 600 }}>Add</button>
+              </div>
+            </div>
+
+            {isTeacher && (
+              <div style={sectionStyle}>
+                <label style={labelStyle}>School or institution</label>
+                <input type="text" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="e.g. Lincoln High School" style={{ ...inputStyle, marginBottom: '0.75rem' }} />
+                <label style={labelStyle}>Subject</label>
+                <select value={subject} onChange={(e) => setSubject(e.target.value)} style={{ ...inputStyle, marginBottom: '0.75rem', appearance: 'none' }}>
+                  <option value="">Select a subject...</option>
+                  {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <label style={labelStyle}>Region</label>
+                <select value={region} onChange={(e) => setRegion(e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
+                  <option value="">Select a region...</option>
+                  {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+            )}
+
+            <div style={sectionStyle}>
+              <label style={labelStyle}>Profile visibility <span style={{ color: '#D4845A' }}>*</span></label>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                {[{ value: true, label: 'Public', desc: 'Visible to the community' },{ value: false, label: 'Private', desc: 'Only visible to you' }].map((option) => (
+                  <div key={String(option.value)} onClick={() => setProfilePublic(option.value)} style={{ flex: 1, padding: '0.85rem', borderRadius: '10px', border: '1.5px solid ' + (profilePublic === option.value ? '#D4845A' : '#D9C9B0'), background: profilePublic === option.value ? '#FDF0E8' : 'transparent', cursor: 'pointer' }}>
+                    <div style={{ fontWeight: 600, color: '#3A3226', marginBottom: '0.2rem' }}>{option.label}</div>
+                    <div style={{ fontSize: '0.78rem', color: '#9A8878' }}>{option.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginBottom: '1rem' }}>{error}</div>}
+
+            <button onClick={handleSave} disabled={loading} style={{ background: loading ? '#D9C9B0' : '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '10px', padding: '0.85rem', fontWeight: 600, fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer', width: '100%' }}>
+              {loading ? 'Saving...' : 'Save changes'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
