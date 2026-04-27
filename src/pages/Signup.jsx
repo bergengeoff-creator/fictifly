@@ -23,6 +23,14 @@ const isSchoolEmail = (email) => {
   return !personalDomains.includes(domain.toLowerCase());
 };
 
+const handleGoogleSignup = async () => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: window.location.origin + "/profile-setup" },
+  });
+  if (error) setError(error.message);
+};
+
 export default function Signup() {
   const { state } = useLocation();
   const isMinor = state ? state.isMinor : false;
