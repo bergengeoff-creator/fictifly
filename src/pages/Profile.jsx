@@ -45,7 +45,6 @@ export default function Profile() {
   const [displayName, setDisplayName] = useState(profile ? profile.display_name || '' : '');
   const [username, setUsername] = useState(profile ? profile.username || '' : '');
   const [bio, setBio] = useState(profile ? profile.bio || '' : '');
-  const [selectedPreset, setSelectedPreset] = useState(profile ? profile.avatar_preset || null : null);
   const [uploadedAvatar, setUploadedAvatar] = useState(null);
   const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState(null);
   const [selectedGenres, setSelectedGenres] = useState(profile ? profile.favourite_genres || [] : []);
@@ -80,7 +79,6 @@ const getAvatarDisplay = () => {
     setAvatarError(null);
     setUploadedAvatar(file);
     setUploadedAvatarUrl(URL.createObjectURL(file));
-    setSelectedPreset(null);
   };
 
   const toggleGenre = (genre) => {
