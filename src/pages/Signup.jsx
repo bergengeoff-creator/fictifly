@@ -47,7 +47,16 @@ export default function Signup() {
     const minorEmail = username.toLowerCase() + '@minor.fictifly.com';
     const { data, error: signUpError } = await supabase.auth.signUp({ email: minorEmail, password: passcode });
     if (signUpError) { setError(signUpError.message); setLoading(false); return; }
-    await supabase.from('users').insert({ id: data.user.id, username, account_type: 'minor', is_minor: true, age_verified: true });
+    if (data && data.user) {
+      const { error: insertError } = await supabase.from('users').insert({
+        id: data.user.id,
+        username: username,
+        account_type: 'minor',
+        is_minor: true,
+        age_verified: true
+      });
+      if (insertError) { setError('Profile error: ' + insertError.message); setLoading(false); return; }
+    }
     setLoading(false);
     navigate('/dashboard');
   };
@@ -63,7 +72,17 @@ export default function Signup() {
     setLoading(true);
     const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
     if (signUpError) { setError(signUpError.message); setLoading(false); return; }
-    await supabase.from('users').insert({ id: data.user.id, username, account_type: accountType === 'teacher' ? 'teacher' : 'standard', is_minor: false, age_verified: true });
+    if (data && data.user) {
+      const profileData = {
+        id: data.user.id,
+        username: username,
+        account_type: accountType === 'teacher' ? 'teacher' : 'standard',
+        is_minor: false,
+        age_verified: true
+      };
+      const { error: insertError } = await supabase.from('users').insert(profileData);
+      if (insertError) { setError('Profile error: ' + insertError.message); setLoading(false); return; }
+    }
     setLoading(false);
     navigate('/dashboard');
   };
@@ -95,10 +114,10 @@ export default function Signup() {
               <div style={{ fontSize: '0.75rem', color: '#6B5D4E', marginTop: '0.25rem' }}>Write this down — you will need it to log in!</div>
             </div>
             <label style={labelStyle}>Passcode (4-6 digits)
-              <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} maxLength={6} placeholder="      " style={inputStyle} />
+              <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} maxLength={6} style={inputStyle} />
             </label>
             <label style={{ ...labelStyle, marginTop: '0.75rem' }}>Confirm passcode
-              <input type="password" value={confirmPasscode} onChange={(e) => setConfirmPasscode(e.target.value)} maxLength={6} placeholder="      " style={inputStyle} />
+              <input type="password" value={confirmPasscode} onChange={(e) => setConfirmPasscode(e.target.value)} maxLength={6} style={inputStyle} />
             </label>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', marginTop: '1rem', cursor: 'pointer' }}>
               <input type="checkbox" checked={parentConsent} onChange={(e) => setParentConsent(e.target.checked)} style={{ marginTop: '3px' }} />
