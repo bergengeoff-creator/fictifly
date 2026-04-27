@@ -11,6 +11,18 @@ const generateUsername = () => {
   return adj + noun + num;
 };
 
+const personalDomains = [
+  'gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com',
+  'aol.com','live.com','msn.com','me.com','mac.com','protonmail.com',
+  'mail.com','ymail.com','googlemail.com'
+];
+
+const isSchoolEmail = (email) => {
+  const domain = email.split('@')[1];
+  if (!domain) return false;
+  return !personalDomains.includes(domain.toLowerCase());
+};
+
 export default function Signup() {
   const { state } = useLocation();
   const isMinor = state ? state.isMinor : false;
@@ -44,10 +56,14 @@ export default function Signup() {
     if (!email || !password) { setError('Please fill in all fields.'); return; }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
+    if (accountType === 'teacher' && !isSchoolEmail(email)) {
+      setError('Educator accounts require a school or institutional email address. Personal email providers like Gmail or Outlook are not accepted.');
+      return;
+    }
     setLoading(true);
     const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
     if (signUpError) { setError(signUpError.message); setLoading(false); return; }
-    await supabase.from('users').insert({ id: data.user.id, username, account_type: isTeacher ? 'teacher' : 'standard', is_minor: false, age_verified: true });
+    await supabase.from('users').insert({ id: data.user.id, username, account_type: accountType === 'teacher' ? 'teacher' : 'standard', is_minor: false, age_verified: true });
     setLoading(false);
     navigate('/dashboard');
   };
@@ -63,7 +79,7 @@ export default function Signup() {
         {!isMinor && (
           <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '10px', padding: '4px', gap: '4px', marginBottom: '1.5rem' }}>
             {['standard', 'teacher'].map((type) => (
-              <button key={type} onClick={() => setAccountType(type)}
+              <button key={type} onClick={() => { setAccountType(type); setError(null); }}
                 style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: 'none', background: accountType === type ? '#FFFCF8' : 'transparent', color: accountType === type ? '#3A3226' : '#9A8878', fontWeight: accountType === type ? 600 : 400, cursor: 'pointer' }}>
                 {type === 'teacher' ? 'Educator' : 'Writer'}
               </button>
@@ -79,10 +95,10 @@ export default function Signup() {
               <div style={{ fontSize: '0.75rem', color: '#6B5D4E', marginTop: '0.25rem' }}>Write this down — you will need it to log in!</div>
             </div>
             <label style={labelStyle}>Passcode (4-6 digits)
-              <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} maxLength={6} placeholder="••••••" style={inputStyle} />
+              <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} maxLength={6} placeholder="      " style={inputStyle} />
             </label>
             <label style={{ ...labelStyle, marginTop: '0.75rem' }}>Confirm passcode
-              <input type="password" value={confirmPasscode} onChange={(e) => setConfirmPasscode(e.target.value)} maxLength={6} placeholder="••••••" style={inputStyle} />
+              <input type="password" value={confirmPasscode} onChange={(e) => setConfirmPasscode(e.target.value)} maxLength={6} placeholder="      " style={inputStyle} />
             </label>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', marginTop: '1rem', cursor: 'pointer' }}>
               <input type="checkbox" checked={parentConsent} onChange={(e) => setParentConsent(e.target.checked)} style={{ marginTop: '3px' }} />
@@ -91,9 +107,15 @@ export default function Signup() {
           </div>
         ) : (
           <div>
-            <label style={labelStyle}>Email address
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} />
+            <label style={labelStyle}>
+              {accountType === 'teacher' ? 'School or institutional email address' : 'Email address'}
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={accountType === 'teacher' ? 'you@school.edu' : 'you@example.com'} style={inputStyle} />
             </label>
+            {accountType === 'teacher' && (
+              <p style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.4rem' }}>
+                Educator accounts require a school or institutional email. Personal emails are not accepted.
+              </p>
+            )}
             <label style={{ ...labelStyle, marginTop: '0.75rem' }}>Password
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" style={inputStyle} />
             </label>
