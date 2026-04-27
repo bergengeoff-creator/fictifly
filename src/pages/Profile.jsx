@@ -67,12 +67,8 @@ const [avatarStyle, setAvatarStyle] = useState(() => getAvailableStyles()[0].id)
 const [avatarSeeds, setAvatarSeeds] = useState(generateSeeds());
 const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(profile ? profile.avatar_url : null);
 
-  const getAvatarDisplay = () => {
+const getAvatarDisplay = () => {
     if (profile.avatar_url) return <img src={profile.avatar_url} alt="avatar" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover' }} />;
-    if (profile.avatar_preset) {
-      const preset = PRESET_AVATARS.find(a => a.id === profile.avatar_preset);
-      if (preset) return <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: preset.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '1.8rem' }}>{preset.label}</div>;
-    }
     return <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#EDE3D4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9A8878', fontWeight: 700, fontSize: '1.8rem' }}>{profile.username ? profile.username[0].toUpperCase() : 'W'}</div>;
   };
 
