@@ -1,4 +1,3 @@
-cat > src/pages/Signup.jsx << 'ENDOFFILE'
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
@@ -38,7 +37,7 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isTeacher, setIsTeacher] = useState(false);
-  const [parentConsent, setParentConsent] = useState('');
+  const [parentConsent, setParentConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -218,4 +217,3 @@ export default function Signup() {
     </div>
   );
 }
-ENDOFFILE
