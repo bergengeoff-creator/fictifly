@@ -248,7 +248,7 @@ export default function ClassroomDashboard() {
                   <input type="text" value={bulkPrefix} onChange={(e) => setBulkPrefix(e.target.value.replace(/\s/g, ''))} placeholder="e.g. MrsSmith_Period1" style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
                 </label>
                 <div style={{ fontSize: '0.75rem', color: '#9A8878', marginBottom: '0.75rem' }}>Usernames will look like: <strong>{bulkPrefix || 'Prefix'}_SwiftFalcon42</strong></div>
-                <label style={labelStyle}>Number of accounts (max 50)
+                <label style={labelStyle}>Number of accounts (max 30)
                   <input type="number" value={bulkCount} onChange={(e) => setBulkCount(Math.min(50, Math.max(1, parseInt(e.target.value) || 1)))} min={1} max={50} style={{ ...inputStyle, marginTop: '0.4rem' }} />
                 </label>
                 {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginTop: '0.75rem', fontSize: '0.85rem' }}>{error}</div>}
