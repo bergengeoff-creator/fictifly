@@ -73,7 +73,6 @@ const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(null);
     setAvatarError(null);
     setUploadedAvatar(file);
     setUploadedAvatarUrl(URL.createObjectURL(file));
-    setSelectedPreset(null);
   };
 
   const toggleGenre = (genre) => {
