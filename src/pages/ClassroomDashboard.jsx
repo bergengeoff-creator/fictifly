@@ -160,27 +160,26 @@ if (bulkCount < 1 || bulkCount > 30) { setError('Please generate between 1 and 3
 
         {view === 'classes' && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
                 <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.4rem' }}>Educator</div>
                 <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>My Classes</h1>
               </div>
-<>
-  <button onClick={() => {
-    if (classes.length >= 1 && profile.account_type !== 'premium') {
-      setError('Free accounts are limited to 1 class. Contact us to upgrade for unlimited classes.');
-      return;
-    }
-    setError(null);
-    setShowCreateClass(true);
-  }} style={btnPrimary}>+ New Class</button>
+              <button onClick={() => {
+                if (classes.length >= 1 && profile.account_type !== 'premium') {
+                  setError('Free accounts are limited to 1 class. Contact us to upgrade for unlimited classes.');
+                  return;
+                }
+                setError(null);
+                setShowCreateClass(true);
+              }} style={btnPrimary}>+ New Class</button>
+            </div>
 
-{error && !showCreateClass && (
-    <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', color: '#B56840', padding: '0.85rem 1.1rem', marginTop: '1rem', fontSize: '0.85rem' }}>
-      {error}
-    </div>
-  )}
-</>
+            {error && !showCreateClass && (
+              <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', color: '#B56840', padding: '0.85rem 1.1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                {error}
+              </div>
+            )}
 
             {success && <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', color: '#3A7040', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>{success}</div>}
 
