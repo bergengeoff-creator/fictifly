@@ -103,30 +103,36 @@ export default function ClassroomDashboard() {
     setTimeout(() => setSuccess(null), 3000);
   };
 
-  const handleBulkGenerate = async () => {
-    if (!bulkPrefix.trim()) { setError('Please enter a username prefix.'); return; }
-    if (classMembers.length + bulkCount > 30 && profile.account_type !== 'premium') {
-  setError('Free accounts are limited to 30 students per class. Contact us at upgrade@fictifly.com to add more.');
-  return;
-}
-    setError(null);
-    const accounts = [];
-    for (let i = 0; i < bulkCount; i++) {
-      const username = generateUsername(bulkPrefix.trim());
-      const passcode = generatePasscode();
-      const minorEmail = username.toLowerCase() + '@student.fictifly.com';
-      const { data, error: signUpError } = await supabase.auth.signUp({ email: minorEmail, password: passcode });
-      if (signUpError) { setError('Error creating account: ' + signUpError.message); setGenerating(false); return; }
-      if (data && data.user) {
-        await supabase.from('users').insert({ id: data.user.id, username, account_type: 'student', is_minor: true, age_verified: true, profile_public: false, profile_complete: true, display_name: username });
-        await supabase.from('class_members').insert({ class_id: selectedClass.id, student_id: data.user.id });
-        accounts.push({ username, passcode });
-      }
-    }
-    setGeneratedAccounts(accounts);
-    setGenerating(false);
+const handleBulkGenerate = async () => {
+  if (!bulkPrefix.trim()) { setError('Please enter a username prefix.'); return; }
+if (bulkCount < 1 || bulkCount > 30) { setError('Please generate between 1 and 30 accounts.'); return; } 
+ if (classMembers.length + bulkCount > 30 && profile.account_type !== 'premium') {
+    setError('Free accounts are limited to 30 students per class. Contact us at upgrade@fictifly.com to add more.');
+    return;
+  }
+  setGenerating(true);
+  setError(null);
+
+  const accounts = Array.from({ length: bulkCount }, () => ({
+    username: generateUsername(bulkPrefix.trim()),
+    passcode: generatePasscode(),
+  }));
+
+  try {
+    const response = await fetch('/api/create-students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accounts, classId: selectedClass.id }),
+    });
+    const data = await response.json();
+    const successful = data.results.filter(r => r.success);
+    setGeneratedAccounts(successful);
     await fetchClassMembers(selectedClass.id);
-  };
+  } catch (e) {
+    setError('Something went wrong generating accounts. Please try again.');
+  }
+  setGenerating(false);
+};
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
