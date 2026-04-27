@@ -91,7 +91,7 @@ if (existing) { setError('That username is already taken. Please choose another.
     }
 const updates = {
   username: username.trim(),
-  display_name: displayName.trim(),      display_name: displayName.trim(),
+  display_name: displayName.trim(),
       bio: bio.trim() || null,
       avatar_url: avatarUrl,
       avatar_preset: avatarMode === 'preset' ? selectedPreset : null,

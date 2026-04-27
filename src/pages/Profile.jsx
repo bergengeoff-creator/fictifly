@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 
@@ -27,7 +27,6 @@ const sectionStyle = { background: '#FFFCF8', border: '1px solid #D9C9B0', borde
 
 export default function Profile() {
   const { user, profile, fetchProfile } = useAuth();
-  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(profile ? profile.display_name || '' : '');
   const [username, setUsername] = useState(profile ? profile.username || '' : '');
