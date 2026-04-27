@@ -58,7 +58,7 @@ export default function Signup() {
       if (insertError) { setError('Profile error: ' + insertError.message); setLoading(false); return; }
     }
     setLoading(false);
-    navigate('/dashboard');
+    navigate('/profile-setup');
   };
 
   const handleStandardSignup = async () => {
@@ -84,7 +84,7 @@ export default function Signup() {
       if (insertError) { setError('Profile error: ' + insertError.message); setLoading(false); return; }
     }
     setLoading(false);
-    navigate('/dashboard');
+    navigate('/profile-setup');
   };
 
   const inputStyle = { width: '100%', background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#3A3226', fontFamily: 'sans-serif', fontSize: '0.95rem', padding: '0.6rem 0.9rem', outline: 'none', marginTop: '0.4rem' };
