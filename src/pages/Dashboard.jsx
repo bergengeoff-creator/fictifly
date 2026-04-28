@@ -9,6 +9,8 @@ export default function Dashboard() {
   const [savedPrompts, setSavedPrompts] = useState([]);
   const [totalPromptsGenerated, setTotalPromptsGenerated] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
+  const [badgeCount, setBadgeCount] = useState(0);
+  const [earnedBadges, setEarnedBadges] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,6 +37,13 @@ export default function Dashboard() {
         .eq('user_id', user.id)
         .maybeSingle();
       setCurrentStreak(streakData ? streakData.current_streak : 0);
+      // Fetch badges
+const { data: badgeData } = await supabase
+  .from('user_badges')
+  .select('*, badges(*)')
+  .eq('user_id', user.id);
+setEarnedBadges(badgeData || []);
+setBadgeCount(badgeData ? badgeData.length : 0);
     };
     fetchData();
   }, [user]);
@@ -50,7 +59,7 @@ export default function Dashboard() {
     { label: 'Prompts Generated', value: totalPromptsGenerated },
     { label: 'Stories Submitted', value: '0' },
     { label: 'Day Streak', value: currentStreak },
-    { label: 'Saved Prompts', value: savedPrompts.length },
+    { label: 'Badges Earned', value: badgeCount },
   ];
 
   const generators = [
