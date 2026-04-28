@@ -113,7 +113,7 @@ const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') |
     : profile && profile.account_type === 'student' ? 15
     : profile && profile.account_type === 'minor' ? 10
     : 6;
-  const isPremium = profile && profile.account_const isUnlimited = profile && (profile.account_type === 'premium' || profile.account_type === 'teacher');type === 'premium';
+  const isUnlimited = profile && (profile.account_type === 'premium' || profile.account_type === 'teacher');
 
   useEffect(() => {
     fetchSavedPrompts();
