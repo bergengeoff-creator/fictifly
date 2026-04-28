@@ -188,7 +188,7 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
       });
       const data = await response.json();
       const text = data.content.map(b => b.text || '').join('');
-      const clean = text.replace(/\`\`\`json|\`\`\`/g, '').trim();
+      const clean = text.replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(clean);
       const result = parsed.map((p, i) => ({
         id: Date.now() + i,
@@ -204,7 +204,7 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
       setError('Something went wrong generating prompts. Please try again.');
     }
     setLoading(false);
-  }, [count, wordCount, selectedGenre, customGenre, usageCount, isPremium]);
+  }, [count, wordCount, selectedGenre, customGenre, usageCount, isPremium, trackUsage]);
 
   const savePrompt = async (prompt) => {
     const { data, error: saveError } = await supabase.from('saved_prompts').insert({
