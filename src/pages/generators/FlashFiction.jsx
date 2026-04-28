@@ -1,6 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useCallback, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../context/AuthContext';
 
