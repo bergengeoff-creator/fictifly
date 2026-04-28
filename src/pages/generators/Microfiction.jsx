@@ -388,7 +388,7 @@ const markWritten = async (savedPromptId) => {
                   {INSTRUCTIONS[wordCount]}
                 </div>
                 {prompts.map(p => (
-  <PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} />               ))}
+  <PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} />               ))}
               </div>
             )}
 
