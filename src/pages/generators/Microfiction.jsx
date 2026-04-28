@@ -99,8 +99,13 @@ const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') |
   const [usageCount, setUsageCount] = useState(0);
   const [loadingSaved, setLoadingSaved] = useState(false);
 
-  const FREE_LIMIT = 5;
-  const isPremium = profile && profile.account_type === 'premium';
+  const FREE_LIMIT = 5;const FREE_LIMIT = 
+    profile && profile.account_type === 'teacher' ? Infinity
+    : profile && profile.account_type === 'premium' ? Infinity
+    : profile && profile.account_type === 'student' ? 15
+    : profile && profile.account_type === 'minor' ? 10
+    : 6;
+  const isPremium = profile && profile.acconst isUnlimited = profile && (profile.account_type === 'premium' || profile.account_type === 'teacher');count_type === 'premium';
 
   useEffect(() => {
     fetchSavedPrompts();
