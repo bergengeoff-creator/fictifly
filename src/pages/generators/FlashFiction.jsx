@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import BadgeToast from '../../components/BadgeToast';
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -106,6 +107,7 @@ const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') |
   const [customGenre, setCustomGenre] = useState('');
   const [usageCount, setUsageCount] = useState(0);
   const [loadingSaved, setLoadingSaved] = useState(false);
+  const [newBadges, setNewBadges] = useState([]);
 
   const FREE_LIMIT = 
     profile && profile.account_type === 'teacher' ? Infinity
@@ -211,7 +213,15 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ userId: user.id }),
+});const badgeRes = await fetch('/api/check-badges', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ userId: user.id }),
 });
+const badgeData = await badgeRes.json();
+if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
+  setNewBadges(badgeData.newlyEarned);
+}
     } catch {
       setError('Something went wrong generating prompts. Please try again.');
     }
@@ -379,7 +389,8 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
             )}
           </div>
         )}
-      </div>
+        </div>
+      <BadgeToast badges={newBadges} onDismiss={() => setNewBadges([])} />
     </div>
   );
 }
