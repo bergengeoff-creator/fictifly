@@ -24,6 +24,7 @@ export default function PublicProfile() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [stories, setStories] = useState([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -90,7 +91,17 @@ export default function PublicProfile() {
 
       setStats({ prompts: totalPrompts, written: totalWritten, streak });
       setLoading(false);
-    };
+    }
+    // Fetch public stories
+const { data: storiesData } = await supabase
+  .from('submissions')
+  .select('*, saved_prompts(genre, word_count, action, word, location, object, prompt_type)')
+  .eq('user_id', profileData.id)
+  .eq('sharing', 'public')
+  .order('created_at', { ascending: false });
+setStories(storiesData || []);
+  };
+    
 
     fetchProfile();
   }, [username]);
@@ -218,7 +229,30 @@ export default function PublicProfile() {
             </div>
           </div>
         )}
-
+{stories.length > 0 && (
+  <div style={sectionStyle}>
+    <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '1rem' }}>Stories</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {stories.map(s => (
+        <div key={s.id} style={{ borderBottom: '1px solid #EDE3D4', paddingBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+            {s.title && <div style={{ fontWeight: 700, fontSize: '1rem', color: '#3A3226' }}>{s.title}</div>}
+            <span style={{ background: '#EDE3D4', color: '#6B5D4E', fontSize: '0.65rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              {s.saved_prompts?.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {s.saved_prompts?.word_count} words
+            </span>
+            {s.saved_prompts?.genre && (
+              <span style={{ background: '#EAF4FB', color: '#2E6DA4', fontSize: '0.65rem', fontWeight: 500, padding: '0.15rem 0.5rem', borderRadius: '20px' }}>{s.saved_prompts.genre}</span>
+            )}
+          </div>
+          <p style={{ fontSize: '0.92rem', color: '#3A3226', lineHeight: 1.75, fontFamily: 'Georgia, serif', whiteSpace: 'pre-wrap' }}>{s.content}</p>
+          <div style={{ fontSize: '0.72rem', color: '#9A8878', marginTop: '0.5rem' }}>
+            {new Date(s.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
         <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.85rem', color: '#9A8878' }}>
           <Link to="/age-gate" style={{ color: '#2E6DA4', textDecoration: 'none', fontWeight: 600 }}>Join Fictifly</Link> to start writing!
         </div>
