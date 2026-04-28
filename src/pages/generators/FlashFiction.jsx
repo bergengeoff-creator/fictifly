@@ -160,7 +160,7 @@ const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') |
   };
 
   const generate = useCallback(async () => {
-    if (!isPremium && usageCount + count > FREE_LIMIT) {
+    if (!isUnlimited && usageCount + count > FREE_LIMIT) {
       setError(`Free accounts are limited to ${FREE_LIMIT} prompts per day. Upgrade to premium for unlimited prompts.`);
       return;
     }
@@ -212,7 +212,7 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
     }
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [count, wordCount, selectedGenre, customGenre, usageCount, isPremium]);
+  }, [count, wordCount, selectedGenre, customGenre, usageCount, isUnlimited]);
 
   const savePrompt = async (prompt) => {
     const { data, error: saveError } = await supabase.from('saved_prompts').insert({
@@ -261,7 +261,7 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
           <p style={{ color:B.inkMid, fontSize:'0.97rem', lineHeight:1.65, maxWidth:420, margin:'0 auto 1.5rem' }}>
             AI-crafted flash fiction prompts. Choose your word count, pick a genre, and write.
           </p>
-          {!isPremium && (
+          {!isUnlimited && (
             <div style={{ display:'inline-block', background:B.sandMid, borderRadius:'8px', padding:'0.4rem 0.9rem', fontSize:'0.78rem', color:B.inkMid }}>
               {usageCount}/{FREE_LIMIT} prompts used today
             </div>
