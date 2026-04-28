@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [badgeCount, setBadgeCount] = useState(0);
   const [earnedBadges, setEarnedBadges] = useState([]);
   const [storiesWritten, setStoriesWritten] = useState(0);
+  const [writtenPromptIds, setWrittenPromptIds] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,34 +39,35 @@ export default function Dashboard() {
         .eq('user_id', user.id)
         .maybeSingle();
       setCurrentStreak(streakData ? streakData.current_streak : 0);
-      // Fetch badges
-const { data: userBadgeData } = await supabase
-  .from('user_badges')
-  .select('id, badge_id, earned_at')
-  .eq('user_id', user.id);
 
-const { data: submissionsData } = await supabase
-  .from('submissions')
-  .select('id')
-  .eq('user_id', user.id);
-  setStoriesWritten(submissionsData ? submissionsData.length : 0);
+      const { data: submissionsData } = await supabase
+        .from('submissions')
+        .select('id, prompt_id')
+        .eq('user_id', user.id);
+      setStoriesWritten(submissionsData ? submissionsData.length : 0);
+      setWrittenPromptIds(submissionsData ? submissionsData.map(s => s.prompt_id) : []);
 
-if (userBadgeData && userBadgeData.length > 0) {
-  const badgeIds = userBadgeData.map(ub => ub.badge_id);
-  const { data: badgeDetails } = await supabase
-    .from('badges')
-    .select('*')
-    .in('id', badgeIds);
-  const merged = userBadgeData.map(ub => ({
-    ...ub,
-    badges: badgeDetails ? badgeDetails.find(b => b.id === ub.badge_id) : null
-  })).filter(ub => ub.badges);
-  setEarnedBadges(merged);
-  setBadgeCount(merged.length);
-} else {
-  setEarnedBadges([]);
-  setBadgeCount(0);
-}
+      const { data: userBadgeData } = await supabase
+        .from('user_badges')
+        .select('id, badge_id, earned_at')
+        .eq('user_id', user.id);
+
+      if (userBadgeData && userBadgeData.length > 0) {
+        const badgeIds = userBadgeData.map(ub => ub.badge_id);
+        const { data: badgeDetails } = await supabase
+          .from('badges')
+          .select('*')
+          .in('id', badgeIds);
+        const merged = userBadgeData.map(ub => ({
+          ...ub,
+          badges: badgeDetails ? badgeDetails.find(b => b.id === ub.badge_id) : null
+        })).filter(ub => ub.badges);
+        setEarnedBadges(merged);
+        setBadgeCount(merged.length);
+      } else {
+        setEarnedBadges([]);
+        setBadgeCount(0);
+      }
     };
     fetchData();
   }, [user]);
@@ -154,27 +156,54 @@ if (userBadgeData && userBadgeData.length > 0) {
               <Link to="/generators/flash-fiction" style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Flash Fiction</Link>
             </div>
           </div>
-          {savedPrompts.length === 0 ? (
-            <p style={{ color: '#9A8878', fontSize: '0.9rem', fontStyle: 'italic' }}>Your saved prompts will appear here once you start generating.</p>
+
+          {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).length === 0 ? (
+            <p style={{ color: '#9A8878', fontSize: '0.9rem', fontStyle: 'italic', marginBottom: '1rem' }}>No unwritten prompts — great work!</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {savedPrompts.slice(0, 3).map(p => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+              {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).slice(0, 3).map(p => (
                 <div key={p.id} style={{ background: '#F5EFE6', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div>
                     <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>{p.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {p.word_count} words</div>
                     <div style={{ fontSize: '0.88rem', color: '#3A3226', fontWeight: 500 }}>{p.genre}</div>
                     <div style={{ fontSize: '0.82rem', color: '#6B5D4E' }}>{p.action || p.location} · {p.word || p.object}</div>
                   </div>
-                  <Link to={p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=saved' : '/generators/flash-fiction?tab=saved'} style={{ fontSize: '0.75rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>View →</Link>
+                  <Link to={p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=saved' : '/generators/flash-fiction?tab=saved'} style={{ fontSize: '0.75rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Write →</Link>
                 </div>
               ))}
-              {savedPrompts.length > 3 && (
-                <p style={{ fontSize: '0.82rem', color: '#9A8878', textAlign: 'center' }}>And {savedPrompts.length - 3} more — view all in the generators above.</p>
+              {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).length > 3 && (
+                <p style={{ fontSize: '0.82rem', color: '#9A8878', textAlign: 'center' }}>And {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).length - 3} more — view all in the generators above.</p>
               )}
             </div>
           )}
+
+          {writtenPromptIds.length > 0 && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878' }}>Written ✓</div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <Link to="/generators/microfiction?tab=written" style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Microfiction</Link>
+                  <span style={{ color: '#9A8878', fontSize: '0.78rem' }}>·</span>
+                  <Link to="/generators/flash-fiction?tab=written" style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Flash Fiction</Link>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {savedPrompts.filter(p => writtenPromptIds.includes(p.id)).slice(0, 3).map(p => (
+                  <div key={p.id} style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#6BAF72', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>{p.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {p.word_count} words ✓</div>
+                      <div style={{ fontSize: '0.88rem', color: '#3A3226', fontWeight: 500 }}>{p.genre}</div>
+                      <div style={{ fontSize: '0.82rem', color: '#6B5D4E' }}>{p.action || p.location} · {p.word || p.object}</div>
+                    </div>
+                    <Link to={p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=written' : '/generators/flash-fiction?tab=written'} style={{ fontSize: '0.75rem', color: '#3A7040', textDecoration: 'none', fontWeight: 500 }}>View →</Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-{earnedBadges.length > 0 && (
+
+        {earnedBadges.length > 0 && (
           <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginTop: '1rem' }}>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '1rem' }}>Badges</h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
