@@ -183,24 +183,26 @@ export default function Profile() {
       </div>
 
       <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             {getAvatarDisplay()}
             <div>
               <h1 style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '0.2rem' }}>{profile.display_name || profile.username}</h1>
               <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>@{profile.username}</div>
-              <>
-                <div style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.2rem' }}>
-                  {profile.account_type === 'teacher' ? 'Educator' : profile.account_type === 'minor' ? 'Student' : 'Writer'} · {profile.profile_public ? 'Public profile' : 'Private profile'}
-                </div>
-                {profile.profile_public && (
-                  <a href={`/writers/${profile.username}`} target="_blank" rel="noreferrer" style={{ color: '#2E6DA4', textDecoration: 'none', fontSize: '0.78rem', marginTop: '0.3rem', display: 'inline-block' }}>
-                    View public profile →
-                  </a>
-                )}
-              </>
+              <div style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.2rem' }}>
+                {profile.account_type === 'teacher' ? 'Educator' : profile.account_type === 'minor' ? 'Student' : 'Writer'} · {profile.profile_public ? 'Public profile' : 'Private profile'}
+              </div>
+              {profile.profile_public && (
+                <a href={`/writers/${profile.username}`} target="_blank" rel="noreferrer" style={{ color: '#2E6DA4', textDecoration: 'none', fontSize: '0.78rem', marginTop: '0.3rem', display: 'inline-block' }}>
+                  View public profile →
+                </a>
+              )}
             </div>
           </div>
+          <button onClick={() => setEditing(!editing)} style={{ background: editing ? 'transparent' : '#2E6DA4', color: editing ? '#6B5D4E' : '#FFFCF8', border: '1px solid ' + (editing ? '#D9C9B0' : '#2E6DA4'), borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+            {editing ? 'Cancel' : 'Edit profile'}
+          </button>
+        </div>
         </div>
           <button onClick={() => setEditing(!editing)} style={{ background: editing ? 'transparent' : '#2E6DA4', color: editing ? '#6B5D4E' : '#FFFCF8', border: '1px solid ' + (editing ? '#D9C9B0' : '#2E6DA4'), borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
             {editing ? 'Cancel' : 'Edit profile'}
