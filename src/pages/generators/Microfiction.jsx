@@ -193,6 +193,7 @@ Respond ONLY with a JSON array, no markdown, no explanation:
       setError('Something went wrong generating prompts. Please try again.');
     }
     setLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count, wordCount, selectedGenre, customGenre, usageCount, isPremium]);
 
   const savePrompt = async (prompt) => {
