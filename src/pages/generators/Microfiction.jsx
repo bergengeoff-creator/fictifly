@@ -416,8 +416,6 @@ const markWritten = async (savedPromptId) => {
           </div>
         )}
 
-        )}
-
         {tab === 'written' && (
           <div>
             {loadingSaved ? (
