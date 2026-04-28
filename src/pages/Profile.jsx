@@ -196,7 +196,7 @@ export default function Profile() {
   <a href={`/writers/${profile.username}`} target="_blank" rel="noreferrer" style={{ color: '#2E6DA4', textDecoration: 'none', fontSize: '0.78rem', marginTop: '0.3rem', display: 'inline-block' }}>
     View public profile →
   </a>
-)
+)}
               </div>
             </div>
           </div>
