@@ -1,9 +1,25 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { supabase } from '../supabase';
 
 export default function Dashboard() {
-  const { profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const [savedPrompts, setSavedPrompts] = useState([]);
+
+  useEffect(() => {
+    const fetchSaved = async () => {
+      const { data } = await supabase
+        .from('saved_prompts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      setSavedPrompts(data || []);
+    };
+    if (user) fetchSaved();
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -29,9 +45,9 @@ export default function Dashboard() {
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #D9C9B0', marginBottom: '2.5rem' }}>
         <div style={{ fontSize: '1.3rem', fontWeight: 700 }}>Fictifly</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        {profile && profile.account_type === 'teacher' && (
-  <Link to="/classroom" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', textDecoration: 'none' }}>My Classes</Link>
-)}
+          {profile && profile.account_type === 'teacher' && (
+            <Link to="/classroom" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', textDecoration: 'none' }}>My Classes</Link>
+          )}
           <Link to="/profile" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', textDecoration: 'none' }}>My Profile</Link>
           <button onClick={handleSignOut} style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer' }}>Sign out</button>
         </div>
@@ -71,7 +87,7 @@ export default function Dashboard() {
         <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '1rem' }}>Start writing</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
           {generators.map((g) => (
-           <Link to={g.path} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '4px solid ' + g.color, borderRadius: '12px', padding: '1.25rem 1.5rem', cursor: 'pointer', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', textDecoration: 'none', display: 'block' }}
+            <Link key={g.title} to={g.path} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '4px solid ' + g.color, borderRadius: '12px', padding: '1.25rem 1.5rem', cursor: 'pointer', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', textDecoration: 'none', display: 'block' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(58,50,38,0.1)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(58,50,38,0.05)'; }}>
               <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#3A3226', marginBottom: '0.25rem' }}>{g.title}</div>
@@ -81,8 +97,33 @@ export default function Dashboard() {
         </div>
 
         <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '0.5rem' }}>Saved Prompts</h2>
-          <p style={{ color: '#9A8878', fontSize: '0.9rem', fontStyle: 'italic' }}>Your saved prompts will appear here once you start generating.</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Saved Prompts</h2>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <Link to="/generators/microfiction" style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Microfiction</Link>
+              <span style={{ color: '#9A8878', fontSize: '0.78rem' }}>·</span>
+              <Link to="/generators/flash-fiction" style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Flash Fiction</Link>
+            </div>
+          </div>
+          {savedPrompts.length === 0 ? (
+            <p style={{ color: '#9A8878', fontSize: '0.9rem', fontStyle: 'italic' }}>Your saved prompts will appear here once you start generating.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {savedPrompts.slice(0, 3).map(p => (
+                <div key={p.id} style={{ background: '#F5EFE6', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>{p.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {p.word_count} words</div>
+                    <div style={{ fontSize: '0.88rem', color: '#3A3226', fontWeight: 500 }}>{p.genre}</div>
+                    <div style={{ fontSize: '0.82rem', color: '#6B5D4E' }}>{p.action || p.location} · {p.word || p.object}</div>
+                  </div>
+                  <Link to={p.prompt_type === 'microfiction' ? '/generators/microfiction' : '/generators/flash-fiction'} style={{ fontSize: '0.75rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>View →</Link>
+                </div>
+              ))}
+              {savedPrompts.length > 3 && (
+                <p style={{ fontSize: '0.82rem', color: '#9A8878', textAlign: 'center' }}>And {savedPrompts.length - 3} more — view all in the generators above.</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
