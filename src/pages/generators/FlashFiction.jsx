@@ -337,7 +337,7 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
           {['generate','saved','written'].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{ flex:1, background:tab===t ? B.white : 'transparent', border:'none', borderRadius:'9px', color:tab===t ? B.ink : B.inkLight, fontFamily:"'DM Sans', sans-serif", fontWeight:tab===t ? 600 : 400, fontSize:'0.85rem', padding:'0.5rem 1.35rem', transition:'all 0.18s', boxShadow:tab===t ? '0 1px 4px rgba(58,50,38,0.1)' : 'none', cursor:'pointer' }}>
               {t === 'generate' ? 'Generate'
-                : t === 'saved' ? `Saved${saved.filter(p => !writtenPrompts.includes(p.id)).length > 0 ? ` (${saved.filter(p => !writtenPrompts.includes(p.id)).length})` : ''}`
+                : t === 'saved' ? ('Saved' + (saved.filter(p => !writtenPrompts.includes(p.id)).length > 0 ? ` (${saved.filter(p => !writtenPrompts.includes(p.id)).length})` : ''))
                 : `Written${writtenSavedPrompts.length > 0 ? ` (${writtenSavedPrompts.length})` : ''}`
             </button>
           ))}
