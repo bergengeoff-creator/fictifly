@@ -20,8 +20,8 @@ export default function Dashboard() {
   ];
 
   const generators = [
-    { title: 'Microfiction', desc: '100, 200, or 300 words', color: '#D4845A' },
-    { title: 'Flash Fiction', desc: '500 or 1,000 words', color: '#2E6DA4' },
+    { title: 'Microfiction', desc: '100, 200, or 300 words', color: '#D4845A', path: '/generators/microfiction' },
+    { title: 'Flash Fiction', desc: '500 or 1,000 words', color: '#2E6DA4', path: '/generators/flash-fiction' },
   ];
 
   return (
@@ -71,7 +71,9 @@ export default function Dashboard() {
         <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '1rem' }}>Start writing</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
           {generators.map((g) => (
-            <div key={g.title} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '4px solid ' + g.color, borderRadius: '12px', padding: '1.25rem 1.5rem', cursor: 'pointer', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
+            div key={g.title} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '4px solid ' + g.color, borderRadius: '12px', padding: '1.25rem 1.5rem', cursor: 'pointer', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}><Link key={g.title} to={g.path} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '4px solid ' + g.color, borderRadius: '12px', padding: '1.25rem 1.5rem', cursor: 'pointer', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', textDecoration: 'none', display: 'block' }}
+  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(58,50,38,0.1)'; }}
+  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(58,50,38,0.05)'; }}>
               <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#3A3226', marginBottom: '0.25rem' }}>{g.title}</div>
               <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>{g.desc}</div>
             </div>
