@@ -323,6 +323,13 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
                     ))}
                   </div>
                 </div>
+                {!isUnlimited && (
+                <div style={{ fontSize: '0.78rem', color: usageCount >= FREE_LIMIT ? '#B56840' : '#9A8878', background: usageCount >= FREE_LIMIT ? '#FDF0E8' : B.sandMid, borderRadius: '8px', padding: '0.4rem 0.9rem', marginBottom: '0.5rem' }}>
+                  {usageCount >= FREE_LIMIT
+                  ? 'You have used all your prompts for today. Come back tomorrow!'
+                  : `${FREE_LIMIT - usageCount} of ${FREE_LIMIT} prompts remaining today.`}
+                 </div>
+                )}
                 <button onClick={generate} disabled={loading} style={{ background:loading ? B.sandDeep : B.seaDeep, color:B.white, border:'none', borderRadius:'10px', padding:'0.65rem 1.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:600, fontSize:'0.88rem', cursor:loading ? 'not-allowed' : 'pointer', transition:'background 0.18s', display:'flex', alignItems:'center', gap:'0.45rem' }}
                   onMouseEnter={e => { if (!loading) e.currentTarget.style.background=B.seaMid; }}
                   onMouseLeave={e => { if (!loading) e.currentTarget.style.background=B.seaDeep; }}>
