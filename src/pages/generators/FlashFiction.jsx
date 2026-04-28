@@ -128,8 +128,17 @@ export default function FlashFiction() {
   useEffect(() => {
     fetchSavedPrompts();
     fetchUsage();
+    fetchWrittenPrompts();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const fetchWrittenPrompts = async () => {
+  const { data } = await supabase
+    .from('submissions')
+    .select('prompt_id')
+    .eq('user_id', user.id);
+  setWrittenPrompts(data ? data.map(s => s.prompt_id) : []);
+};
 
   const fetchUsage = async () => {
     const today = new Date().toISOString().split('T')[0];
@@ -263,12 +272,21 @@ const markWritten = async (savedPromptId) => {
   const { data, error: subError } = await supabase.from('submissions').insert({
     user_id: user.id,
     prompt_id: savedPromptId,
-    prompt_type: 'microfiction',
+    prompt_type: 'flash-fiction',
     genre: prompts.find(p => p.dbId === savedPromptId)?.genre || null,
     word_count: wordCount,
   }).select().single();
   if (!subError && data) {
     setWrittenPrompts(prev => [...prev, savedPromptId]);
+    const badgeRes = await fetch('/api/check-badges', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id }),
+    });
+    const badgeData = await badgeRes.json();
+    if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
+      setNewBadges(badgeData.newlyEarned);
+    }
   }
 };
 
@@ -382,8 +400,7 @@ const markWritten = async (savedPromptId) => {
                   {INSTRUCTIONS[wordCount]}
                 </div>
                 {prompts.map(p => (
-                  <PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} />
-                ))}
+<PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.id)} />                ))}
               </div>
             )}
 
