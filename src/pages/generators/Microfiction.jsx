@@ -253,8 +253,9 @@ Respond ONLY with a JSON array, no markdown, no explanation:
   const removePrompt = async (id) => {
     await supabase.from('saved_prompts').delete().eq('id', id);
     setSaved(prev => prev.filter(p => p.id !== id));
-    const isSaved = (prompt) => saved.some(s => s.action === prompt.action && s.word === prompt.word && s.genre === prompt.genre);
   };
+
+  const isSaved = (prompt) => saved.some(s => s.action === prompt.action && s.word === prompt.word && s.genre === prompt.genre);
 
 const markWritten = async (savedPromptId) => {
   const { data, error: subError } = await supabase.from('submissions').insert({
