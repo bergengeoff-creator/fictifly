@@ -116,7 +116,7 @@ export default function Dashboard() {
                     <div style={{ fontSize: '0.88rem', color: '#3A3226', fontWeight: 500 }}>{p.genre}</div>
                     <div style={{ fontSize: '0.82rem', color: '#6B5D4E' }}>{p.action || p.location} · {p.word || p.object}</div>
                   </div>
-                  <Link to={p.prompt_type === 'microfiction' ? '/generators/microfiction' : '/generators/flash-fiction'} style={{ fontSize: '0.75rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>View →</Link>
+                  <Link to={p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=saved' : '/generators/flash-fiction?tab=saved'} style={{ fontSize: '0.75rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>View →</Link>
                 </div>
               ))}
               {savedPrompts.length > 3 && (
