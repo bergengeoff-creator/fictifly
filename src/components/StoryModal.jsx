@@ -16,7 +16,6 @@ export default function StoryModal({ prompt, onClose, onSaved }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [existingSubmission, setExistingSubmission] = useState(null);
-  const [loadingExisting, setLoadingExisting] = useState(true);
 
   const targetWordCount = prompt.word_count || prompt.wordCount;
   const currentWordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
@@ -38,7 +37,6 @@ export default function StoryModal({ prompt, onClose, onSaved }) {
         setTitle(data.title || '');
         setSharing(data.sharing || 'private');
       }
-      setLoadingExisting(false);
     };
     fetchExisting();
   }, [user.id, prompt]);
@@ -136,7 +134,7 @@ export default function StoryModal({ prompt, onClose, onSaved }) {
 
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button onClick={onClose} style={{ flex: 1, background: 'transparent', border: `1px solid ${B.sandDeep}`, borderRadius: '10px', color: B.inkMid, padding: '0.75rem', fontWeight: 500, fontSize: '0.9rem', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={handleSave} disabled={loading || !withinRange && currentWordCount > 0}
+          <button onClick={handleSave} disabled={loading || (!withinRange && currentWordCount > 0)}
             style={{ flex: 2, background: loading ? B.sandDeep : B.seaDeep, color: B.white, border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.9rem', cursor: loading ? 'not-allowed' : 'pointer' }}>
             {loading ? 'Saving...' : existingSubmission ? 'Save changes' : 'Save story'}
           </button>
