@@ -90,16 +90,18 @@ export default function PublicProfile() {
       const streak = streakData ? streakData.current_streak : 0;
 
       setStats({ prompts: totalPrompts, written: totalWritten, streak });
+
+      // Fetch public stories
+      const { data: storiesData } = await supabase
+        .from('submissions')
+        .select('*, saved_prompts(genre, word_count, action, word, location, object, prompt_type)')
+        .eq('user_id', profileData.id)
+        .eq('sharing', 'public')
+        .order('created_at', { ascending: false });
+      setStories(storiesData || []);
+
       setLoading(false);
-    }
-    // Fetch public stories
-const { data: storiesData } = await supabase
-  .from('submissions')
-  .select('*, saved_prompts(genre, word_count, action, word, location, object, prompt_type)')
-  .eq('user_id', profileData.id)
-  .eq('sharing', 'public')
-  .order('created_at', { ascending: false });
-setStories(storiesData || []);
+    };
   };
     
 
