@@ -14,7 +14,7 @@ export default function ProtectedRoute({ children }) {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  if (user && (!profile || !profile.profile_complete) && window.location.pathname !== '/profile-setup') {
+  if (user && profile && !profile.profile_complete && window.location.pathname !== '/profile-setup') {
     return <Navigate to="/profile-setup" replace />;
   }
 
