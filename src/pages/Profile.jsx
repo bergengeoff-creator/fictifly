@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
@@ -57,15 +57,27 @@ export default function Profile() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [avatarError, setAvatarError] = useState(null);
+  const [earnedBadges, setEarnedBadges] = useState([]);
 
   const isTeacher = profile && profile.account_type === 'teacher';
   const isMinor = profile && profile.account_type === 'minor';
   const getAvailableStyles = () => AVATAR_STYLES[profile ? profile.account_type : 'standard'] || AVATAR_STYLES.standard;
-const [avatarStyle, setAvatarStyle] = useState(() => getAvailableStyles()[0].id);
-const [avatarSeeds, setAvatarSeeds] = useState(generateSeeds());
-const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(profile ? profile.avatar_url : null);
+  const [avatarStyle, setAvatarStyle] = useState(() => getAvailableStyles()[0].id);
+  const [avatarSeeds, setAvatarSeeds] = useState(generateSeeds());
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(profile ? profile.avatar_url : null);
 
-const getAvatarDisplay = () => {
+  useEffect(() => {
+    const fetchBadges = async () => {
+      const { data } = await supabase
+        .from('user_badges')
+        .select('*, badges(*)')
+        .eq('user_id', user.id);
+      setEarnedBadges((data || []).filter(ub => ub.badges));
+    };
+    if (user) fetchBadges();
+  }, [user]);
+
+  const getAvatarDisplay = () => {
     if (profile.avatar_url) return <img src={profile.avatar_url} alt="avatar" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover' }} />;
     return <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#EDE3D4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9A8878', fontWeight: 700, fontSize: '1.8rem' }}>{profile.username ? profile.username[0].toUpperCase() : 'W'}</div>;
   };
@@ -100,7 +112,6 @@ const getAvatarDisplay = () => {
     setLoading(true);
     setError(null);
 
-    // Check if username is already taken by another user
     if (username.trim() !== profile.username) {
       const { data: existing } = await supabase
         .from('users')
@@ -115,8 +126,8 @@ const getAvatarDisplay = () => {
       }
     }
 
-let avatarUrl = selectedAvatarUrl || profile.avatar_url;
-if (uploadedAvatar) {
+    let avatarUrl = selectedAvatarUrl || profile.avatar_url;
+    if (uploadedAvatar) {
       const fileExt = uploadedAvatar.name.split('.').pop();
       const filePath = user.id + '/avatar.' + fileExt;
       const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, uploadedAvatar, { upsert: true });
@@ -130,7 +141,7 @@ if (uploadedAvatar) {
       display_name: displayName.trim(),
       bio: bio.trim() || null,
       avatar_url: uploadedAvatar ? avatarUrl : selectedAvatarUrl,
-avatar_preset: null,
+      avatar_preset: null,
       favourite_genres: selectedGenres.length > 0 ? selectedGenres : null,
       profile_public: profilePublic,
       profile_complete: true,
@@ -210,6 +221,20 @@ avatar_preset: null,
                 {profile.region && <div style={{ fontSize: '0.85rem', color: '#9A8878' }}>{profile.region}</div>}
               </div>
             )}
+
+            {earnedBadges.length > 0 && (
+              <div style={sectionStyle}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Badges</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {earnedBadges.map((ub) => (
+                    <div key={ub.id} title={ub.badges?.description} style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.6rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', fontWeight: 500, color: '#3A3226' }}>
+                      <span style={{ fontSize: '1.1rem' }}>{ub.badges?.icon}</span>
+                      {ub.badges?.name}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div>
@@ -242,48 +267,41 @@ avatar_preset: null,
               )}
             </div>
 
-<div style={sectionStyle}>
-  <label style={labelStyle}>Profile picture (optional)</label>
-
-  {/* Style selector */}
-  <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '10px', padding: '4px', gap: '4px', marginBottom: '1rem', flexWrap: 'wrap' }}>
-    {getAvailableStyles().map((style) => (
-      <button key={style.id} onClick={() => { setAvatarStyle(style.id); setAvatarSeeds(generateSeeds()); }}
-        style={{ flex: 1, padding: '0.4rem 0.5rem', borderRadius: '8px', border: 'none', background: avatarStyle === style.id ? '#FFFCF8' : 'transparent', color: avatarStyle === style.id ? '#3A3226' : '#9A8878', fontWeight: avatarStyle === style.id ? 600 : 400, cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-        {style.name}
-      </button>
-    ))}
-  </div>
-
-  {/* Avatar grid */}
-  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
-    {avatarSeeds.map((seed) => {
-      const url = 'https://api.dicebear.com/7.x/' + avatarStyle + '/svg?seed=' + seed + '&backgroundColor=f5efe6';
-      return (
-        <div key={seed} onClick={() => setSelectedAvatarUrl(url)}
-          style={{ cursor: 'pointer', borderRadius: '10px', border: '2px solid ' + (selectedAvatarUrl === url ? '#D4845A' : 'transparent'), padding: '4px', background: selectedAvatarUrl === url ? '#FDF0E8' : 'transparent' }}>
-          <img src={url} alt="avatar option" style={{ width: '100%', borderRadius: '8px' }} />
-        </div>
-      );
-    })}
-  </div>
-
-  <button onClick={() => setAvatarSeeds(generateSeeds())}
-    style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.78rem', padding: '0.4rem 0.9rem', cursor: 'pointer', marginBottom: '1rem' }}>
-    Regenerate options
-  </button>
-
-  {/* Upload option */}
-  <div style={{ borderTop: '1px solid #EDE3D4', paddingTop: '0.75rem' }}>
-    <div style={{ fontSize: '0.75rem', color: '#9A8878', marginBottom: '0.5rem' }}>Or upload your own photo (JPG, PNG, WebP — max 2MB)</div>
-    <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} style={{ display: 'none' }} id="avatar-upload" />
-    <label htmlFor="avatar-upload" style={{ display: 'inline-block', background: '#F5EFE6', border: '1.5px dashed #D9C9B0', borderRadius: '8px', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.82rem', color: '#6B5D4E' }}>
-      {uploadedAvatarUrl ? 'Photo selected' : 'Choose photo'}
-    </label>
-    {uploadedAvatarUrl && <img src={uploadedAvatarUrl} alt="upload preview" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', marginLeft: '0.75rem', verticalAlign: 'middle' }} />}
-    {avatarError && <div style={{ color: '#B56840', fontSize: '0.82rem', marginTop: '0.5rem' }}>{avatarError}</div>}
-  </div>
-</div>
+            <div style={sectionStyle}>
+              <label style={labelStyle}>Profile picture (optional)</label>
+              <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '10px', padding: '4px', gap: '4px', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                {getAvailableStyles().map((style) => (
+                  <button key={style.id} onClick={() => { setAvatarStyle(style.id); setAvatarSeeds(generateSeeds()); }}
+                    style={{ flex: 1, padding: '0.4rem 0.5rem', borderRadius: '8px', border: 'none', background: avatarStyle === style.id ? '#FFFCF8' : 'transparent', color: avatarStyle === style.id ? '#3A3226' : '#9A8878', fontWeight: avatarStyle === style.id ? 600 : 400, cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                    {style.name}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                {avatarSeeds.map((seed) => {
+                  const url = 'https://api.dicebear.com/7.x/' + avatarStyle + '/svg?seed=' + seed + '&backgroundColor=f5efe6';
+                  return (
+                    <div key={seed} onClick={() => setSelectedAvatarUrl(url)}
+                      style={{ cursor: 'pointer', borderRadius: '10px', border: '2px solid ' + (selectedAvatarUrl === url ? '#D4845A' : 'transparent'), padding: '4px', background: selectedAvatarUrl === url ? '#FDF0E8' : 'transparent' }}>
+                      <img src={url} alt="avatar option" style={{ width: '100%', borderRadius: '8px' }} />
+                    </div>
+                  );
+                })}
+              </div>
+              <button onClick={() => setAvatarSeeds(generateSeeds())}
+                style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.78rem', padding: '0.4rem 0.9rem', cursor: 'pointer', marginBottom: '1rem' }}>
+                Regenerate options
+              </button>
+              <div style={{ borderTop: '1px solid #EDE3D4', paddingTop: '0.75rem' }}>
+                <div style={{ fontSize: '0.75rem', color: '#9A8878', marginBottom: '0.5rem' }}>Or upload your own photo (JPG, PNG, WebP — max 2MB)</div>
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} style={{ display: 'none' }} id="avatar-upload" />
+                <label htmlFor="avatar-upload" style={{ display: 'inline-block', background: '#F5EFE6', border: '1.5px dashed #D9C9B0', borderRadius: '8px', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.82rem', color: '#6B5D4E' }}>
+                  {uploadedAvatarUrl ? 'Photo selected' : 'Choose photo'}
+                </label>
+                {uploadedAvatarUrl && <img src={uploadedAvatarUrl} alt="upload preview" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', marginLeft: '0.75rem', verticalAlign: 'middle' }} />}
+                {avatarError && <div style={{ color: '#B56840', fontSize: '0.82rem', marginTop: '0.5rem' }}>{avatarError}</div>}
+              </div>
+            </div>
 
             <div style={sectionStyle}>
               <label style={labelStyle}>Bio</label>
