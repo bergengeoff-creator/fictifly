@@ -102,7 +102,6 @@ export default function PublicProfile() {
 
       setLoading(false);
     };
-  };
     
 
     fetchProfile();
