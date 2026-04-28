@@ -7,18 +7,30 @@ export default function Dashboard() {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [savedPrompts, setSavedPrompts] = useState([]);
+  const [totalPromptsGenerated, setTotalPromptsGenerated] = useState(0);
 
   useEffect(() => {
-    const fetchSaved = async () => {
-      const { data } = await supabase
+    const fetchData = async () => {
+      if (!user) return;
+
+      // Fetch saved prompts
+      const { data: saved } = await supabase
         .from('saved_prompts')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10);
-      setSavedPrompts(data || []);
+      setSavedPrompts(saved || []);
+
+      // Fetch total prompts generated
+      const { data: usage } = await supabase
+        .from('prompt_usage')
+        .select('count')
+        .eq('user_id', user.id);
+      const total = usage ? usage.reduce((sum, row) => sum + row.count, 0) : 0;
+      setTotalPromptsGenerated(total);
     };
-    if (user) fetchSaved();
+    fetchData();
   }, [user]);
 
   const handleSignOut = async () => {
@@ -29,10 +41,10 @@ export default function Dashboard() {
   const isNewUser = profile && !profile.bio && !profile.avatar_url && !profile.avatar_preset;
 
   const stats = [
-    { label: 'Prompts Generated', value: '0' },
+    { label: 'Prompts Generated', value: totalPromptsGenerated },
     { label: 'Stories Submitted', value: '0' },
     { label: 'Day Streak', value: '0' },
-    { label: 'Badges Earned', value: '0' },
+    { label: 'Saved Prompts', value: savedPrompts.length },
   ];
 
   const generators = [
