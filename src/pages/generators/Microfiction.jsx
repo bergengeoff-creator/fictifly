@@ -33,7 +33,7 @@ const INSTRUCTIONS = {
   300: <>Three ingredients, one story. The <strong style={{ color:"#3A3226", fontWeight:600 }}>action</strong> is your spark — it must happen somewhere in your narrative, whether your character lives it in the moment, revisits it in a flashback, or stumbles through it in a dream. The <strong style={{ color:"#3A3226", fontWeight:600 }}>word</strong> must show up exactly as spelled, but you can dress it up — <em>courageous</em> keeps <em>courage</em> intact. The <strong style={{ color:"#3A3226", fontWeight:600 }}>genre</strong> is your playground.</>,
 };
 
-const PromptCard = ({ prompt, onSave, isSaved, onRemove }) => {
+const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritten }) => {  
   const [copied, setCopied] = useState(false);
   const gc = genreColor(prompt.genre);
 
@@ -100,6 +100,7 @@ const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') |
   const [usageCount, setUsageCount] = useState(0);
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [newBadges, setNewBadges] = useState([]);
+  const [writtenPrompts, setWrittenPrompts] = useState([]);
 
 const FREE_LIMIT = 
     profile && profile.account_type === 'teacher' ? Infinity
@@ -228,14 +229,25 @@ if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
     }).select().single();
     if (!saveError && data) {
       setSaved(prev => [data, ...prev]);
-      setPrompts(prev => prev.map(p => p.id === prompt.id ? { ...p, dbId: data.id } : p));
-    }
+setPrompts(prev => prev.map(p => p.id === prompt.id ? { ...p, dbId: data.id } : p));    }
   };
 
   const removePrompt = async (id) => {
     await supabase.from('saved_prompts').delete().eq('id', id);
     setSaved(prev => prev.filter(p => p.id !== id));
   };
+  const markWritten = async (savedPromptId) => {
+  const { data, error: subError } = await supabase.from('submissions').insert({
+    user_id: user.id,
+    prompt_id: savedPromptId,
+    prompt_type: 'microfiction',
+    genre: prompts.find(p => p.dbId === savedPromptId)?.genre || null,
+    word_count: wordCount,
+  }).select().single();
+  if (!subError && data) {
+    setWrittenPrompts(prev => [...prev, savedPromptId]);
+  }
+};
 
   const isSaved = (prompt) => saved.some(s => s.action === prompt.action && s.word === prompt.word && s.genre === prompt.genre);
 
@@ -343,7 +355,7 @@ if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
                   {INSTRUCTIONS[wordCount]}
                 </div>
                 {prompts.map(p => (
-                  <PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} />
+                  <PromptCard key={p.id} prompt={p} onSave={sa<PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} />vePrompt} onRemove={removePrompt} isSaved={isSaved(p)} />
                 ))}
               </div>
             )}
@@ -356,20 +368,14 @@ if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
           </div>
         )}
 
-        {tab === 'saved' && (
-          <div>
-            {loadingSaved ? (
-              <div style={{ textAlign:'center', padding:'3.5rem 0', color:B.inkLight, fontSize:'0.93rem', fontStyle:'italic' }}>Loading saved prompts...</div>
-            ) : saved.length === 0 ? (
-              <div style={{ textAlign:'center', padding:'3.5rem 0', color:B.inkLight, fontSize:'0.93rem', fontStyle:'italic' }}>No saved prompts yet — generate some and save your favorites.</div>
-            ) : (
-              <div style={{ display:'flex', flexDirection:'column', gap:'0.8rem' }}>
-                {saved.map(p => (
-                  <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} />
-                ))}
-              </div>
-            )}
-          </div>
+      <div style={{ display:'flex', gap:'0.5rem' }}>
+        <button onClick={handleCopy} style={{ background:copied ? B.seaMid : 'transparent', border:`1px solid ${copied ? B.seaMid : B.sandDeep}`, color:copied ? B.white : B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer', transition:'all 0.18s' }}>{copied ? '✓ Copied' : 'Copy'}</button>
+        {isSaved ? (
+          <button onClick={() => onRemove(prompt.id)} style={{ background:B.terra, border:`1px solid ${B.terra}`, color:B.white, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>★ Saved</button>
+        ) : (
+          <button onClick={() => onSave(prompt)} style={{ background:'transparent', border:`1px solid ${B.sandDeep}`, color:B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer', transition:'all 0.18s' }}>☆ Save</button>
+        )}
+      </div>
         )}
 </div>
       <BadgeToast badges={newBadges} onDismiss={() => setNewBadges([])} />
