@@ -10,6 +10,7 @@ import Profile from './pages/Profile';
 import ClassroomDashboard from './pages/ClassroomDashboard';
 import Microfiction from './pages/generators/Microfiction';
 import FlashFiction from './pages/generators/FlashFiction';
+import PublicProfile from './pages/PublicProfile';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/classroom" element={<ProtectedRoute><ClassroomDashboard /></ProtectedRoute>} />
           <Route path="/generators/microfiction" element={<ProtectedRoute><Microfiction /></ProtectedRoute>} />
           <Route path="/generators/flash-fiction" element={<ProtectedRoute><FlashFiction /></ProtectedRoute>} />
+          <Route path="/writers/:username" element={<PublicProfile />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
