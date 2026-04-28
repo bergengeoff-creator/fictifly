@@ -199,9 +199,9 @@ export default function Profile() {
                   </a>
                 )}
               </>
-              </div>
             </div>
           </div>
+        </div>
           <button onClick={() => setEditing(!editing)} style={{ background: editing ? 'transparent' : '#2E6DA4', color: editing ? '#6B5D4E' : '#FFFCF8', border: '1px solid ' + (editing ? '#D9C9B0' : '#2E6DA4'), borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
             {editing ? 'Cancel' : 'Edit profile'}
           </button>
