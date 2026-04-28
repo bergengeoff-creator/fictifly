@@ -253,6 +253,7 @@ Respond ONLY with a JSON array, no markdown, no explanation:
   const removePrompt = async (id) => {
     await supabase.from('saved_prompts').delete().eq('id', id);
     setSaved(prev => prev.filter(p => p.id !== id));
+    const isSaved = (prompt) => saved.some(s => s.action === prompt.action && s.word === prompt.word && s.genre === prompt.genre);
   };
 
 const markWritten = async (savedPromptId) => {
@@ -276,8 +277,6 @@ const markWritten = async (savedPromptId) => {
     }
   }
 };
-
-  const isSaved = (prompt) => saved.some(s => s.action === prompt.action && s.word === prompt.word && s.genre === prompt.genre);
 
   return (
     <div style={{ minHeight:'100vh', background:B.sand, backgroundImage:`radial-gradient(ellipse at 5% 5%, rgba(91,158,201,0.13) 0%, transparent 45%), radial-gradient(ellipse at 95% 90%, rgba(212,132,90,0.11) 0%, transparent 45%)`, fontFamily:"'DM Sans', sans-serif", color:B.ink, padding:'0 1.25rem 5rem' }}>
@@ -379,7 +378,7 @@ const markWritten = async (savedPromptId) => {
                   {INSTRUCTIONS[wordCount]}
                 </div>
                 {prompts.map(p => (
-<PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.id)} />                ))}
+  <PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} />               ))}
               </div>
             )}
 
