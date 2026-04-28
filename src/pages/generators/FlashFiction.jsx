@@ -259,18 +259,18 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
     setSaved(prev => prev.filter(p => p.id !== id));
   };
 
-  const markWritten = async (savedPromptId) => {
-    const { data, error: subError } = await supabase.from('submissions').insert({
-      user_id: user.id,
-      prompt_id: savedPromptId,
-      prompt_type: 'flash-fiction',
-      genre: prompts.find(p => p.dbId === savedPromptId)?.genre || null,
-      word_count: wordCount,
-    }).select().single();
-    if (!subError && data) {
-      setWrittenPrompts(prev => [...prev, savedPromptId]);
-    }
-  };
+const markWritten = async (savedPromptId) => {
+  const { data, error: subError } = await supabase.from('submissions').insert({
+    user_id: user.id,
+    prompt_id: savedPromptId,
+    prompt_type: 'microfiction',
+    genre: prompts.find(p => p.dbId === savedPromptId)?.genre || null,
+    word_count: wordCount,
+  }).select().single();
+  if (!subError && data) {
+    setWrittenPrompts(prev => [...prev, savedPromptId]);
+  }
+};
 
   const isSaved = (prompt) => saved.some(s =>
     s.genre === prompt.genre &&
