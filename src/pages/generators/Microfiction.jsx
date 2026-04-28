@@ -115,6 +115,7 @@ export default function Microfiction() {
   const [newBadges, setNewBadges] = useState([]);
   const [writtenPrompts, setWrittenPrompts] = useState([]);
   const [storyModalPrompt, setStoryModalPrompt] = useState(null);
+  const [writtenSavedPrompts, setWrittenSavedPrompts] = useState([]);
 
   const FREE_LIMIT =
     profile && profile.account_type === 'teacher' ? Infinity
@@ -319,7 +320,7 @@ const markWritten = async (savedPromptId) => {
             <button key={t} onClick={() => setTab(t)} style={{ flex:1, background:tab===t ? B.white : 'transparent', border:'none', borderRadius:'9px', color:tab===t ? B.ink : B.inkLight, fontFamily:"'DM Sans', sans-serif", fontWeight:tab===t ? 600 : 400, fontSize:'0.85rem', padding:'0.5rem 1.35rem', transition:'all 0.18s', boxShadow:tab===t ? '0 1px 4px rgba(58,50,38,0.1)' : 'none', cursor:'pointer' }}>
               {t === 'generate' ? 'Generate' 
   : t === 'saved' ? `Saved${saved.filter(p => !writtenPrompts.includes(p.id)).length > 0 ? ` (${saved.filter(p => !writtenPrompts.includes(p.id)).length})` : ''}` 
-  : `Written${writtenPrompts.length > 0 ? ` (${writtenPrompts.length})` : ''}`}
+  : `Written${writtenSavedPrompts.length > 0 ? ` (${writtenSavedPrompts.length})` : ''}`}
             </button>
           ))}
         </div>
@@ -420,11 +421,11 @@ const markWritten = async (savedPromptId) => {
           <div>
             {loadingSaved ? (
               <div style={{ textAlign:'center', padding:'3.5rem 0', color:B.inkLight, fontSize:'0.93rem', fontStyle:'italic' }}>Loading...</div>
-            ) : saved.filter(p => writtenPrompts.includes(p.id)).length === 0 ? (
+            ) : writtenSavedPrompts.length === 0 ? (
               <div style={{ textAlign:'center', padding:'3.5rem 0', color:B.inkLight, fontSize:'0.93rem', fontStyle:'italic' }}>No written prompts yet — save a prompt and mark it as written!</div>
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:'0.8rem' }}>
-                {saved.filter(p => writtenPrompts.includes(p.id)).map(p => (
+                {writtenSavedPrompts.map(p => (
                   <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={true} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} />
                 ))}
               </div>
