@@ -90,27 +90,6 @@ export default function Profile() {
     };
     if (user) fetchBadges();
   }, [user]);
-  .from('user_badges')
-  .select('id, badge_id, earned_at')
-  .eq('user_id', user.id);
-
-if (userBadgeData && userBadgeData.length > 0) {
-  const badgeIds = userBadgeData.map(ub => ub.badge_id);
-  const { data: badgeDetails } = await supabase
-    .from('badges')
-    .select('*')
-    .in('id', badgeIds);
-  const merged = userBadgeData.map(ub => ({
-    ...ub,
-    badges: badgeDetails ? badgeDetails.find(b => b.id === ub.badge_id) : null
-  })).filter(ub => ub.badges);
-  setEarnedBadges(merged);
-} else {
-  setEarnedBadges([]);
-}
-    };
-    if (user) fetchBadges();
-  }, [user]);
 
   const getAvatarDisplay = () => {
     if (profile.avatar_url) return <img src={profile.avatar_url} alt="avatar" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover' }} />;
