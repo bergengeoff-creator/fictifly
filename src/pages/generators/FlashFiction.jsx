@@ -112,6 +112,7 @@ export default function FlashFiction() {
   useEffect(() => {
     fetchSavedPrompts();
     fetchUsage();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUsage = async () => {
@@ -204,7 +205,8 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
       setError('Something went wrong generating prompts. Please try again.');
     }
     setLoading(false);
-  }, [count, wordCount, selectedGenre, customGenre, usageCount, isPremium, trackUsage]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count, wordCount, selectedGenre, customGenre, usageCount, isPremium]);
 
   const savePrompt = async (prompt) => {
     const { data, error: saveError } = await supabase.from('saved_prompts').insert({

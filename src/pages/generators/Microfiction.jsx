@@ -104,6 +104,7 @@ export default function Microfiction() {
   useEffect(() => {
     fetchSavedPrompts();
     fetchUsage();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUsage = async () => {
@@ -176,7 +177,7 @@ Respond ONLY with a JSON array, no markdown, no explanation:
       });
       const data = await response.json();
       const text = data.content.map(b => b.text || '').join('');
-      const clean = text.replace(/\`\`\`json|\`\`\`/g, '').trim();
+      const clean = text.replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(clean);
       const result = parsed.map((p, i) => ({
         id: Date.now() + i,
