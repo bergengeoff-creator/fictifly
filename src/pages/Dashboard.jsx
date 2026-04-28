@@ -152,6 +152,19 @@ setBadgeCount(badgeData ? badgeData.length : 0);
             </div>
           )}
         </div>
+{earnedBadges.length > 0 && (
+          <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginTop: '1rem' }}>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '1rem' }}>Badges</h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+              {earnedBadges.map((ub) => (
+                <div key={ub.id} title={ub.badges.description} style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 500, color: '#3A3226' }}>
+                  <span style={{ fontSize: '1.3rem' }}>{ub.badges.icon}</span>
+                  {ub.badges.name}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
