@@ -58,7 +58,6 @@ export default function Profile() {
   const [success, setSuccess] = useState(false);
   const [avatarError, setAvatarError] = useState(null);
   const [earnedBadges, setEarnedBadges] = useState([]);
-
   const isTeacher = profile && profile.account_type === 'teacher';
   const isMinor = profile && profile.account_type === 'minor';
   const getAvailableStyles = () => AVATAR_STYLES[profile ? profile.account_type : 'standard'] || AVATAR_STYLES.standard;
@@ -72,7 +71,6 @@ export default function Profile() {
         .from('user_badges')
         .select('id, badge_id, earned_at')
         .eq('user_id', user.id);
-
       if (userBadgeData && userBadgeData.length > 0) {
         const badgeIds = userBadgeData.map(ub => ub.badge_id);
         const { data: badgeDetails } = await supabase
@@ -125,7 +123,6 @@ export default function Profile() {
     if (username.trim().includes(' ')) { setError('Username cannot contain spaces.'); return; }
     setLoading(true);
     setError(null);
-
     if (username.trim() !== profile.username) {
       const { data: existing } = await supabase
         .from('users')
@@ -139,7 +136,6 @@ export default function Profile() {
         return;
       }
     }
-
     let avatarUrl = selectedAvatarUrl || profile.avatar_url;
     if (uploadedAvatar) {
       const fileExt = uploadedAvatar.name.split('.').pop();
@@ -149,7 +145,6 @@ export default function Profile() {
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
       avatarUrl = urlData.publicUrl;
     }
-
     const updates = {
       username: username.trim(),
       display_name: displayName.trim(),
@@ -163,7 +158,6 @@ export default function Profile() {
       subject: isTeacher && subject ? subject : null,
       region: region || null,
     };
-
     const { error: updateError } = await supabase.from('users').update(updates).eq('id', user.id);
     if (updateError) { setError('Failed to save: ' + updateError.message); setLoading(false); return; }
     await fetchProfile(user.id);
@@ -183,7 +177,7 @@ export default function Profile() {
       </div>
 
       <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             {getAvatarDisplay()}
             <div>
@@ -199,11 +193,6 @@ export default function Profile() {
               )}
             </div>
           </div>
-          <button onClick={() => setEditing(!editing)} style={{ background: editing ? 'transparent' : '#2E6DA4', color: editing ? '#6B5D4E' : '#FFFCF8', border: '1px solid ' + (editing ? '#D9C9B0' : '#2E6DA4'), borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
-            {editing ? 'Cancel' : 'Edit profile'}
-          </button>
-        </div>
-        </div>
           <button onClick={() => setEditing(!editing)} style={{ background: editing ? 'transparent' : '#2E6DA4', color: editing ? '#6B5D4E' : '#FFFCF8', border: '1px solid ' + (editing ? '#D9C9B0' : '#2E6DA4'), borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
             {editing ? 'Cancel' : 'Edit profile'}
           </button>
