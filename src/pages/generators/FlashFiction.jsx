@@ -3,6 +3,7 @@ import BadgeToast from '../../components/BadgeToast';
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../context/AuthContext';
+import StoryModal from '../../components/StoryModal';
 
 const GENRES = [
   "Action/Adventure","Comedy","Crime Caper","Drama","Fairy Tale","Fantasy",
@@ -32,7 +33,7 @@ const INSTRUCTIONS = {
   1000: <>Three ingredients, one story. The <strong style={{ color:"#3A3226", fontWeight:600 }}>location</strong> is your world — it must be the predominant setting of your story. Other places may appear, but your assigned location takes center stage. The <strong style={{ color:"#3A3226", fontWeight:600 }}>object</strong> must make a physical appearance somewhere in your narrative — it's not just a metaphor, it has to show up. The <strong style={{ color:"#3A3226", fontWeight:600 }}>genre</strong> is your playground.</>,
 };
 
-const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritten }) => {
+const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritten, isPremium, onAddStory }) => {  
   const [copied, setCopied] = useState(false);
   const gc = genreColor(prompt.genre);
   const is500 = prompt.wordCount === 500;
@@ -80,10 +81,15 @@ const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritte
         )}
         {prompt.dbId && (
           isWritten ? (
-            <button style={{ background:'#F0F7ED', border:'1px solid #6BAF72', color:'#3A7040', borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'default' }}>✓ Written!</button>
-          ) : (
-            <button onClick={() => onMarkWritten(prompt.dbId)} style={{ background:'transparent', border:`1px solid ${B.sandDeep}`, color:B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>✍️ I wrote this!</button>
-          )
+  <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap' }}>
+    <button style={{ background:'#F0F7ED', border:'1px solid #6BAF72', color:'#3A7040', borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'default' }}>✓ Written!</button>
+    {isPremium && (
+      <button onClick={() => onAddStory(prompt)} style={{ background:B.seaDeep, border:'none', color:B.white, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>📄 {prompt.hasStory ? 'Edit story' : 'Add story'}</button>
+    )}
+  </div>
+) : (
+  <button onClick={() => onMarkWritten(prompt.dbId)} style={{ background:'transparent', border:`1px solid ${B.sandDeep}`, color:B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>✍️ I wrote this!</button>
+)
         )}
       </div>
     </div>
@@ -116,6 +122,7 @@ export default function FlashFiction() {
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [newBadges, setNewBadges] = useState([]);
   const [writtenPrompts, setWrittenPrompts] = useState([]);
+  const [storyModalPrompt, setStoryModalPrompt] = useState(null);
 
   const FREE_LIMIT =
     profile && profile.account_type === 'teacher' ? Infinity
@@ -423,7 +430,7 @@ const markWritten = async (savedPromptId) => {
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:'0.8rem' }}>
                 {saved.map(p => (
-                  <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.id)} />
+                  <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.id)} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} />
                 ))}
               </div>
             )}
@@ -439,13 +446,20 @@ const markWritten = async (savedPromptId) => {
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:'0.8rem' }}>
                 {saved.filter(p => writtenPrompts.includes(p.id)).map(p => (
-                  <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={true} />
+                  <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={true} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} />
                 ))}
               </div>
             )}
           </div>
         )}
       </div>
+      {storyModalPrompt && (
+  <StoryModal
+    prompt={storyModalPrompt}
+    onClose={() => setStoryModalPrompt(null)}
+    onSaved={() => setStoryModalPrompt(null)}
+  />
+)}
       <BadgeToast badges={newBadges} onDismiss={() => setNewBadges([])} />
     </div>
   );
