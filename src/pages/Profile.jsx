@@ -67,7 +67,29 @@ export default function Profile() {
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(profile ? profile.avatar_url : null);
 
   useEffect(() => {
-    const { data: userBadgeData } = await supabase
+    const fetchBadges = async () => {
+      const { data: userBadgeData } = await supabase
+        .from('user_badges')
+        .select('id, badge_id, earned_at')
+        .eq('user_id', user.id);
+
+      if (userBadgeData && userBadgeData.length > 0) {
+        const badgeIds = userBadgeData.map(ub => ub.badge_id);
+        const { data: badgeDetails } = await supabase
+          .from('badges')
+          .select('*')
+          .in('id', badgeIds);
+        const merged = userBadgeData.map(ub => ({
+          ...ub,
+          badges: badgeDetails ? badgeDetails.find(b => b.id === ub.badge_id) : null
+        })).filter(ub => ub.badges);
+        setEarnedBadges(merged);
+      } else {
+        setEarnedBadges([]);
+      }
+    };
+    if (user) fetchBadges();
+  }, [user]);
   .from('user_badges')
   .select('id, badge_id, earned_at')
   .eq('user_id', user.id);
