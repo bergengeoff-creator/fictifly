@@ -38,13 +38,27 @@ export default function Dashboard() {
         .maybeSingle();
       setCurrentStreak(streakData ? streakData.current_streak : 0);
       // Fetch badges
-const { data: badgeData } = await supabase
+const { data: userBadgeData } = await supabase
   .from('user_badges')
-  .select('*, badges(*)')
-  .eq('user_id', user.id)
-  .not('badges', 'is', null);
-setEarnedBadges((badgeData || []).filter(ub => ub.badges));
-setBadgeCount(badgeData ? badgeData.length : 0);
+  .select('id, badge_id, earned_at')
+  .eq('user_id', user.id);
+
+if (userBadgeData && userBadgeData.length > 0) {
+  const badgeIds = userBadgeData.map(ub => ub.badge_id);
+  const { data: badgeDetails } = await supabase
+    .from('badges')
+    .select('*')
+    .in('id', badgeIds);
+  const merged = userBadgeData.map(ub => ({
+    ...ub,
+    badges: badgeDetails ? badgeDetails.find(b => b.id === ub.badge_id) : null
+  })).filter(ub => ub.badges);
+  setEarnedBadges(merged);
+  setBadgeCount(merged.length);
+} else {
+  setEarnedBadges([]);
+  setBadgeCount(0);
+}
     };
     fetchData();
   }, [user]);
