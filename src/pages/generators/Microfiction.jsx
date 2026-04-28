@@ -33,7 +33,7 @@ const INSTRUCTIONS = {
   300: <>Three ingredients, one story. The <strong style={{ color:"#3A3226", fontWeight:600 }}>action</strong> is your spark — it must happen somewhere in your narrative, whether your character lives it in the moment, revisits it in a flashback, or stumbles through it in a dream. The <strong style={{ color:"#3A3226", fontWeight:600 }}>word</strong> must show up exactly as spelled, but you can dress it up — <em>courageous</em> keeps <em>courage</em> intact. The <strong style={{ color:"#3A3226", fontWeight:600 }}>genre</strong> is your playground.</>,
 };
 
-const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritten }) => {  
+const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritten }) => {
   const [copied, setCopied] = useState(false);
   const gc = genreColor(prompt.genre);
 
@@ -63,12 +63,19 @@ const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritte
           <span style={{ fontFamily:"'Fraunces', serif", fontSize:'1.2rem', fontWeight:500, color:B.seaDeep, fontStyle:'italic' }}>{prompt.word}</span>
         </div>
       </div>
-      <div style={{ display:'flex', gap:'0.5rem' }}>
+      <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap' }}>
         <button onClick={handleCopy} style={{ background:copied ? B.seaMid : 'transparent', border:`1px solid ${copied ? B.seaMid : B.sandDeep}`, color:copied ? B.white : B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer', transition:'all 0.18s' }}>{copied ? '✓ Copied' : 'Copy'}</button>
         {isSaved ? (
           <button onClick={() => onRemove(prompt.id)} style={{ background:B.terra, border:`1px solid ${B.terra}`, color:B.white, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>★ Saved</button>
         ) : (
           <button onClick={() => onSave(prompt)} style={{ background:'transparent', border:`1px solid ${B.sandDeep}`, color:B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer', transition:'all 0.18s' }}>☆ Save</button>
+        )}
+        {prompt.dbId && (
+          isWritten ? (
+            <button style={{ background:'#F0F7ED', border:'1px solid #6BAF72', color:'#3A7040', borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'default' }}>✓ Written!</button>
+          ) : (
+            <button onClick={() => onMarkWritten(prompt.dbId)} style={{ background:'transparent', border:`1px solid ${B.sandDeep}`, color:B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>✍️ I wrote this!</button>
+          )
         )}
       </div>
     </div>
@@ -92,7 +99,7 @@ export default function Microfiction() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const location = useLocation();
-const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') || 'generate');
+  const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') || 'generate');
   const [wordCount, setWordCount] = useState(100);
   const [count, setCount] = useState(1);
   const [selectedGenre, setSelectedGenre] = useState('random');
@@ -102,13 +109,14 @@ const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') |
   const [newBadges, setNewBadges] = useState([]);
   const [writtenPrompts, setWrittenPrompts] = useState([]);
 
-const FREE_LIMIT = 
+  const FREE_LIMIT =
     profile && profile.account_type === 'teacher' ? Infinity
     : profile && profile.account_type === 'premium' ? Infinity
     : profile && profile.account_type === 'student' ? 15
     : profile && profile.account_type === 'minor' ? 10
     : 6;
   const isUnlimited = profile && (profile.account_type === 'premium' || profile.account_type === 'teacher');
+
   useEffect(() => {
     fetchSavedPrompts();
     fetchUsage();
@@ -122,7 +130,7 @@ const FREE_LIMIT =
       .select('count')
       .eq('user_id', user.id)
       .eq('usage_date', today)
-      .single();
+      .maybeSingle();
     setUsageCount(data ? data.count : 0);
   };
 
@@ -198,19 +206,19 @@ Respond ONLY with a JSON array, no markdown, no explanation:
       setPrompts(result);
       await trackUsage(usageCount + count);
       await fetch('/api/update-streak', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ userId: user.id }),
-});
-const badgeRes = await fetch('/api/check-badges', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ userId: user.id }),
-});
-const badgeData = await badgeRes.json();
-if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
-  setNewBadges(badgeData.newlyEarned);
-}
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const badgeRes = await fetch('/api/check-badges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const badgeData = await badgeRes.json();
+      if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
+        setNewBadges(badgeData.newlyEarned);
+      }
     } catch {
       setError('Something went wrong generating prompts. Please try again.');
     }
@@ -229,25 +237,27 @@ if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
     }).select().single();
     if (!saveError && data) {
       setSaved(prev => [data, ...prev]);
-setPrompts(prev => prev.map(p => p.id === prompt.id ? { ...p, dbId: data.id } : p));    }
+      setPrompts(prev => prev.map(p => p.id === prompt.id ? { ...p, dbId: data.id } : p));
+    }
   };
 
   const removePrompt = async (id) => {
     await supabase.from('saved_prompts').delete().eq('id', id);
     setSaved(prev => prev.filter(p => p.id !== id));
   };
+
   const markWritten = async (savedPromptId) => {
-  const { data, error: subError } = await supabase.from('submissions').insert({
-    user_id: user.id,
-    prompt_id: savedPromptId,
-    prompt_type: 'microfiction',
-    genre: prompts.find(p => p.dbId === savedPromptId)?.genre || null,
-    word_count: wordCount,
-  }).select().single();
-  if (!subError && data) {
-    setWrittenPrompts(prev => [...prev, savedPromptId]);
-  }
-};
+    const { data, error: subError } = await supabase.from('submissions').insert({
+      user_id: user.id,
+      prompt_id: savedPromptId,
+      prompt_type: 'microfiction',
+      genre: prompts.find(p => p.dbId === savedPromptId)?.genre || null,
+      word_count: wordCount,
+    }).select().single();
+    if (!subError && data) {
+      setWrittenPrompts(prev => [...prev, savedPromptId]);
+    }
+  };
 
   const isSaved = (prompt) => saved.some(s => s.action === prompt.action && s.word === prompt.word && s.genre === prompt.genre);
 
@@ -255,7 +265,6 @@ setPrompts(prev => prev.map(p => p.id === prompt.id ? { ...p, dbId: data.id } : 
     <div style={{ minHeight:'100vh', background:B.sand, backgroundImage:`radial-gradient(ellipse at 5% 5%, rgba(91,158,201,0.13) 0%, transparent 45%), radial-gradient(ellipse at 95% 90%, rgba(212,132,90,0.11) 0%, transparent 45%)`, fontFamily:"'DM Sans', sans-serif", color:B.ink, padding:'0 1.25rem 5rem' }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,700;1,400;1,500&family=DM+Sans:wght@400;500;600&display=swap'); @keyframes spin { to { transform: rotate(360deg); } } @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } } * { box-sizing: border-box; margin: 0; }`}</style>
 
-      {/* Navbar */}
       <div style={{ maxWidth:640, margin:'0 auto', padding:'1.25rem 0', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:`1px solid ${B.sandDeep}`, marginBottom:'2rem' }}>
         <Link to="/dashboard" style={{ color:B.inkMid, textDecoration:'none', fontSize:'0.85rem' }}>← Dashboard</Link>
         <div style={{ fontFamily:"'Fraunces', serif", fontSize:'1.3rem', fontWeight:700, color:B.ink }}>Fictifly</div>
@@ -280,7 +289,6 @@ setPrompts(prev => prev.map(p => p.id === prompt.id ? { ...p, dbId: data.id } : 
           )}
         </div>
 
-        {/* Tabs */}
         <div style={{ display:'inline-flex', background:B.sandMid, borderRadius:'12px', padding:'4px', gap:'2px', marginBottom:'1.75rem', width:'100%' }}>
           {['generate','saved'].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{ flex:1, background:tab===t ? B.white : 'transparent', border:'none', borderRadius:'9px', color:tab===t ? B.ink : B.inkLight, fontFamily:"'DM Sans', sans-serif", fontWeight:tab===t ? 600 : 400, fontSize:'0.85rem', padding:'0.5rem 1.35rem', transition:'all 0.18s', boxShadow:tab===t ? '0 1px 4px rgba(58,50,38,0.1)' : 'none', cursor:'pointer' }}>
@@ -332,12 +340,10 @@ setPrompts(prev => prev.map(p => p.id === prompt.id ? { ...p, dbId: data.id } : 
                     ))}
                   </div>
                 </div>
-                  {!isUnlimited && (
-                 <div style={{ fontSize: '0.78rem', color: usageCount >= FREE_LIMIT ? '#B56840' : '#9A8878', background: usageCount >= FREE_LIMIT ? '#FDF0E8' : B.sandMid, borderRadius: '8px', padding: '0.4rem 0.9rem', marginBottom: '0.5rem' }}>
-                    {usageCount >= FREE_LIMIT
-                    ? 'You have used all your prompts for today. Come back tomorrow!'
-                    : `${FREE_LIMIT - usageCount} of ${FREE_LIMIT} prompts remaining today.`}
-                </div>
+                {!isUnlimited && (
+                  <div style={{ fontSize:'0.78rem', color:usageCount >= FREE_LIMIT ? '#B56840' : '#9A8878', background:usageCount >= FREE_LIMIT ? '#FDF0E8' : B.sandMid, borderRadius:'8px', padding:'0.4rem 0.9rem', marginBottom:'0.5rem' }}>
+                    {usageCount >= FREE_LIMIT ? 'You have used all your prompts for today. Come back tomorrow!' : `${FREE_LIMIT - usageCount} of ${FREE_LIMIT} prompts remaining today.`}
+                  </div>
                 )}
                 <button onClick={generate} disabled={loading} style={{ background:loading ? B.sandDeep : B.seaDeep, color:B.white, border:'none', borderRadius:'10px', padding:'0.65rem 1.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:600, fontSize:'0.88rem', cursor:loading ? 'not-allowed' : 'pointer', transition:'background 0.18s', display:'flex', alignItems:'center', gap:'0.45rem' }}
                   onMouseEnter={e => { if (!loading) e.currentTarget.style.background=B.seaMid; }}
@@ -355,7 +361,7 @@ setPrompts(prev => prev.map(p => p.id === prompt.id ? { ...p, dbId: data.id } : 
                   {INSTRUCTIONS[wordCount]}
                 </div>
                 {prompts.map(p => (
-                  <PromptCard key={p.id} prompt={p} onSave={sa<PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} />vePrompt} onRemove={removePrompt} isSaved={isSaved(p)} />
+                  <PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} />
                 ))}
               </div>
             )}
@@ -368,16 +374,22 @@ setPrompts(prev => prev.map(p => p.id === prompt.id ? { ...p, dbId: data.id } : 
           </div>
         )}
 
-      <div style={{ display:'flex', gap:'0.5rem' }}>
-        <button onClick={handleCopy} style={{ background:copied ? B.seaMid : 'transparent', border:`1px solid ${copied ? B.seaMid : B.sandDeep}`, color:copied ? B.white : B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer', transition:'all 0.18s' }}>{copied ? '✓ Copied' : 'Copy'}</button>
-        {isSaved ? (
-          <button onClick={() => onRemove(prompt.id)} style={{ background:B.terra, border:`1px solid ${B.terra}`, color:B.white, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>★ Saved</button>
-        ) : (
-          <button onClick={() => onSave(prompt)} style={{ background:'transparent', border:`1px solid ${B.sandDeep}`, color:B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer', transition:'all 0.18s' }}>☆ Save</button>
+        {tab === 'saved' && (
+          <div>
+            {loadingSaved ? (
+              <div style={{ textAlign:'center', padding:'3.5rem 0', color:B.inkLight, fontSize:'0.93rem', fontStyle:'italic' }}>Loading saved prompts...</div>
+            ) : saved.length === 0 ? (
+              <div style={{ textAlign:'center', padding:'3.5rem 0', color:B.inkLight, fontSize:'0.93rem', fontStyle:'italic' }}>No saved prompts yet — generate some and save your favorites.</div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:'0.8rem' }}>
+                {saved.map(p => (
+                  <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.id)} />
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
-        )}
-</div>
       <BadgeToast badges={newBadges} onDismiss={() => setNewBadges([])} />
     </div>
   );

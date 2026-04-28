@@ -32,7 +32,7 @@ const INSTRUCTIONS = {
   1000: <>Three ingredients, one story. The <strong style={{ color:"#3A3226", fontWeight:600 }}>location</strong> is your world — it must be the predominant setting of your story. Other places may appear, but your assigned location takes center stage. The <strong style={{ color:"#3A3226", fontWeight:600 }}>object</strong> must make a physical appearance somewhere in your narrative — it's not just a metaphor, it has to show up. The <strong style={{ color:"#3A3226", fontWeight:600 }}>genre</strong> is your playground.</>,
 };
 
-const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritten }) => {  
+const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritten }) => {
   const [copied, setCopied] = useState(false);
   const gc = genreColor(prompt.genre);
   const is500 = prompt.wordCount === 500;
@@ -71,12 +71,19 @@ const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritte
           <span style={{ fontFamily:"'Fraunces', serif", fontSize:'1.2rem', fontWeight:500, color:B.seaDeep, fontStyle:'italic' }}>{prompt.object}</span>
         </div>
       </div>
-      <div style={{ display:'flex', gap:'0.5rem' }}>
+      <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap' }}>
         <button onClick={handleCopy} style={{ background:copied ? B.seaMid : 'transparent', border:`1px solid ${copied ? B.seaMid : B.sandDeep}`, color:copied ? B.white : B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer', transition:'all 0.18s' }}>{copied ? '✓ Copied' : 'Copy'}</button>
         {isSaved ? (
           <button onClick={() => onRemove(prompt.id)} style={{ background:B.terra, border:`1px solid ${B.terra}`, color:B.white, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>★ Saved</button>
         ) : (
           <button onClick={() => onSave(prompt)} style={{ background:'transparent', border:`1px solid ${B.sandDeep}`, color:B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer', transition:'all 0.18s' }}>☆ Save</button>
+        )}
+        {prompt.dbId && (
+          isWritten ? (
+            <button style={{ background:'#F0F7ED', border:'1px solid #6BAF72', color:'#3A7040', borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'default' }}>✓ Written!</button>
+          ) : (
+            <button onClick={() => onMarkWritten(prompt.dbId)} style={{ background:'transparent', border:`1px solid ${B.sandDeep}`, color:B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>✍️ I wrote this!</button>
+          )
         )}
       </div>
     </div>
@@ -100,7 +107,7 @@ export default function FlashFiction() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const location = useLocation();
-const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') || 'generate');
+  const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') || 'generate');
   const [wordCount, setWordCount] = useState(500);
   const [count, setCount] = useState(1);
   const [selectedGenre, setSelectedGenre] = useState('random');
@@ -110,7 +117,7 @@ const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') |
   const [newBadges, setNewBadges] = useState([]);
   const [writtenPrompts, setWrittenPrompts] = useState([]);
 
-  const FREE_LIMIT = 
+  const FREE_LIMIT =
     profile && profile.account_type === 'teacher' ? Infinity
     : profile && profile.account_type === 'premium' ? Infinity
     : profile && profile.account_type === 'student' ? 15
@@ -211,18 +218,19 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
       setPrompts(result);
       await trackUsage(usageCount + count);
       await fetch('/api/update-streak', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ userId: user.id }),
-});const badgeRes = await fetch('/api/check-badges', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ userId: user.id }),
-});
-const badgeData = await badgeRes.json();
-if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
-  setNewBadges(badgeData.newlyEarned);
-}
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const badgeRes = await fetch('/api/check-badges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const badgeData = await badgeRes.json();
+      if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
+        setNewBadges(badgeData.newlyEarned);
+      }
     } catch {
       setError('Something went wrong generating prompts. Please try again.');
     }
@@ -250,18 +258,19 @@ if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
     await supabase.from('saved_prompts').delete().eq('id', id);
     setSaved(prev => prev.filter(p => p.id !== id));
   };
+
   const markWritten = async (savedPromptId) => {
-  const { data, error: subError } = await supabase.from('submissions').insert({
-    user_id: user.id,
-    prompt_id: savedPromptId,
-    prompt_type: 'microfiction',
-    genre: prompts.find(p => p.dbId === savedPromptId)?.genre || null,
-    word_count: wordCount,
-  }).select().single();
-  if (!subError && data) {
-    setWrittenPrompts(prev => [...prev, savedPromptId]);
-  }
-};
+    const { data, error: subError } = await supabase.from('submissions').insert({
+      user_id: user.id,
+      prompt_id: savedPromptId,
+      prompt_type: 'flash-fiction',
+      genre: prompts.find(p => p.dbId === savedPromptId)?.genre || null,
+      word_count: wordCount,
+    }).select().single();
+    if (!subError && data) {
+      setWrittenPrompts(prev => [...prev, savedPromptId]);
+    }
+  };
 
   const isSaved = (prompt) => saved.some(s =>
     s.genre === prompt.genre &&
@@ -353,11 +362,9 @@ if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
                   </div>
                 </div>
                 {!isUnlimited && (
-                <div style={{ fontSize: '0.78rem', color: usageCount >= FREE_LIMIT ? '#B56840' : '#9A8878', background: usageCount >= FREE_LIMIT ? '#FDF0E8' : B.sandMid, borderRadius: '8px', padding: '0.4rem 0.9rem', marginBottom: '0.5rem' }}>
-                  {usageCount >= FREE_LIMIT
-                  ? 'You have used all your prompts for today. Come back tomorrow!'
-                  : `${FREE_LIMIT - usageCount} of ${FREE_LIMIT} prompts remaining today.`}
-                 </div>
+                  <div style={{ fontSize:'0.78rem', color:usageCount >= FREE_LIMIT ? '#B56840' : '#9A8878', background:usageCount >= FREE_LIMIT ? '#FDF0E8' : B.sandMid, borderRadius:'8px', padding:'0.4rem 0.9rem', marginBottom:'0.5rem' }}>
+                    {usageCount >= FREE_LIMIT ? 'You have used all your prompts for today. Come back tomorrow!' : `${FREE_LIMIT - usageCount} of ${FREE_LIMIT} prompts remaining today.`}
+                  </div>
                 )}
                 <button onClick={generate} disabled={loading} style={{ background:loading ? B.sandDeep : B.seaDeep, color:B.white, border:'none', borderRadius:'10px', padding:'0.65rem 1.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:600, fontSize:'0.88rem', cursor:loading ? 'not-allowed' : 'pointer', transition:'background 0.18s', display:'flex', alignItems:'center', gap:'0.45rem' }}
                   onMouseEnter={e => { if (!loading) e.currentTarget.style.background=B.seaMid; }}
@@ -375,7 +382,8 @@ if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
                   {INSTRUCTIONS[wordCount]}
                 </div>
                 {prompts.map(p => (
-<PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} />                ))}
+                  <PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} />
+                ))}
               </div>
             )}
 
@@ -389,18 +397,20 @@ if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
 
         {tab === 'saved' && (
           <div>
-          <div style={{ display:'flex', gap:'0.5rem' }}>
-        <button onClick={handleCopy} style={{ background:copied ? B.seaMid : 'transparent', border:`1px solid ${copied ? B.seaMid : B.sandDeep}`, color:copied ? B.white : B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer', transition:'all 0.18s' }}>{copied ? '✓ Copied' : 'Copy'}</button>
-        {isSaved ? (
-          <button onClick={() => onRemove(prompt.id)} style={{ background:B.terra, border:`1px solid ${B.terra}`, color:B.white, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>★ Saved</button>
-        ) : (
-          <button onClick={() => onSave(prompt)} style={{ background:'transparent', border:`1px solid ${B.sandDeep}`, color:B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer', transition:'all 0.18s' }}>☆ Save</button>
-        )}
-      </div>
+            {loadingSaved ? (
+              <div style={{ textAlign:'center', padding:'3.5rem 0', color:B.inkLight, fontSize:'0.93rem', fontStyle:'italic' }}>Loading saved prompts...</div>
+            ) : saved.length === 0 ? (
+              <div style={{ textAlign:'center', padding:'3.5rem 0', color:B.inkLight, fontSize:'0.93rem', fontStyle:'italic' }}>No saved prompts yet — generate some and save your favorites.</div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:'0.8rem' }}>
+                {saved.map(p => (
+                  <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.id)} />
+                ))}
+              </div>
             )}
           </div>
         )}
-        </div>
+      </div>
       <BadgeToast badges={newBadges} onDismiss={() => setNewBadges([])} />
     </div>
   );
