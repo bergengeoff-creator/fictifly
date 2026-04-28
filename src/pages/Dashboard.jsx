@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [badgeCount, setBadgeCount] = useState(0);
   const [earnedBadges, setEarnedBadges] = useState([]);
+  const [storiesWritten, setStoriesWritten] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,6 +44,12 @@ const { data: userBadgeData } = await supabase
   .select('id, badge_id, earned_at')
   .eq('user_id', user.id);
 
+const { data: submissionsData } = await supabase
+  .from('submissions')
+  .select('id')
+  .eq('user_id', user.id);
+  setStoriesWritten(submissionsData ? submissionsData.length : 0);
+
 if (userBadgeData && userBadgeData.length > 0) {
   const badgeIds = userBadgeData.map(ub => ub.badge_id);
   const { data: badgeDetails } = await supabase
@@ -72,7 +79,7 @@ if (userBadgeData && userBadgeData.length > 0) {
 
   const stats = [
     { label: 'Prompts Generated', value: totalPromptsGenerated },
-    { label: 'Stories Submitted', value: '0' },
+    { label: 'Stories Written', value: storiesWritten },
     { label: 'Day Streak', value: currentStreak },
     { label: 'Badges Earned', value: badgeCount },
   ];

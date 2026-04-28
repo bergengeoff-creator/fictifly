@@ -48,6 +48,10 @@ export default async function handler(req, res) {
   const genreData = await genreRes.json();
   const uniqueGenres = new Set(genreData.map(p => p.genre)).size;
 
+  const subsRes = await fetch(`${supabaseUrl}/rest/v1/submissions?user_id=eq.${userId}&select=id`, { headers });
+  const subsData = await subsRes.json();
+  const totalWritten = subsData.length;
+
   // Check which badges should be earned
   const newlyEarned = [];
 
@@ -66,6 +70,9 @@ export default async function handler(req, res) {
   shouldEarn('Microfiction Master', totalMicro >= 50);
   shouldEarn('Flash Fiction Fan', totalFlash >= 50);
   shouldEarn('Prolific Writer', totalGenerated >= 100);
+  shouldEarn('First Draft', totalWritten >= 1);
+  shouldEarn('Storyteller', totalWritten >= 10);
+  shouldEarn('Prolific Storyteller', totalWritten >= 50);
 
   // Award new badges
   for (const badge of newlyEarned) {
