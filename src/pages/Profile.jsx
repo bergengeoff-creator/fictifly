@@ -190,7 +190,13 @@ export default function Profile() {
               <h1 style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '0.2rem' }}>{profile.display_name || profile.username}</h1>
               <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>@{profile.username}</div>
               <div style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.2rem' }}>
-                {profile.account_type === 'teacher' ? 'Educator' : profile.account_type === 'minor' ? 'Student' : 'Writer'} · {profile.profile_public ? 'Public profile' : 'Private profile'}
+  {profile.account_type === 'teacher' ? 'Educator' : profile.account_type === 'minor' ? 'Student' : 'Writer'} · {profile.profile_public ? 'Public profile' : 'Private profile'}
+</div>
+{profile.profile_public && (
+  <a href={`/writers/${profile.username}`} target="_blank" rel="noreferrer" style={{ color: '#2E6DA4', textDecoration: 'none', fontSize: '0.78rem', marginTop: '0.3rem', display: 'inline-block' }}>
+    View public profile →
+  </a>
+)
               </div>
             </div>
           </div>
