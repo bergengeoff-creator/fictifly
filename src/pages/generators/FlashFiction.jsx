@@ -266,12 +266,13 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
   const removePrompt = async (id) => {
     await supabase.from('saved_prompts').delete().eq('id', id);
     setSaved(prev => prev.filter(p => p.id !== id));
-    const isSaved = (prompt) => saved.some(s =>
-  s.genre === prompt.genre &&
-  s.word_count === prompt.wordCount &&
-  s.object === prompt.object
-);
   };
+
+  const isSaved = (prompt) => saved.some(s =>
+    s.genre === prompt.genre &&
+    s.word_count === prompt.wordCount &&
+    s.object === prompt.object
+  );
 
 const markWritten = async (savedPromptId) => {
   const { data, error: subError } = await supabase.from('submissions').insert({
