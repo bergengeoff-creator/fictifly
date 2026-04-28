@@ -1,3 +1,4 @@
+import { Link, useLocation } from 'react-router-dom';
 import { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabase';
@@ -98,7 +99,8 @@ export default function FlashFiction() {
   const [saved, setSaved] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [tab, setTab] = useState('generate');
+  const location = useLocation();
+const [tab, setTab] = useState(new URLSearchParams(location.search).get('tab') || 'generate');
   const [wordCount, setWordCount] = useState(500);
   const [count, setCount] = useState(1);
   const [selectedGenre, setSelectedGenre] = useState('random');
