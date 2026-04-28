@@ -194,6 +194,11 @@ Respond ONLY with a JSON array, no markdown, no explanation:
       }));
       setPrompts(result);
       await trackUsage(usageCount + count);
+      await fetch('/api/update-streak', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ userId: user.id }),
+});
     } catch {
       setError('Something went wrong generating prompts. Please try again.');
     }

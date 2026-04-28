@@ -8,12 +8,12 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [savedPrompts, setSavedPrompts] = useState([]);
   const [totalPromptsGenerated, setTotalPromptsGenerated] = useState(0);
+  const [currentStreak, setCurrentStreak] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
 
-      // Fetch saved prompts
       const { data: saved } = await supabase
         .from('saved_prompts')
         .select('*')
@@ -22,13 +22,19 @@ export default function Dashboard() {
         .limit(10);
       setSavedPrompts(saved || []);
 
-      // Fetch total prompts generated
       const { data: usage } = await supabase
         .from('prompt_usage')
         .select('count')
         .eq('user_id', user.id);
       const total = usage ? usage.reduce((sum, row) => sum + row.count, 0) : 0;
       setTotalPromptsGenerated(total);
+
+      const { data: streakData } = await supabase
+        .from('streaks')
+        .select('current_streak')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      setCurrentStreak(streakData ? streakData.current_streak : 0);
     };
     fetchData();
   }, [user]);
@@ -43,7 +49,7 @@ export default function Dashboard() {
   const stats = [
     { label: 'Prompts Generated', value: totalPromptsGenerated },
     { label: 'Stories Submitted', value: '0' },
-    { label: 'Day Streak', value: '0' },
+    { label: 'Day Streak', value: currentStreak },
     { label: 'Saved Prompts', value: savedPrompts.length },
   ];
 
