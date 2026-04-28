@@ -8,6 +8,8 @@ import Dashboard from './pages/Dashboard';
 import ProfileSetup from './pages/ProfileSetup';
 import Profile from './pages/Profile';
 import ClassroomDashboard from './pages/ClassroomDashboard';
+import Microfiction from './pages/generators/Microfiction';
+import FlashFiction from './pages/generators/FlashFiction';
 
 export default function App() {
   return (
@@ -22,6 +24,8 @@ export default function App() {
           <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/classroom" element={<ProtectedRoute><ClassroomDashboard /></ProtectedRoute>} />
+          <Route path="/generators/microfiction" element={<ProtectedRoute><Microfiction /></ProtectedRoute>} />
+          <Route path="/generators/flash-fiction" element={<ProtectedRoute><FlashFiction /></ProtectedRoute>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
