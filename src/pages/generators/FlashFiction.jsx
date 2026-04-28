@@ -428,6 +428,22 @@ const markWritten = async (savedPromptId) => {
               </div>
             )}
           </div>
+                )}
+
+        {tab === 'written' && (
+          <div>
+            {loadingSaved ? (
+              <div style={{ textAlign:'center', padding:'3.5rem 0', color:B.inkLight, fontSize:'0.93rem', fontStyle:'italic' }}>Loading...</div>
+            ) : saved.filter(p => writtenPrompts.includes(p.id)).length === 0 ? (
+              <div style={{ textAlign:'center', padding:'3.5rem 0', color:B.inkLight, fontSize:'0.93rem', fontStyle:'italic' }}>No written prompts yet — save a prompt and mark it as written!</div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:'0.8rem' }}>
+                {saved.filter(p => writtenPrompts.includes(p.id)).map(p => (
+                  <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={true} />
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
       <BadgeToast badges={newBadges} onDismiss={() => setNewBadges([])} />
