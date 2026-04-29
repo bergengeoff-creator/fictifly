@@ -8,6 +8,18 @@ const B = {
   ink: '#3A3226', inkMid: '#6B5D4E', inkLight: '#9A8878', white: '#FFFCF8',
 };
 
+const inputBase = {
+  width: '100%',
+  boxSizing: 'border-box',
+  background: '#F5EFE6',
+  borderRadius: '8px',
+  color: '#3A3226',
+  fontFamily: 'sans-serif',
+  fontSize: '0.95rem',
+  padding: '0.6rem 0.9rem',
+  outline: 'none',
+};
+
 export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isStudentSubmission }) {
   const { user, profile } = useAuth();
   const [content, setContent] = useState('');
@@ -23,23 +35,36 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isS
   const maxWords = Math.ceil(targetWordCount * 1.1);
   const withinRange = currentWordCount >= minWords && currentWordCount <= maxWords;
 
-  // Student submissions bypass the word count gate — they may be writing
-  // against an assigned prompt and shouldn't be blocked from submitting.
-  // Premium/teacher users keep the strict word count validation.
   const isStudent = isStudentSubmission || (profile && (profile.account_type === 'minor' || profile.account_type === 'student'));
   const canSubmit = isStudent ? content.trim().length > 0 : withinRange && currentWordCount > 0;
 
   useEffect(() => {
     const fetchExisting = async () => {
-      const promptId = prompt.id || prompt.dbId;
-      if (!promptId) return;
-      const query = supabase
-        .from('submissions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('prompt_id', promptId);
-      if (assignmentId) query.eq('assignment_id', assignmentId);
-      const { data } = await query.maybeSingle();
+      let data = null;
+
+      // For assignment submissions, fetch by assignment_id directly
+      // since prompt.id is null when opening from the dashboard assignments section
+      if (assignmentId) {
+        const { data: byAssignment } = await supabase
+          .from('submissions')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('assignment_id', assignmentId)
+          .maybeSingle();
+        data = byAssignment;
+      } else {
+        // For regular prompt submissions, fetch by prompt_id
+        const promptId = prompt.id || prompt.dbId;
+        if (!promptId) return;
+        const { data: byPrompt } = await supabase
+          .from('submissions')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('prompt_id', promptId)
+          .maybeSingle();
+        data = byPrompt;
+      }
+
       if (data) {
         setExistingSubmission(data);
         setContent(data.content || '');
@@ -117,7 +142,7 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isS
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(58,50,38,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1.25rem' }}>
-      <div style={{ background: B.white, border: `1px solid ${B.sandDeep}`, borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(58,50,38,0.18)' }}>
+      <div style={{ background: B.white, border: `1px solid ${B.sandDeep}`, borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(58,50,38,0.18)', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
           <div>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: B.ink, marginBottom: '0.25rem' }}>
@@ -127,7 +152,7 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isS
               {[prompt.genre, targetWordCount && `${targetWordCount} words`, promptIngredients].filter(Boolean).join(' · ')}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', color: B.inkLight, cursor: 'pointer', lineHeight: 1 }}>×</button>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', color: B.inkLight, cursor: 'pointer', lineHeight: 1, flexShrink: 0, marginLeft: '1rem' }}>×</button>
         </div>
 
         {isStudent && assignmentId && (
@@ -138,8 +163,14 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isS
 
         <div style={{ marginBottom: '1rem' }}>
           <label style={{ fontSize: '0.78rem', fontWeight: 600, color: B.inkMid, display: 'block', marginBottom: '0.4rem' }}>Title (optional)</label>
-          <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Give your story a title..." maxLength={100}
-            style={{ width: '100%', background: B.sand, border: `1px solid ${B.sandDeep}`, borderRadius: '8px', color: B.ink, fontFamily: 'sans-serif', fontSize: '0.95rem', padding: '0.6rem 0.9rem', outline: 'none' }} />
+          <input
+            type="text"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="Give your story a title..."
+            maxLength={100}
+            style={{ ...inputBase, border: `1px solid ${B.sandDeep}` }}
+          />
         </div>
 
         <div style={{ marginBottom: '0.5rem' }}>
@@ -155,8 +186,19 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isS
               {(!isStudent ? withinRange : currentWordCount > 0) && currentWordCount > 0 && <span style={{ marginLeft: '0.5rem' }}>✓</span>}
             </div>
           </div>
-          <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Paste or write your story here..." rows={12}
-            style={{ width: '100%', background: B.sand, border: `1.5px solid ${canSubmit ? '#6BAF72' : B.sandDeep}`, borderRadius: '8px', color: B.ink, fontFamily: 'Georgia, serif', fontSize: '0.95rem', lineHeight: 1.7, padding: '0.75rem 0.9rem', outline: 'none', resize: 'vertical' }} />
+          <textarea
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            placeholder="Paste or write your story here..."
+            rows={12}
+            style={{
+              ...inputBase,
+              border: `1.5px solid ${canSubmit ? '#6BAF72' : B.sandDeep}`,
+              fontFamily: 'Georgia, serif',
+              lineHeight: 1.7,
+              resize: 'vertical',
+            }}
+          />
         </div>
 
         {!isStudent && (

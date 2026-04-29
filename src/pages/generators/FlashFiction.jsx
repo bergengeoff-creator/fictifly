@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import BadgeToast from '../../components/BadgeToast';
 import StoryModal from '../../components/StoryModal';
+import AssignModal from '../../components/AssignModal';
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -48,7 +49,7 @@ const FictiflyLogo = () => (
   </svg>
 );
 
-const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritten, isPremium, onAddStory }) => {
+const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritten, isPremium, onAddStory, onAssign, isTeacher }) => {
   const [copied, setCopied] = useState(false);
   const gc = genreColor(prompt.genre);
   const is500 = prompt.wordCount === 500;
@@ -93,6 +94,9 @@ const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritte
           <button onClick={() => onRemove(prompt.id)} style={{ background:B.terra, border:`1px solid ${B.terra}`, color:B.white, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>★ Saved</button>
         ) : (
           <button onClick={() => onSave(prompt)} style={{ background:'transparent', border:`1px solid ${B.sandDeep}`, color:B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer', transition:'all 0.18s' }}>☆ Save</button>
+        )}
+        {isTeacher && onAssign && (
+          <button onClick={() => onAssign(prompt)} style={{ background:'transparent', border:`1px solid ${B.seaMid}`, color:B.seaDeep, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer', transition:'all 0.18s' }}>📋 Assign</button>
         )}
         {prompt.dbId && (
           isWritten ? (
@@ -139,7 +143,10 @@ export default function FlashFiction() {
   const [writtenPrompts, setWrittenPrompts] = useState([]);
   const [storyModalPrompt, setStoryModalPrompt] = useState(null);
   const [writtenSavedPrompts, setWrittenSavedPrompts] = useState([]);
+  const [assignModalPrompt, setAssignModalPrompt] = useState(null);
+  const [assignSuccess, setAssignSuccess] = useState(false);
 
+  const isTeacher = profile && profile.account_type === 'teacher';
   const FREE_LIMIT =
     profile && profile.account_type === 'teacher' ? Infinity
     : profile && profile.account_type === 'premium' ? Infinity
@@ -320,6 +327,11 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
     }
   };
 
+  const handleAssigned = () => {
+    setAssignSuccess(true);
+    setTimeout(() => setAssignSuccess(false), 3000);
+  };
+
   const savedUnwritten = saved.filter(p => !writtenPrompts.includes(p.id));
 
   return (
@@ -334,6 +346,13 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
       </div>
 
       <div style={{ maxWidth:640, margin:'0 auto' }}>
+
+        {assignSuccess && (
+          <div style={{ background:'#F0F7ED', border:'1px solid #6BAF72', borderRadius:'10px', color:'#3A7040', padding:'0.75rem 1rem', marginBottom:'1rem', fontSize:'0.88rem', fontFamily:"'DM Sans', sans-serif" }}>
+            ✓ Assignment created! Students will see it on their dashboard.
+          </div>
+        )}
+
         <div style={{ textAlign:'center', marginBottom:'2rem' }}>
           <svg width="52" height="24" viewBox="0 0 52 24" fill="none" style={{ marginBottom:'1.2rem' }}>
             <path d="M4 16 C10 7, 18 7, 26 16 C34 25, 42 25, 48 16" stroke={B.seaMid} strokeWidth="2.5" strokeLinecap="round" fill="none"/>
@@ -433,7 +452,7 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
                   {INSTRUCTIONS[wordCount]}
                 </div>
                 {prompts.map(p => (
-                  <PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} />
+                  <PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} onAssign={setAssignModalPrompt} isTeacher={isTeacher} />
                 ))}
               </div>
             )}
@@ -455,7 +474,7 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:'0.8rem' }}>
                 {savedUnwritten.map(p => (
-                  <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={false} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} />
+                  <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={false} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} onAssign={setAssignModalPrompt} isTeacher={isTeacher} />
                 ))}
               </div>
             )}
@@ -471,7 +490,7 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:'0.8rem' }}>
                 {writtenSavedPrompts.map(p => (
-                  <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={true} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} />
+                  <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={true} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} onAssign={setAssignModalPrompt} isTeacher={isTeacher} />
                 ))}
               </div>
             )}
@@ -484,6 +503,13 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
           prompt={storyModalPrompt}
           onClose={() => setStoryModalPrompt(null)}
           onSaved={() => setStoryModalPrompt(null)}
+        />
+      )}
+      {assignModalPrompt && (
+        <AssignModal
+          prompt={assignModalPrompt}
+          onClose={() => setAssignModalPrompt(null)}
+          onAssigned={handleAssigned}
         />
       )}
       <BadgeToast badges={newBadges} onDismiss={() => setNewBadges([])} />

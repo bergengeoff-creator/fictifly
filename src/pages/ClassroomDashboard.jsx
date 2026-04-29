@@ -67,6 +67,7 @@ export default function ClassroomDashboard() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
+  // Create assignment state
   const [assignments, setAssignments] = useState([]);
   const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [assignmentTitle, setAssignmentTitle] = useState('');
@@ -82,10 +83,22 @@ export default function ClassroomDashboard() {
   const [assignmentStudentId, setAssignmentStudentId] = useState('');
   const [savingAssignment, setSavingAssignment] = useState(false);
 
+  // Submission review state
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [assignmentSubmissions, setAssignmentSubmissions] = useState([]);
   const [feedbackMap, setFeedbackMap] = useState({});
   const [savingFeedback, setSavingFeedback] = useState({});
+
+  // Edit assignment state
+  const [editingAssignment, setEditingAssignment] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editGenre, setEditGenre] = useState('');
+  const [editAction, setEditAction] = useState('');
+  const [editWord, setEditWord] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editObject, setEditObject] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchClasses = useCallback(async () => {
     setLoading(true);
@@ -131,6 +144,7 @@ export default function ClassroomDashboard() {
 
   const fetchAssignmentSubmissions = async (assignment) => {
     setSelectedAssignment(assignment);
+    setEditingAssignment(false);
     const { data: subs } = await supabase
       .from('submissions')
       .select('*, users!submissions_user_id_fkey(username, display_name)')
@@ -147,8 +161,50 @@ export default function ClassroomDashboard() {
     setView('class-detail');
     setClassDetailTab('students');
     setSelectedAssignment(null);
+    setEditingAssignment(false);
     await fetchClassMembers(cls.id);
     await fetchAssignments(cls.id);
+  };
+
+  const handleStartEdit = (assignment) => {
+    setEditTitle(assignment.title);
+    setEditGenre(assignment.genre || '');
+    setEditAction(assignment.action || '');
+    setEditWord(assignment.word || '');
+    setEditLocation(assignment.location || '');
+    setEditObject(assignment.object || '');
+    setEditDueDate(assignment.due_date || '');
+    setEditingAssignment(true);
+    setError(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTitle.trim()) { setError('Please enter a title.'); return; }
+    if (!editDueDate) { setError('Please set a due date.'); return; }
+    setSavingEdit(true);
+    setError(null);
+    const updates = {
+      title: editTitle.trim(),
+      genre: editGenre || null,
+      action: (selectedAssignment.prompt_type === 'microfiction' || (selectedAssignment.prompt_type === 'flash-fiction' && selectedAssignment.word_count === 500)) ? (editAction || null) : null,
+      word: selectedAssignment.prompt_type === 'microfiction' ? (editWord || null) : null,
+      location: selectedAssignment.prompt_type === 'flash-fiction' && selectedAssignment.word_count === 1000 ? (editLocation || null) : null,
+      object: selectedAssignment.prompt_type === 'flash-fiction' ? (editObject || null) : null,
+      due_date: editDueDate,
+    };
+    const { data, error: updateError } = await supabase
+      .from('assignments')
+      .update(updates)
+      .eq('id', selectedAssignment.id)
+      .select().single();
+    if (updateError) { setError('Failed to save: ' + updateError.message); setSavingEdit(false); return; }
+    const updated = { ...selectedAssignment, ...data };
+    setSelectedAssignment(updated);
+    setAssignments(prev => prev.map(a => a.id === updated.id ? { ...updated, submissionCount: a.submissionCount } : a));
+    setEditingAssignment(false);
+    setSavingEdit(false);
+    setSuccess('Assignment updated!');
+    setTimeout(() => setSuccess(null), 3000);
   };
 
   const handleCreateClass = async () => {
@@ -346,7 +402,7 @@ export default function ClassroomDashboard() {
 
         {view === 'class-detail' && selectedClass && (
           <div>
-            <button onClick={() => { setView('classes'); setSelectedClass(null); setGeneratedAccounts([]); setShowBulkGenerate(false); setSelectedAssignment(null); }} style={{ ...btnSecondary, marginBottom: '1.5rem' }}>← Back to classes</button>
+            <button onClick={() => { setView('classes'); setSelectedClass(null); setGeneratedAccounts([]); setShowBulkGenerate(false); setSelectedAssignment(null); setEditingAssignment(false); }} style={{ ...btnSecondary, marginBottom: '1.5rem' }}>← Back to classes</button>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
@@ -370,7 +426,7 @@ export default function ClassroomDashboard() {
 
             <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '12px', padding: '4px', gap: '2px', marginBottom: '1.5rem' }}>
               {['students', 'assignments'].map(t => (
-                <button key={t} onClick={() => { setClassDetailTab(t); setSelectedAssignment(null); setShowBulkGenerate(false); setShowCreateAssignment(false); setError(null); }}
+                <button key={t} onClick={() => { setClassDetailTab(t); setSelectedAssignment(null); setShowBulkGenerate(false); setShowCreateAssignment(false); setEditingAssignment(false); setError(null); }}
                   style={{ flex: 1, background: classDetailTab === t ? '#FFFCF8' : 'transparent', border: 'none', borderRadius: '9px', color: classDetailTab === t ? '#3A3226' : '#9A8878', fontFamily: 'sans-serif', fontWeight: classDetailTab === t ? 600 : 400, fontSize: '0.85rem', padding: '0.5rem 1rem', cursor: 'pointer', transition: 'all 0.18s', boxShadow: classDetailTab === t ? '0 1px 4px rgba(58,50,38,0.1)' : 'none' }}>
                   {t === 'students' ? `Students (${classMembers.length})` : `Assignments (${assignments.length})`}
                 </button>
@@ -451,11 +507,9 @@ export default function ClassroomDashboard() {
                 {showCreateAssignment && (
                   <div style={sectionStyle}>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Create assignment</h3>
-
                     <label style={labelStyle}>Title
                       <input type="text" value={assignmentTitle} onChange={e => setAssignmentTitle(e.target.value)} placeholder="e.g. Week 3 Horror Challenge" style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
                     </label>
-
                     <label style={{ ...labelStyle, marginBottom: '0.4rem' }}>Assign to</label>
                     <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
                       {['class', 'student'].map(t => (
@@ -465,7 +519,6 @@ export default function ClassroomDashboard() {
                         </button>
                       ))}
                     </div>
-
                     {assignmentTarget === 'student' && (
                       <label style={labelStyle}>Select student
                         <select value={assignmentStudentId} onChange={e => setAssignmentStudentId(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem', appearance: 'none' }}>
@@ -476,7 +529,6 @@ export default function ClassroomDashboard() {
                         </select>
                       </label>
                     )}
-
                     <label style={{ ...labelStyle, marginBottom: '0.4rem' }}>Generator type</label>
                     <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
                       {[{ value: 'microfiction', label: 'Microfiction' }, { value: 'flash-fiction', label: 'Flash Fiction' }].map(opt => (
@@ -486,7 +538,6 @@ export default function ClassroomDashboard() {
                         </button>
                       ))}
                     </div>
-
                     <label style={{ ...labelStyle, marginBottom: '0.4rem' }}>Word count</label>
                     <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
                       {wordCountOptions.map(n => (
@@ -496,14 +547,12 @@ export default function ClassroomDashboard() {
                         </button>
                       ))}
                     </div>
-
                     <label style={labelStyle}>Genre (optional)
                       <select value={assignmentGenre} onChange={e => setAssignmentGenre(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem', appearance: 'none' }}>
                         <option value="">Random / student's choice</option>
                         {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
                       </select>
                     </label>
-
                     <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '1rem', marginBottom: '0.75rem' }}>
                       <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>Prompt ingredients (optional)</div>
                       <div style={{ fontSize: '0.78rem', color: '#9A8878', marginBottom: '0.75rem' }}>Leave blank to let students generate their own ingredients.</div>
@@ -534,13 +583,10 @@ export default function ClassroomDashboard() {
                         </div>
                       )}
                     </div>
-
                     <label style={labelStyle}>Due date
                       <input type="date" value={assignmentDueDate} onChange={e => setAssignmentDueDate(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
                     </label>
-
                     {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginBottom: '0.75rem', fontSize: '0.85rem' }}>{error}</div>}
-
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button onClick={handleCreateAssignment} disabled={savingAssignment} style={{ ...btnPrimary, opacity: savingAssignment ? 0.6 : 1 }}>{savingAssignment ? 'Saving...' : 'Create assignment'}</button>
                       <button onClick={() => { setShowCreateAssignment(false); setError(null); }} style={btnSecondary}>Cancel</button>
@@ -593,20 +639,83 @@ export default function ClassroomDashboard() {
 
             {classDetailTab === 'assignments' && selectedAssignment && (
               <div>
-                <button onClick={() => setSelectedAssignment(null)} style={{ ...btnSecondary, marginBottom: '1.5rem' }}>← Back to assignments</button>
+                <button onClick={() => { setSelectedAssignment(null); setEditingAssignment(false); }} style={{ ...btnSecondary, marginBottom: '1.5rem' }}>← Back to assignments</button>
 
+                {/* Assignment detail / edit */}
                 <div style={sectionStyle}>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.4rem' }}>Assignment</div>
-                  <h2 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.5rem' }}>{selectedAssignment.title}</h2>
-                  <div style={{ fontSize: '0.82rem', color: '#9A8878', marginBottom: '0.5rem' }}>
-                    {selectedAssignment.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {selectedAssignment.word_count} words{selectedAssignment.genre ? ` · ${selectedAssignment.genre}` : ''}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem', gap: '1rem' }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A' }}>Assignment</div>
+                    {!editingAssignment && (
+                      <button onClick={() => handleStartEdit(selectedAssignment)} style={{ ...btnSecondary, fontSize: '0.78rem', padding: '0.3rem 0.8rem' }}>Edit</button>
+                    )}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                    {selectedAssignment.action && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Action: {selectedAssignment.action}</span>}
-                    {selectedAssignment.word && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Word: {selectedAssignment.word}</span>}
-                    {selectedAssignment.location && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Location: {selectedAssignment.location}</span>}
-                    {selectedAssignment.object && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Object: {selectedAssignment.object}</span>}
-                  </div>
+
+                  {!editingAssignment ? (
+                    <div>
+                      <h2 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.5rem' }}>{selectedAssignment.title}</h2>
+                      <div style={{ fontSize: '0.82rem', color: '#9A8878', marginBottom: '0.5rem' }}>
+                        {selectedAssignment.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {selectedAssignment.word_count} words{selectedAssignment.genre ? ` · ${selectedAssignment.genre}` : ''}
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: '#9A8878', marginBottom: '0.5rem' }}>
+                        Due {new Date(selectedAssignment.due_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        {selectedAssignment.action && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Action: {selectedAssignment.action}</span>}
+                        {selectedAssignment.word && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Word: {selectedAssignment.word}</span>}
+                        {selectedAssignment.location && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Location: {selectedAssignment.location}</span>}
+                        {selectedAssignment.object && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Object: {selectedAssignment.object}</span>}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label style={labelStyle}>Title
+                        <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
+                      </label>
+                      <label style={labelStyle}>Genre (optional)
+                        <select value={editGenre} onChange={e => setEditGenre(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem', appearance: 'none' }}>
+                          <option value="">Random / student's choice</option>
+                          {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                      </label>
+                      <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '1rem', marginBottom: '0.75rem' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>Prompt ingredients</div>
+                        {selectedAssignment.prompt_type === 'microfiction' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <label style={labelStyle}>Action
+                              <input type="text" value={editAction} onChange={e => setEditAction(e.target.value)} placeholder="e.g. Unraveling" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                            </label>
+                            <label style={labelStyle}>Word
+                              <input type="text" value={editWord} onChange={e => setEditWord(e.target.value)} placeholder="e.g. Courage" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                            </label>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {selectedAssignment.word_count === 500 && (
+                              <label style={labelStyle}>Action
+                                <input type="text" value={editAction} onChange={e => setEditAction(e.target.value)} placeholder="e.g. Warning" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                              </label>
+                            )}
+                            {selectedAssignment.word_count === 1000 && (
+                              <label style={labelStyle}>Location
+                                <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="e.g. A pawnshop" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                              </label>
+                            )}
+                            <label style={labelStyle}>Object
+                              <input type="text" value={editObject} onChange={e => setEditObject(e.target.value)} placeholder="e.g. A compass" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                      <label style={labelStyle}>Due date
+                        <input type="date" value={editDueDate} onChange={e => setEditDueDate(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
+                      </label>
+                      {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginBottom: '0.75rem', fontSize: '0.85rem' }}>{error}</div>}
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={handleSaveEdit} disabled={savingEdit} style={{ ...btnPrimary, opacity: savingEdit ? 0.6 : 1 }}>{savingEdit ? 'Saving...' : 'Save changes'}</button>
+                        <button onClick={() => { setEditingAssignment(false); setError(null); }} style={btnSecondary}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#3A3226', marginBottom: '0.75rem' }}>
