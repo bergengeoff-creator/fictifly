@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 
+const inputStyle = { width: '100%', background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#3A3226', fontFamily: 'sans-serif', fontSize: '0.95rem', padding: '0.6rem 0.9rem', outline: 'none', boxSizing: 'border-box' };
+
 const GRADE_LEVELS = ['Elementary (K-5)', 'Middle School (6-8)', 'High School (9-12)', 'Other'];
 const GENRES = [
   'Action/Adventure','Comedy','Crime Caper','Drama','Fairy Tale','Fantasy',
