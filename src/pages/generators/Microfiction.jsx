@@ -34,7 +34,22 @@ const INSTRUCTIONS = {
   300: <>Three ingredients, one story. The <strong style={{ color:"#3A3226", fontWeight:600 }}>action</strong> is your spark — it must happen somewhere in your narrative, whether your character lives it in the moment, revisits it in a flashback, or stumbles through it in a dream. The <strong style={{ color:"#3A3226", fontWeight:600 }}>word</strong> must show up exactly as spelled, but you can dress it up — <em>courageous</em> keeps <em>courage</em> intact. The <strong style={{ color:"#3A3226", fontWeight:600 }}>genre</strong> is your playground.</>,
 };
 
-const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritten, isPremium, onAddStory }) => {  
+const FictiflyLogo = () => (
+  <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '140px', height: '25px', display: 'block' }}>
+    <text x="0" y="28" fontSize="28" fontWeight="600" letterSpacing="-1.5" fontFamily="system-ui, sans-serif">
+      <tspan fill="#3A3226">ficti</tspan><tspan fill="#D4845A">fly</tspan>
+    </text>
+    <rect x="0" y="34" width="16" height="3" rx="1.5" fill="#5B9EC9" opacity="0.35"/>
+    <rect x="20" y="33" width="19" height="4" rx="2" fill="#5B9EC9" opacity="0.55"/>
+    <rect x="43" y="32" width="21" height="5" rx="2.5" fill="#5B9EC9" opacity="0.75"/>
+    <rect x="68" y="31" width="24" height="6" rx="3" fill="#5B9EC9"/>
+    <rect x="96" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
+    <rect x="124" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
+    <rect x="152" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
+  </svg>
+);
+
+const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritten, isPremium, onAddStory }) => {
   const [copied, setCopied] = useState(false);
   const gc = genreColor(prompt.genre);
 
@@ -73,15 +88,15 @@ const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritte
         )}
         {prompt.dbId && (
           isWritten ? (
-  <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap' }}>
-    <button style={{ background:'#F0F7ED', border:'1px solid #6BAF72', color:'#3A7040', borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'default' }}>✓ Written!</button>
-    {isPremium && (
-      <button onClick={() => onAddStory(prompt)} style={{ background:B.seaDeep, border:'none', color:B.white, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>📄 {prompt.hasStory ? 'Edit story' : 'Add story'}</button>
-    )}
-  </div>
-) : (
-  <button onClick={() => onMarkWritten(prompt.dbId)} style={{ background:'transparent', border:`1px solid ${B.sandDeep}`, color:B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>✍️ I wrote this!</button>
-)
+            <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap' }}>
+              <button style={{ background:'#F0F7ED', border:'1px solid #6BAF72', color:'#3A7040', borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'default' }}>✓ Written!</button>
+              {isPremium && (
+                <button onClick={() => onAddStory(prompt)} style={{ background:B.seaDeep, border:'none', color:B.white, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>📄 {prompt.hasStory ? 'Edit story' : 'Add story'}</button>
+              )}
+            </div>
+          ) : (
+            <button onClick={() => onMarkWritten(prompt.dbId)} style={{ background:'transparent', border:`1px solid ${B.sandDeep}`, color:B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>✍️ I wrote this!</button>
+          )
         )}
       </div>
     </div>
@@ -133,12 +148,13 @@ export default function Microfiction() {
   }, []);
 
   const fetchWrittenPrompts = async () => {
-  const { data } = await supabase
-    .from('submissions')
-    .select('prompt_id')
-    .eq('user_id', user.id);
-  setWrittenPrompts(data ? data.map(s => s.prompt_id) : []);
-};
+    const { data } = await supabase
+      .from('submissions')
+      .select('prompt_id, saved_prompts(*)')
+      .eq('user_id', user.id);
+    setWrittenPrompts(data ? data.map(s => s.prompt_id) : []);
+    setWrittenSavedPrompts(data ? data.map(s => s.saved_prompts).filter(Boolean) : []);
+  };
 
   const fetchUsage = async () => {
     const today = new Date().toISOString().split('T')[0];
@@ -265,27 +281,29 @@ Respond ONLY with a JSON array, no markdown, no explanation:
 
   const isSaved = (prompt) => saved.some(s => s.action === prompt.action && s.word === prompt.word && s.genre === prompt.genre);
 
-const markWritten = async (savedPromptId) => {
-  const { data, error: subError } = await supabase.from('submissions').insert({
-    user_id: user.id,
-    prompt_id: savedPromptId,
-    prompt_type: 'microfiction',
-    genre: prompts.find(p => p.dbId === savedPromptId)?.genre || null,
-    word_count: wordCount,
-  }).select().single();
-  if (!subError && data) {
-    setWrittenPrompts(prev => [...prev, savedPromptId]);
-    const badgeRes = await fetch('/api/check-badges', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id }),
-    });
-    const badgeData = await badgeRes.json();
-    if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
-      setNewBadges(badgeData.newlyEarned);
+  const markWritten = async (savedPromptId) => {
+    const { data, error: subError } = await supabase.from('submissions').insert({
+      user_id: user.id,
+      prompt_id: savedPromptId,
+      prompt_type: 'microfiction',
+      genre: prompts.find(p => p.dbId === savedPromptId)?.genre || null,
+      word_count: wordCount,
+    }).select().single();
+    if (!subError && data) {
+      setWrittenPrompts(prev => [...prev, savedPromptId]);
+      const badgeRes = await fetch('/api/check-badges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const badgeData = await badgeRes.json();
+      if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
+        setNewBadges(badgeData.newlyEarned);
+      }
     }
-  }
-};
+  };
+
+  const savedUnwritten = saved.filter(p => !writtenPrompts.includes(p.id));
 
   return (
     <div style={{ minHeight:'100vh', background:B.sand, backgroundImage:`radial-gradient(ellipse at 5% 5%, rgba(91,158,201,0.13) 0%, transparent 45%), radial-gradient(ellipse at 95% 90%, rgba(212,132,90,0.11) 0%, transparent 45%)`, fontFamily:"'DM Sans', sans-serif", color:B.ink, padding:'0 1.25rem 5rem' }}>
@@ -293,7 +311,9 @@ const markWritten = async (savedPromptId) => {
 
       <div style={{ maxWidth:640, margin:'0 auto', padding:'1.25rem 0', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:`1px solid ${B.sandDeep}`, marginBottom:'2rem' }}>
         <Link to="/dashboard" style={{ color:B.inkMid, textDecoration:'none', fontSize:'0.85rem' }}>← Dashboard</Link>
-        <div style={{ fontFamily:"'Fraunces', serif", fontSize:'1.3rem', fontWeight:700, color:B.ink }}>Fictifly</div>
+        <Link to="/dashboard" style={{ textDecoration:'none', display:'block' }}>
+          <FictiflyLogo />
+        </Link>
       </div>
 
       <div style={{ maxWidth:640, margin:'0 auto' }}>
@@ -316,13 +336,16 @@ const markWritten = async (savedPromptId) => {
         </div>
 
         <div style={{ display:'inline-flex', background:B.sandMid, borderRadius:'12px', padding:'4px', gap:'2px', marginBottom:'1.75rem', width:'100%' }}>
-          {['generate','saved','written'].map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ flex:1, background:tab===t ? B.white : 'transparent', border:'none', borderRadius:'9px', color:tab===t ? B.ink : B.inkLight, fontFamily:"'DM Sans', sans-serif", fontWeight:tab===t ? 600 : 400, fontSize:'0.85rem', padding:'0.5rem 1.35rem', transition:'all 0.18s', boxShadow:tab===t ? '0 1px 4px rgba(58,50,38,0.1)' : 'none', cursor:'pointer' }}>
-              {t === 'generate' ? 'Generate' 
-  : t === 'saved' ? `Saved${saved.filter(p => !writtenPrompts.includes(p.id)).length > 0 ? ` (${saved.filter(p => !writtenPrompts.includes(p.id)).length})` : ''}` 
-  : `Written${writtenSavedPrompts.length > 0 ? ` (${writtenSavedPrompts.length})` : ''}`}
-            </button>
-          ))}
+          {['generate','saved','written'].map(t => {
+            let label = 'Generate';
+            if (t === 'saved') label = savedUnwritten.length > 0 ? `Saved (${savedUnwritten.length})` : 'Saved';
+            if (t === 'written') label = writtenSavedPrompts.length > 0 ? `Written (${writtenSavedPrompts.length})` : 'Written';
+            return (
+              <button key={t} onClick={() => setTab(t)} style={{ flex:1, background:tab===t ? B.white : 'transparent', border:'none', borderRadius:'9px', color:tab===t ? B.ink : B.inkLight, fontFamily:"'DM Sans', sans-serif", fontWeight:tab===t ? 600 : 400, fontSize:'0.85rem', padding:'0.5rem 1.35rem', transition:'all 0.18s', boxShadow:tab===t ? '0 1px 4px rgba(58,50,38,0.1)' : 'none', cursor:'pointer' }}>
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {tab === 'generate' && (
@@ -389,7 +412,8 @@ const markWritten = async (savedPromptId) => {
                   {INSTRUCTIONS[wordCount]}
                 </div>
                 {prompts.map(p => (
-  <PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} />               ))}
+                  <PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} />
+                ))}
               </div>
             )}
 
@@ -405,12 +429,12 @@ const markWritten = async (savedPromptId) => {
           <div>
             {loadingSaved ? (
               <div style={{ textAlign:'center', padding:'3.5rem 0', color:B.inkLight, fontSize:'0.93rem', fontStyle:'italic' }}>Loading saved prompts...</div>
-            ) : saved.length === 0 ? (
-              <div style={{ textAlign:'center', padding:'3.5rem 0', color:B.inkLight, fontSize:'0.93rem', fontStyle:'italic' }}>No saved prompts yet — generate some and save your favorites.</div>
+            ) : savedUnwritten.length === 0 ? (
+              <div style={{ textAlign:'center', padding:'3.5rem 0', color:B.inkLight, fontSize:'0.93rem', fontStyle:'italic' }}>No unwritten prompts — check your Written tab!</div>
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:'0.8rem' }}>
-                {saved.map(p => (
-                  <PromptCard key={p.id} prompt={p} onSave={savePrompt} onRemove={removePrompt} isSaved={isSaved(p)} onMarkWritten={markWritten} isWritten={writtenPrompts.includes(p.dbId)} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} />
+                {savedUnwritten.map(p => (
+                  <PromptCard key={p.id} prompt={{ ...p, wordCount: p.word_count, id: p.id, dbId: p.id }} onSave={savePrompt} onRemove={removePrompt} isSaved={true} onMarkWritten={markWritten} isWritten={false} isPremium={isUnlimited} onAddStory={setStoryModalPrompt} />
                 ))}
               </div>
             )}
@@ -433,13 +457,14 @@ const markWritten = async (savedPromptId) => {
           </div>
         )}
       </div>
+
       {storyModalPrompt && (
-  <StoryModal
-    prompt={storyModalPrompt}
-    onClose={() => setStoryModalPrompt(null)}
-    onSaved={() => setStoryModalPrompt(null)}
-  />
-)}
+        <StoryModal
+          prompt={storyModalPrompt}
+          onClose={() => setStoryModalPrompt(null)}
+          onSaved={() => setStoryModalPrompt(null)}
+        />
+      )}
       <BadgeToast badges={newBadges} onDismiss={() => setNewBadges([])} />
     </div>
   );
