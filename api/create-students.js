@@ -10,7 +10,7 @@ export default async function handler(req, res) {
 
   for (const account of accounts) {
     const { username, passcode } = account;
-    const email = username.toLowerCase() + '@student.fictifly.com';
+    const email = username.toLowerCase() + '@minor.fictifly.com';
 
     // Create auth user via admin API
     const authRes = await fetch(`${process.env.REACT_APP_SUPABASE_URL}/auth/v1/admin/users`, {
