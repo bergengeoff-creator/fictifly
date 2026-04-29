@@ -26,7 +26,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Forgot passcode flow
   const [showForgotPasscode, setShowForgotPasscode] = useState(false);
   const [forgotUsername, setForgotUsername] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
@@ -67,64 +66,22 @@ export default function Login() {
     setForgotLoading(true);
     setForgotError(null);
 
-    // Look up student by username
-    const { data: userRecord } = await supabase
-      .from('users')
-      .select('id')
-      .eq('username', forgotUsername.trim())
-      .eq('account_type', 'student')
-      .maybeSingle();
-
-    if (!userRecord) {
-      setForgotError('No student account found with that username.');
-      setForgotLoading(false);
-      return;
-    }
-
-    // Find their class
-    const { data: membership } = await supabase
-      .from('class_members')
-      .select('class_id')
-      .eq('student_id', userRecord.id)
-      .maybeSingle();
-
-    if (!membership) {
-      setForgotError('This account is not linked to a class. Please ask your teacher for help.');
-      setForgotLoading(false);
-      return;
-    }
-
-    // Check for existing pending request
-    const { data: existing } = await supabase
-      .from('passcode_reset_requests')
-      .select('id')
-      .eq('student_id', userRecord.id)
-      .eq('status', 'pending')
-      .maybeSingle();
-
-    if (existing) {
-      setForgotSuccess(true);
-      setForgotLoading(false);
-      return;
-    }
-
-    // Insert reset request
-    const { error: insertError } = await supabase
-      .from('passcode_reset_requests')
-      .insert({
-        student_id: userRecord.id,
-        class_id: membership.class_id,
-        username: forgotUsername.trim(),
-        status: 'pending',
+    try {
+      const response = await fetch('/api/request-passcode-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: forgotUsername.trim() }),
       });
-
-    if (insertError) {
+      const data = await response.json();
+      if (!response.ok) {
+        setForgotError(data.error || 'Something went wrong. Please ask your teacher for help.');
+        setForgotLoading(false);
+        return;
+      }
+      setForgotSuccess(true);
+    } catch {
       setForgotError('Something went wrong. Please ask your teacher for help directly.');
-      setForgotLoading(false);
-      return;
     }
-
-    setForgotSuccess(true);
     setForgotLoading(false);
   };
 
@@ -136,7 +93,6 @@ export default function Login() {
       <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '16px', padding: '2.5rem', maxWidth: '480px', width: '100%' }}>
         <FictiflyLogo />
 
-        {/* Forgot passcode view */}
         {showForgotPasscode ? (
           <div>
             <h1 style={{ color: '#3A3226', marginBottom: '0.5rem', textAlign: 'center', fontSize: '1.5rem' }}>Forgot passcode?</h1>
@@ -158,7 +114,9 @@ export default function Login() {
             ) : (
               <div>
                 <label style={labelStyle}>Your username
-                  <input type="text" value={forgotUsername} onChange={e => setForgotUsername(e.target.value)} placeholder="e.g. SwiftNarrator47" style={{ ...inputStyle, marginTop: '0.4rem' }} />
+                  <input type="text" value={forgotUsername} onChange={e => setForgotUsername(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleForgotPasscode(); }}
+                    placeholder="e.g. SwiftNarrator47" style={{ ...inputStyle, marginTop: '0.4rem' }} />
                 </label>
                 {forgotError && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginTop: '0.75rem', fontSize: '0.85rem' }}>{forgotError}</div>}
                 <button onClick={handleForgotPasscode} disabled={forgotLoading}
