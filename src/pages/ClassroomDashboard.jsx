@@ -481,9 +481,9 @@ The only change is .filter(member => member.users) before the .map() — silentl
                       <label style={labelStyle}>Select student
                         <select value={assignmentStudentId} onChange={e => setAssignmentStudentId(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem', appearance: 'none' }}>
                           <option value="">Choose a student...</option>
-                          {classMembers.map(m => (
-                            <option key={m.student_id} value={m.student_id}>{m.users.display_name || m.users.username}</option>
-                          ))}
+                          {classMembers.filter(m => m.users).map(m => (
+  <option key={m.student_id} value={m.student_id}>{m.users.display_name || m.users.username}</option>
+))}
                         </select>
                       </label>
                     )}
