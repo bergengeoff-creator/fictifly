@@ -3,6 +3,21 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
+const FictiflyLogo = () => (
+  <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '140px', height: '25px', display: 'block' }}>
+    <text x="0" y="28" fontSize="28" fontWeight="600" letterSpacing="-1.5" fontFamily="system-ui, sans-serif">
+      <tspan fill="#3A3226">ficti</tspan><tspan fill="#D4845A">fly</tspan>
+    </text>
+    <rect x="0" y="34" width="16" height="3" rx="1.5" fill="#5B9EC9" opacity="0.35"/>
+    <rect x="20" y="33" width="19" height="4" rx="2" fill="#5B9EC9" opacity="0.55"/>
+    <rect x="43" y="32" width="21" height="5" rx="2.5" fill="#5B9EC9" opacity="0.75"/>
+    <rect x="68" y="31" width="24" height="6" rx="3" fill="#5B9EC9"/>
+    <rect x="96" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
+    <rect x="124" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
+    <rect x="152" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
+  </svg>
+);
+
 export default function Dashboard() {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
@@ -94,7 +109,9 @@ export default function Dashboard() {
   return (
     <div style={{ minHeight: '100vh', background: '#F5EFE6', fontFamily: 'sans-serif', color: '#3A3226', padding: '0 1.25rem 5rem' }}>
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #D9C9B0', marginBottom: '2.5rem' }}>
-        <div style={{ fontSize: '1.3rem', fontWeight: 700 }}>Fictifly</div>
+        <Link to="/dashboard" style={{ textDecoration: 'none', display: 'block' }}>
+          <FictiflyLogo />
+        </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {profile && profile.account_type === 'teacher' && (
             <Link to="/classroom" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', textDecoration: 'none' }}>My Classes</Link>
