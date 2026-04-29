@@ -67,7 +67,6 @@ export default function ClassroomDashboard() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // Assignments
   const [assignments, setAssignments] = useState([]);
   const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [assignmentTitle, setAssignmentTitle] = useState('');
@@ -83,7 +82,6 @@ export default function ClassroomDashboard() {
   const [assignmentStudentId, setAssignmentStudentId] = useState('');
   const [savingAssignment, setSavingAssignment] = useState(false);
 
-  // Submission review
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [assignmentSubmissions, setAssignmentSubmissions] = useState([]);
   const [feedbackMap, setFeedbackMap] = useState({});
@@ -107,10 +105,10 @@ export default function ClassroomDashboard() {
 
   const fetchClassMembers = async (classId) => {
     const { data } = await supabase
-    .from('class_members')
-    .select('*, users!class_members_student_id_fkey(*)')
-    .eq('class_id', classId);
-    setClassMembers(data || []);
+      .from('class_members')
+      .select('*, users!class_members_student_id_fkey(*)')
+      .eq('class_id', classId);
+    setClassMembers((data || []).filter(m => m.users));
   };
 
   const fetchAssignments = async (classId) => {
@@ -135,7 +133,7 @@ export default function ClassroomDashboard() {
     setSelectedAssignment(assignment);
     const { data: subs } = await supabase
       .from('submissions')
-      .select('*, users(username, display_name)')
+      .select('*, users!submissions_user_id_fkey(username, display_name)')
       .eq('assignment_id', assignment.id)
       .eq('submitted_to_teacher', true);
     setAssignmentSubmissions(subs || []);
@@ -282,7 +280,6 @@ export default function ClassroomDashboard() {
 
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
 
-        {/* Classes list */}
         {view === 'classes' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -347,7 +344,6 @@ export default function ClassroomDashboard() {
           </div>
         )}
 
-        {/* Class detail */}
         {view === 'class-detail' && selectedClass && (
           <div>
             <button onClick={() => { setView('classes'); setSelectedClass(null); setGeneratedAccounts([]); setShowBulkGenerate(false); setSelectedAssignment(null); }} style={{ ...btnSecondary, marginBottom: '1.5rem' }}>← Back to classes</button>
@@ -372,7 +368,6 @@ export default function ClassroomDashboard() {
             {success && <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', color: '#3A7040', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>{success}</div>}
             {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', color: '#B56840', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>{error}</div>}
 
-            {/* Tab bar */}
             <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '12px', padding: '4px', gap: '2px', marginBottom: '1.5rem' }}>
               {['students', 'assignments'].map(t => (
                 <button key={t} onClick={() => { setClassDetailTab(t); setSelectedAssignment(null); setShowBulkGenerate(false); setShowCreateAssignment(false); setError(null); }}
@@ -382,7 +377,6 @@ export default function ClassroomDashboard() {
               ))}
             </div>
 
-            {/* Students tab */}
             {classDetailTab === 'students' && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
@@ -431,28 +425,23 @@ export default function ClassroomDashboard() {
                     <p style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>No students yet. Generate accounts or share the class code <strong style={{ color: '#2E6DA4' }}>{selectedClass.class_code}</strong> with your students.</p>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                   {classMembers.filter(member => member.users).map((member) => (
-  <div key={member.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#F5EFE6', borderRadius: '8px' }}>
-    <div>
-      <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{member.users.display_name || member.users.username}</div>
-      <div style={{ fontSize: '0.78rem', color: '#9A8878' }}>@{member.users.username}</div>
-    </div>
-    <div style={{ fontSize: '0.75rem', color: '#9A8878' }}>
-      {member.users.account_type === 'student' ? 'Class account' : 'Self-registered'}
-    </div>
-  </div>
-))}
-The only change is .filter(member => member.users) before the .map() — silently skips any member whose user record didn't join correctly. Also worth checking in Supabase whether the class_members table has a foreign key to users or auth.users, since the select *, users(*) needs to match the actual table name.
-
-
-
+                      {classMembers.map((member) => (
+                        <div key={member.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#F5EFE6', borderRadius: '8px' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{member.users.display_name || member.users.username}</div>
+                            <div style={{ fontSize: '0.78rem', color: '#9A8878' }}>@{member.users.username}</div>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#9A8878' }}>
+                            {member.users.account_type === 'student' ? 'Class account' : 'Self-registered'}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               </div>
             )}
 
-            {/* Assignments list */}
             {classDetailTab === 'assignments' && !selectedAssignment && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
@@ -481,9 +470,9 @@ The only change is .filter(member => member.users) before the .map() — silentl
                       <label style={labelStyle}>Select student
                         <select value={assignmentStudentId} onChange={e => setAssignmentStudentId(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem', appearance: 'none' }}>
                           <option value="">Choose a student...</option>
-                          {classMembers.filter(m => m.users).map(m => (
-  <option key={m.student_id} value={m.student_id}>{m.users.display_name || m.users.username}</option>
-))}
+                          {classMembers.map(m => (
+                            <option key={m.student_id} value={m.student_id}>{m.users.display_name || m.users.username}</option>
+                          ))}
                         </select>
                       </label>
                     )}
@@ -516,7 +505,7 @@ The only change is .filter(member => member.users) before the .map() — silentl
                     </label>
 
                     <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '1rem', marginBottom: '0.75rem' }}>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>Prompt ingredients (optional)</div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>Prompt ingredients (optional)</div>
                       <div style={{ fontSize: '0.78rem', color: '#9A8878', marginBottom: '0.75rem' }}>Leave blank to let students generate their own ingredients.</div>
                       {assignmentPromptType === 'microfiction' ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -602,7 +591,6 @@ The only change is .filter(member => member.users) before the .map() — silentl
               </div>
             )}
 
-            {/* Submission review */}
             {classDetailTab === 'assignments' && selectedAssignment && (
               <div>
                 <button onClick={() => setSelectedAssignment(null)} style={{ ...btnSecondary, marginBottom: '1.5rem' }}>← Back to assignments</button>
@@ -640,7 +628,6 @@ The only change is .filter(member => member.users) before the .map() — silentl
                           </div>
                           {sub.title && <div style={{ fontSize: '0.85rem', fontStyle: 'italic', color: '#6B5D4E' }}>"{sub.title}"</div>}
                         </div>
-
                         {sub.content ? (
                           <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '1rem', marginBottom: '1rem' }}>
                             <p style={{ fontSize: '0.9rem', color: '#3A3226', lineHeight: 1.75, fontFamily: 'Georgia, serif', whiteSpace: 'pre-wrap', margin: 0 }}>{sub.content}</p>
@@ -648,7 +635,6 @@ The only change is .filter(member => member.users) before the .map() — silentl
                         ) : (
                           <div style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.85rem', marginBottom: '1rem' }}>No story content submitted.</div>
                         )}
-
                         <div>
                           <label style={labelStyle}>Feedback</label>
                           <textarea
