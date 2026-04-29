@@ -2,6 +2,21 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 
+const FictiflyLogo = () => (
+  <svg viewBox="0 0 640 200" xmlns="http://www.w3.org/2000/svg" style={{ width: '220px', height: '69px', display: 'block', margin: '0 auto 1.75rem' }}>
+    <text x="0" y="120" fontSize="96" fontWeight="600" letterSpacing="-5" fontFamily="system-ui, sans-serif">
+      <tspan fill="#3A3226">ficti</tspan><tspan fill="#D4845A">fly</tspan>
+    </text>
+    <rect x="0" y="142" width="56" height="9" rx="4.5" fill="#5B9EC9" opacity="0.35"/>
+    <rect x="68" y="140" width="64" height="11" rx="5.5" fill="#5B9EC9" opacity="0.55"/>
+    <rect x="144" y="138" width="72" height="13" rx="6.5" fill="#5B9EC9" opacity="0.75"/>
+    <rect x="228" y="136" width="80" height="15" rx="7.5" fill="#5B9EC9"/>
+    <rect x="320" y="136" width="80" height="15" rx="7.5" fill="none" stroke="#D9C9B0" strokeWidth="1.5"/>
+    <rect x="412" y="136" width="80" height="15" rx="7.5" fill="none" stroke="#D9C9B0" strokeWidth="1.5"/>
+    <rect x="504" y="136" width="80" height="15" rx="7.5" fill="none" stroke="#D9C9B0" strokeWidth="1.5"/>
+  </svg>
+);
+
 export default function Login() {
   const [isMinor, setIsMinor] = useState(false);
   const [username, setUsername] = useState('');
@@ -47,9 +62,9 @@ export default function Login() {
   return (
     <div style={{ minHeight: '100vh', background: '#F5EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.25rem', fontFamily: 'sans-serif' }}>
       <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '16px', padding: '2.5rem', maxWidth: '480px', width: '100%' }}>
+        <FictiflyLogo />
         <h1 style={{ color: '#3A3226', marginBottom: '1.5rem', textAlign: 'center' }}>Sign in</h1>
 
-        {/* Login type toggle */}
         <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '10px', padding: '4px', gap: '4px', marginBottom: '1.5rem' }}>
           {[{ value: false, label: 'Writer / Educator' }, { value: true, label: 'Student' }].map((option) => (
             <button key={String(option.value)} onClick={() => { setIsMinor(option.value); setError(null); }}
@@ -61,7 +76,6 @@ export default function Login() {
 
         {!isMinor && (
           <div>
-            {/* Google button */}
             <button onClick={handleGoogleLogin} style={{ width: '100%', background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.7rem', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginBottom: '1.25rem', color: '#3A3226' }}>
               <svg width="18" height="18" viewBox="0 0 18 18">
                 <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
