@@ -35,7 +35,7 @@ const INSTRUCTIONS = {
 };
 
 const FictiflyLogo = () => (
-  <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '140px', height: '25px', display: 'block' }}>
+  <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '200px', height: '35px', display: 'block' }}>
     <text x="0" y="28" fontSize="28" fontWeight="600" letterSpacing="-1.5" fontFamily="system-ui, sans-serif">
       <tspan fill="#3A3226">ficti</tspan><tspan fill="#D4845A">fly</tspan>
     </text>
