@@ -36,6 +36,7 @@ export default function Dashboard() {
   // Assignments (students only)
   const [assignments, setAssignments] = useState([]);
   const [submittedAssignmentIds, setSubmittedAssignmentIds] = useState([]);
+  const [assignmentFeedback, setAssignmentFeedback] = useState({}); // assignmentId -> { feedback, feedback_at }
   const [storyModalData, setStoryModalData] = useState(null);
 
   useEffect(() => {
@@ -66,17 +67,29 @@ export default function Dashboard() {
 
       const { data: submissionsData } = await supabase
         .from('submissions')
-        .select('id, prompt_id, assignment_id, submitted_to_teacher')
+        .select('id, prompt_id, assignment_id, submitted_to_teacher, teacher_feedback, feedback_at')
         .eq('user_id', user.id);
       setStoriesWritten(submissionsData ? submissionsData.length : 0);
       setWrittenPromptIds(submissionsData ? submissionsData.map(s => s.prompt_id) : []);
-      setSubmittedAssignmentIds(
-        submissionsData
-          ? submissionsData
-              .filter(s => s.submitted_to_teacher && s.assignment_id)
-              .map(s => s.assignment_id)
-          : []
-      );
+
+      const submittedIds = submissionsData
+        ? submissionsData
+            .filter(s => s.submitted_to_teacher && s.assignment_id)
+            .map(s => s.assignment_id)
+        : [];
+      setSubmittedAssignmentIds(submittedIds);
+
+      // Build feedback map: assignmentId -> { feedback, feedback_at }
+      const fmap = {};
+      (submissionsData || []).forEach(s => {
+        if (s.assignment_id && s.teacher_feedback) {
+          fmap[s.assignment_id] = {
+            feedback: s.teacher_feedback,
+            feedback_at: s.feedback_at,
+          };
+        }
+      });
+      setAssignmentFeedback(fmap);
 
       const { data: userBadgeData } = await supabase
         .from('user_badges')
@@ -268,19 +281,37 @@ export default function Dashboard() {
             {submittedAssignments.length > 0 && (
               <div>
                 <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.5rem' }}>Submitted ✓</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {submittedAssignments.map(a => (
-                    <div key={a.id} style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#3A3226' }}>{a.title}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#6BAF72', fontWeight: 600, marginTop: '0.15rem' }}>Submitted ✓</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {submittedAssignments.map(a => {
+                    const fb = assignmentFeedback[a.id];
+                    return (
+                      <div key={a.id} style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', padding: '0.85rem 1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: fb ? '0.75rem' : 0 }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#3A3226' }}>{a.title}</div>
+                            <div style={{ fontSize: '0.72rem', color: '#6BAF72', fontWeight: 600, marginTop: '0.15rem' }}>Submitted ✓</div>
+                          </div>
+                          <button onClick={() => handleOpenSubmission(a)}
+                            style={{ background: 'transparent', border: '1px solid #6BAF72', color: '#3A7040', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer' }}>
+                            Edit submission
+                          </button>
+                        </div>
+                        {fb && (
+                          <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.75rem 1rem' }}>
+                            <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2E6DA4', marginBottom: '0.4rem' }}>
+                              💬 Teacher feedback
+                            </div>
+                            <p style={{ fontSize: '0.88rem', color: '#3A3226', lineHeight: 1.6, margin: 0 }}>{fb.feedback}</p>
+                            {fb.feedback_at && (
+                              <div style={{ fontSize: '0.7rem', color: '#9A8878', marginTop: '0.4rem' }}>
+                                {new Date(fb.feedback_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <button onClick={() => handleOpenSubmission(a)}
-                        style={{ background: 'transparent', border: '1px solid #6BAF72', color: '#3A7040', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer' }}>
-                        Edit submission
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
