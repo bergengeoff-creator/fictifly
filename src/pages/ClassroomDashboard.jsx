@@ -107,9 +107,9 @@ export default function ClassroomDashboard() {
 
   const fetchClassMembers = async (classId) => {
     const { data } = await supabase
-      .from('class_members')
-      .select('*, users(*)')
-      .eq('class_id', classId);
+    .from('class_members')
+    .select('*, users!class_members_student_id_fkey(*)')
+    .eq('class_id', classId);
     setClassMembers(data || []);
   };
 
