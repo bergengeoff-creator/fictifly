@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
+import StoryModal from '../components/StoryModal';
 
 const FictiflyLogo = () => (
   <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '200px', height: '35px', display: 'block' }}>
@@ -18,6 +19,9 @@ const FictiflyLogo = () => (
   </svg>
 );
 
+const isStudentAccount = (profile) =>
+  profile && (profile.account_type === 'minor' || profile.account_type === 'student');
+
 export default function Dashboard() {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
@@ -28,6 +32,11 @@ export default function Dashboard() {
   const [earnedBadges, setEarnedBadges] = useState([]);
   const [storiesWritten, setStoriesWritten] = useState(0);
   const [writtenPromptIds, setWrittenPromptIds] = useState([]);
+
+  // Assignments (students only)
+  const [assignments, setAssignments] = useState([]);
+  const [submittedAssignmentIds, setSubmittedAssignmentIds] = useState([]);
+  const [storyModalData, setStoryModalData] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,16 +66,22 @@ export default function Dashboard() {
 
       const { data: submissionsData } = await supabase
         .from('submissions')
-        .select('id, prompt_id')
+        .select('id, prompt_id, assignment_id, submitted_to_teacher')
         .eq('user_id', user.id);
       setStoriesWritten(submissionsData ? submissionsData.length : 0);
       setWrittenPromptIds(submissionsData ? submissionsData.map(s => s.prompt_id) : []);
+      setSubmittedAssignmentIds(
+        submissionsData
+          ? submissionsData
+              .filter(s => s.submitted_to_teacher && s.assignment_id)
+              .map(s => s.assignment_id)
+          : []
+      );
 
       const { data: userBadgeData } = await supabase
         .from('user_badges')
         .select('id, badge_id, earned_at')
         .eq('user_id', user.id);
-
       if (userBadgeData && userBadgeData.length > 0) {
         const badgeIds = userBadgeData.map(ub => ub.badge_id);
         const { data: badgeDetails } = await supabase
@@ -83,13 +98,67 @@ export default function Dashboard() {
         setEarnedBadges([]);
         setBadgeCount(0);
       }
+
+      // Fetch assignments for students
+      if (profile && isStudentAccount(profile)) {
+        const { data: memberships } = await supabase
+          .from('class_members')
+          .select('class_id')
+          .eq('student_id', user.id);
+        const classIds = memberships ? memberships.map(m => m.class_id) : [];
+
+        let allAssignments = [];
+        const today = new Date().toISOString().split('T')[0];
+
+        if (classIds.length > 0) {
+          const { data: classAssignments } = await supabase
+            .from('assignments')
+            .select('*')
+            .in('class_id', classIds)
+            .gte('due_date', today)
+            .order('due_date', { ascending: true });
+          allAssignments = [...(classAssignments || [])];
+        }
+
+        const { data: individualAssignments } = await supabase
+          .from('assignments')
+          .select('*')
+          .eq('student_id', user.id)
+          .gte('due_date', today)
+          .order('due_date', { ascending: true });
+        allAssignments = [...allAssignments, ...(individualAssignments || [])];
+
+        const seen = new Set();
+        const unique = allAssignments.filter(a => {
+          if (seen.has(a.id)) return false;
+          seen.add(a.id);
+          return true;
+        });
+        setAssignments(unique);
+      }
     };
     fetchData();
-  }, [user]);
+  }, [user, profile]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
+  };
+
+  const handleOpenSubmission = (assignment) => {
+    const prompt = {
+      id: null,
+      dbId: null,
+      prompt_type: assignment.prompt_type,
+      word_count: assignment.word_count,
+      wordCount: assignment.word_count,
+      genre: assignment.genre,
+      action: assignment.action,
+      word: assignment.word,
+      location: assignment.location,
+      object: assignment.object,
+    };
+    setStoryModalData({ prompt, assignmentId: assignment.id });
   };
 
   const isNewUser = profile && !profile.bio && !profile.avatar_url && !profile.avatar_preset;
@@ -105,6 +174,9 @@ export default function Dashboard() {
     { title: 'Microfiction', desc: '100, 200, or 300 words', color: '#D4845A', path: '/generators/microfiction' },
     { title: 'Flash Fiction', desc: '500 or 1,000 words', color: '#2E6DA4', path: '/generators/flash-fiction' },
   ];
+
+  const pendingAssignments = assignments.filter(a => !submittedAssignmentIds.includes(a.id));
+  const submittedAssignments = assignments.filter(a => submittedAssignmentIds.includes(a.id));
 
   return (
     <div style={{ minHeight: '100vh', background: '#F5EFE6', fontFamily: 'sans-serif', color: '#3A3226', padding: '0 1.25rem 5rem' }}>
@@ -140,6 +212,78 @@ export default function Dashboard() {
               <div style={{ fontSize: '0.85rem', color: '#6B5D4E' }}>Add a bio, avatar, and favourite genres to personalise your experience.</div>
             </div>
             <Link to="/profile" style={{ background: '#2E6DA4', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}>Complete profile</Link>
+          </div>
+        )}
+
+        {/* Assignments — students only */}
+        {profile && isStudentAccount(profile) && assignments.length > 0 && (
+          <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Assignments</h2>
+              {pendingAssignments.length > 0 && (
+                <span style={{ background: '#D4845A', color: '#FFFCF8', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.55rem', borderRadius: '20px' }}>
+                  {pendingAssignments.length} due
+                </span>
+              )}
+            </div>
+
+            {pendingAssignments.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: submittedAssignments.length > 0 ? '1.25rem' : 0 }}>
+                {pendingAssignments.map(a => {
+                  const dueDate = new Date(a.due_date);
+                  const daysUntilDue = Math.ceil((dueDate - new Date()) / (1000 * 60 * 60 * 24));
+                  const isDueSoon = daysUntilDue <= 2;
+                  return (
+                    <div key={a.id} style={{ background: '#F5EFE6', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', border: `1px solid ${isDueSoon ? '#D4845A' : 'transparent'}` }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#3A3226', marginBottom: '0.2rem' }}>{a.title}</div>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>
+                          {a.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {a.word_count} words{a.genre ? ` · ${a.genre}` : ''}
+                        </div>
+                        {(a.action || a.word || a.location || a.object) && (
+                          <div style={{ fontSize: '0.78rem', color: '#6B5D4E', marginBottom: '0.2rem' }}>
+                            {[
+                              a.action && `Action: ${a.action}`,
+                              a.word && `Word: ${a.word}`,
+                              a.location && `Location: ${a.location}`,
+                              a.object && `Object: ${a.object}`,
+                            ].filter(Boolean).join(' · ')}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '0.72rem', color: isDueSoon ? '#B56840' : '#9A8878', fontWeight: isDueSoon ? 600 : 400 }}>
+                          Due {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {daysUntilDue === 0 ? ' · Due today!' : isDueSoon ? ` · ${daysUntilDue} day${daysUntilDue !== 1 ? 's' : ''} left` : ''}
+                        </div>
+                      </div>
+                      <button onClick={() => handleOpenSubmission(a)}
+                        style={{ background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        Submit story
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {submittedAssignments.length > 0 && (
+              <div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.5rem' }}>Submitted ✓</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {submittedAssignments.map(a => (
+                    <div key={a.id} style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#3A3226' }}>{a.title}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#6BAF72', fontWeight: 600, marginTop: '0.15rem' }}>Submitted ✓</div>
+                      </div>
+                      <button onClick={() => handleOpenSubmission(a)}
+                        style={{ background: 'transparent', border: '1px solid #6BAF72', color: '#3A7040', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer' }}>
+                        Edit submission
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -185,7 +329,16 @@ export default function Dashboard() {
                     <div style={{ fontSize: '0.88rem', color: '#3A3226', fontWeight: 500 }}>{p.genre}</div>
                     <div style={{ fontSize: '0.82rem', color: '#6B5D4E' }}>{p.action || p.location} · {p.word || p.object}</div>
                   </div>
-                  <Link to={p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=saved' : '/generators/flash-fiction?tab=saved'} style={{ fontSize: '0.75rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Write →</Link>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    {profile && isStudentAccount(profile) && (
+                      <button
+                        onClick={() => setStoryModalData({ prompt: { ...p, wordCount: p.word_count, dbId: p.id }, assignmentId: null })}
+                        style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.72rem', fontWeight: 500, padding: '0.3rem 0.7rem', cursor: 'pointer' }}>
+                        Submit
+                      </button>
+                    )}
+                    <Link to={p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=saved' : '/generators/flash-fiction?tab=saved'} style={{ fontSize: '0.75rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Write →</Link>
+                  </div>
                 </div>
               ))}
               {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).length > 3 && (
@@ -234,6 +387,21 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {storyModalData && (
+        <StoryModal
+          prompt={storyModalData.prompt}
+          assignmentId={storyModalData.assignmentId}
+          isStudentSubmission={true}
+          onClose={() => setStoryModalData(null)}
+          onSaved={() => {
+            if (storyModalData.assignmentId) {
+              setSubmittedAssignmentIds(prev => [...prev, storyModalData.assignmentId]);
+            }
+            setStoryModalData(null);
+          }}
+        />
+      )}
     </div>
   );
 }

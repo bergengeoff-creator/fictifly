@@ -8,8 +8,8 @@ const B = {
   ink: '#3A3226', inkMid: '#6B5D4E', inkLight: '#9A8878', white: '#FFFCF8',
 };
 
-export default function StoryModal({ prompt, onClose, onSaved }) {
-  const { user } = useAuth();
+export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isStudentSubmission }) {
+  const { user, profile } = useAuth();
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
   const [sharing, setSharing] = useState('private');
@@ -23,14 +23,23 @@ export default function StoryModal({ prompt, onClose, onSaved }) {
   const maxWords = Math.ceil(targetWordCount * 1.1);
   const withinRange = currentWordCount >= minWords && currentWordCount <= maxWords;
 
+  // Student submissions bypass the word count gate — they may be writing
+  // against an assigned prompt and shouldn't be blocked from submitting.
+  // Premium/teacher users keep the strict word count validation.
+  const isStudent = isStudentSubmission || (profile && (profile.account_type === 'minor' || profile.account_type === 'student'));
+  const canSubmit = isStudent ? content.trim().length > 0 : withinRange && currentWordCount > 0;
+
   useEffect(() => {
     const fetchExisting = async () => {
-      const { data } = await supabase
+      const promptId = prompt.id || prompt.dbId;
+      if (!promptId) return;
+      const query = supabase
         .from('submissions')
         .select('*')
         .eq('user_id', user.id)
-        .eq('prompt_id', prompt.id || prompt.dbId)
-        .maybeSingle();
+        .eq('prompt_id', promptId);
+      if (assignmentId) query.eq('assignment_id', assignmentId);
+      const { data } = await query.maybeSingle();
       if (data) {
         setExistingSubmission(data);
         setContent(data.content || '');
@@ -39,11 +48,11 @@ export default function StoryModal({ prompt, onClose, onSaved }) {
       }
     };
     fetchExisting();
-  }, [user.id, prompt]);
+  }, [user.id, prompt, assignmentId]);
 
   const handleSave = async () => {
     if (!content.trim()) { setError('Please write your story before saving.'); return; }
-    if (!withinRange) {
+    if (!isStudent && !withinRange) {
       setError(`Your story is ${currentWordCount} words. It must be between ${minWords} and ${maxWords} words to submit.`);
       return;
     }
@@ -51,15 +60,39 @@ export default function StoryModal({ prompt, onClose, onSaved }) {
     setError(null);
 
     if (existingSubmission) {
+      const updates = {
+        content: content.trim(),
+        title: title.trim() || null,
+        word_count: currentWordCount,
+        updated_at: new Date().toISOString(),
+      };
+      if (!isStudent) updates.sharing = sharing;
+      if (isStudent) updates.submitted_to_teacher = true;
       const { error: updateError } = await supabase
         .from('submissions')
-        .update({ content: content.trim(), title: title.trim() || null, sharing, word_count: currentWordCount, updated_at: new Date().toISOString() })
+        .update(updates)
         .eq('id', existingSubmission.id);
       if (updateError) { setError('Failed to save: ' + updateError.message); setLoading(false); return; }
     } else {
+      const insert = {
+        user_id: user.id,
+        prompt_id: prompt.id || prompt.dbId || null,
+        content: content.trim(),
+        title: title.trim() || null,
+        word_count: currentWordCount,
+        prompt_type: prompt.prompt_type,
+        genre: prompt.genre || null,
+      };
+      if (isStudent) {
+        insert.submitted_to_teacher = true;
+        insert.sharing = 'private';
+        if (assignmentId) insert.assignment_id = assignmentId;
+      } else {
+        insert.sharing = sharing;
+      }
       const { error: insertError } = await supabase
         .from('submissions')
-        .insert({ user_id: user.id, prompt_id: prompt.id || prompt.dbId, content: content.trim(), title: title.trim() || null, sharing, word_count: currentWordCount, prompt_type: prompt.prompt_type, genre: prompt.genre });
+        .insert(insert);
       if (insertError) { setError('Failed to save: ' + insertError.message); setLoading(false); return; }
     }
 
@@ -70,10 +103,17 @@ export default function StoryModal({ prompt, onClose, onSaved }) {
 
   const wordCountColor = () => {
     if (currentWordCount === 0) return B.inkLight;
+    if (isStudent) return currentWordCount > 0 ? '#3A7040' : B.inkLight;
     if (withinRange) return '#3A7040';
-    if (currentWordCount < minWords) return B.terraDark;
     return B.terraDark;
   };
+
+  const promptIngredients = [
+    prompt.action && `Action: ${prompt.action}`,
+    prompt.location && `Location: ${prompt.location}`,
+    prompt.word && `Word: ${prompt.word}`,
+    prompt.object && `Object: ${prompt.object}`,
+  ].filter(Boolean).join(' · ');
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(58,50,38,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1.25rem' }}>
@@ -81,14 +121,20 @@ export default function StoryModal({ prompt, onClose, onSaved }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
           <div>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: B.ink, marginBottom: '0.25rem' }}>
-              {existingSubmission ? 'Edit your story' : 'Add your story'}
+              {existingSubmission ? 'Edit your story' : isStudent ? 'Submit your story' : 'Add your story'}
             </h2>
             <div style={{ fontSize: '0.78rem', color: B.inkLight }}>
-              {prompt.genre} · {targetWordCount} words · {prompt.action || prompt.location || ''} · {prompt.word || prompt.object || ''}
+              {[prompt.genre, targetWordCount && `${targetWordCount} words`, promptIngredients].filter(Boolean).join(' · ')}
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', color: B.inkLight, cursor: 'pointer', lineHeight: 1 }}>×</button>
         </div>
+
+        {isStudent && assignmentId && (
+          <div style={{ background: '#EAF4FB', border: '1px solid #5B9EC9', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.82rem', color: '#2E6DA4' }}>
+            📋 This story will be submitted to your teacher.
+          </div>
+        )}
 
         <div style={{ marginBottom: '1rem' }}>
           <label style={{ fontSize: '0.78rem', fontWeight: 600, color: B.inkMid, display: 'block', marginBottom: '0.4rem' }}>Title (optional)</label>
@@ -100,43 +146,47 @@ export default function StoryModal({ prompt, onClose, onSaved }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
             <label style={{ fontSize: '0.78rem', fontWeight: 600, color: B.inkMid }}>Your story</label>
             <div style={{ fontSize: '0.78rem', fontWeight: 600, color: wordCountColor() }}>
-              {currentWordCount} / {targetWordCount} words
-              {currentWordCount > 0 && !withinRange && (
+              {currentWordCount}{!isStudent && ` / ${targetWordCount}`} words
+              {!isStudent && currentWordCount > 0 && !withinRange && (
                 <span style={{ marginLeft: '0.5rem', fontSize: '0.72rem', fontWeight: 400 }}>
                   ({currentWordCount < minWords ? `${minWords - currentWordCount} more needed` : `${currentWordCount - maxWords} too many`})
                 </span>
               )}
-              {withinRange && currentWordCount > 0 && <span style={{ marginLeft: '0.5rem' }}>✓</span>}
+              {(!isStudent ? withinRange : currentWordCount > 0) && currentWordCount > 0 && <span style={{ marginLeft: '0.5rem' }}>✓</span>}
             </div>
           </div>
           <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Paste or write your story here..." rows={12}
-            style={{ width: '100%', background: B.sand, border: `1.5px solid ${withinRange && currentWordCount > 0 ? '#6BAF72' : B.sandDeep}`, borderRadius: '8px', color: B.ink, fontFamily: 'Georgia, serif', fontSize: '0.95rem', lineHeight: 1.7, padding: '0.75rem 0.9rem', outline: 'none', resize: 'vertical' }} />
+            style={{ width: '100%', background: B.sand, border: `1.5px solid ${canSubmit ? '#6BAF72' : B.sandDeep}`, borderRadius: '8px', color: B.ink, fontFamily: 'Georgia, serif', fontSize: '0.95rem', lineHeight: 1.7, padding: '0.75rem 0.9rem', outline: 'none', resize: 'vertical' }} />
         </div>
 
-        <div style={{ background: B.sand, borderRadius: '8px', padding: '0.5rem 0.75rem', marginBottom: '1rem', fontSize: '0.75rem', color: B.inkLight }}>
-          Target: {minWords}–{maxWords} words for a {targetWordCount}-word challenge
-        </div>
-
-        <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ fontSize: '0.78rem', fontWeight: 600, color: B.inkMid, display: 'block', marginBottom: '0.5rem' }}>Sharing</label>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            {[{ value: 'private', label: 'Private', desc: 'Only visible to you' }, { value: 'public', label: 'Public', desc: 'Show on your public profile' }].map(option => (
-              <div key={option.value} onClick={() => setSharing(option.value)}
-                style={{ flex: 1, padding: '0.75rem', borderRadius: '10px', border: `1.5px solid ${sharing === option.value ? B.terra : B.sandDeep}`, background: sharing === option.value ? '#FDF0E8' : 'transparent', cursor: 'pointer' }}>
-                <div style={{ fontWeight: 600, color: B.ink, fontSize: '0.88rem', marginBottom: '0.15rem' }}>{option.label}</div>
-                <div style={{ fontSize: '0.75rem', color: B.inkLight }}>{option.desc}</div>
-              </div>
-            ))}
+        {!isStudent && (
+          <div style={{ background: B.sand, borderRadius: '8px', padding: '0.5rem 0.75rem', marginBottom: '1rem', fontSize: '0.75rem', color: B.inkLight }}>
+            Target: {minWords}–{maxWords} words for a {targetWordCount}-word challenge
           </div>
-        </div>
+        )}
+
+        {!isStudent && (
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: B.inkMid, display: 'block', marginBottom: '0.5rem' }}>Sharing</label>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              {[{ value: 'private', label: 'Private', desc: 'Only visible to you' }, { value: 'public', label: 'Public', desc: 'Show on your public profile' }].map(option => (
+                <div key={option.value} onClick={() => setSharing(option.value)}
+                  style={{ flex: 1, padding: '0.75rem', borderRadius: '10px', border: `1.5px solid ${sharing === option.value ? B.terra : B.sandDeep}`, background: sharing === option.value ? '#FDF0E8' : 'transparent', cursor: 'pointer' }}>
+                  <div style={{ fontWeight: 600, color: B.ink, fontSize: '0.88rem', marginBottom: '0.15rem' }}>{option.label}</div>
+                  <div style={{ fontSize: '0.75rem', color: B.inkLight }}>{option.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {error && <div style={{ background: '#FDF0E8', border: `1px solid ${B.terra}`, borderRadius: '8px', color: B.terraDark, padding: '0.75rem', marginBottom: '1rem', fontSize: '0.85rem' }}>{error}</div>}
 
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button onClick={onClose} style={{ flex: 1, background: 'transparent', border: `1px solid ${B.sandDeep}`, borderRadius: '10px', color: B.inkMid, padding: '0.75rem', fontWeight: 500, fontSize: '0.9rem', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={handleSave} disabled={loading || (!withinRange && currentWordCount > 0)}
-            style={{ flex: 2, background: loading ? B.sandDeep : B.seaDeep, color: B.white, border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.9rem', cursor: loading ? 'not-allowed' : 'pointer' }}>
-            {loading ? 'Saving...' : existingSubmission ? 'Save changes' : 'Save story'}
+          <button onClick={handleSave} disabled={loading || !canSubmit}
+            style={{ flex: 2, background: loading ? B.sandDeep : B.seaDeep, color: B.white, border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.9rem', cursor: loading || !canSubmit ? 'not-allowed' : 'pointer', opacity: !canSubmit && !loading ? 0.5 : 1 }}>
+            {loading ? 'Saving...' : existingSubmission ? 'Save changes' : isStudent ? 'Submit to teacher' : 'Save story'}
           </button>
         </div>
       </div>
