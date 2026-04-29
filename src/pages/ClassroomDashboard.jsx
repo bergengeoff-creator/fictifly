@@ -51,6 +51,7 @@ export default function ClassroomDashboard() {
   const navigate = useNavigate();
 
   const [classes, setClasses] = useState([]);
+  const [resetRequestCounts, setResetRequestCounts] = useState({}); // classId -> count
   const [selectedClass, setSelectedClass] = useState(null);
   const [classMembers, setClassMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +68,12 @@ export default function ClassroomDashboard() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // Create assignment state
+  // Passcode reset requests
+  const [resetRequests, setResetRequests] = useState([]);
+  const [approvingReset, setApprovingReset] = useState({});
+  const [approvedPasscodes, setApprovedPasscodes] = useState({}); // requestId -> newPasscode
+
+  // Assignments
   const [assignments, setAssignments] = useState([]);
   const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [assignmentTitle, setAssignmentTitle] = useState('');
@@ -83,13 +89,13 @@ export default function ClassroomDashboard() {
   const [assignmentStudentId, setAssignmentStudentId] = useState('');
   const [savingAssignment, setSavingAssignment] = useState(false);
 
-  // Submission review state
+  // Submission review
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [assignmentSubmissions, setAssignmentSubmissions] = useState([]);
   const [feedbackMap, setFeedbackMap] = useState({});
   const [savingFeedback, setSavingFeedback] = useState({});
 
-  // Edit assignment state
+  // Edit assignment
   const [editingAssignment, setEditingAssignment] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editGenre, setEditGenre] = useState('');
@@ -108,6 +114,21 @@ export default function ClassroomDashboard() {
       .eq('teacher_id', user.id)
       .order('created_at', { ascending: false });
     setClasses(data || []);
+
+    // Fetch reset request counts per class
+    if (data && data.length > 0) {
+      const counts = {};
+      await Promise.all(data.map(async cls => {
+        const { count } = await supabase
+          .from('passcode_reset_requests')
+          .select('id', { count: 'exact', head: true })
+          .eq('class_id', cls.id)
+          .eq('status', 'pending');
+        counts[cls.id] = count || 0;
+      }));
+      setResetRequestCounts(counts);
+    }
+
     setLoading(false);
   }, [user.id]);
 
@@ -122,6 +143,16 @@ export default function ClassroomDashboard() {
       .select('*, users!class_members_student_id_fkey(*)')
       .eq('class_id', classId);
     setClassMembers((data || []).filter(m => m.users));
+  };
+
+  const fetchResetRequests = async (classId) => {
+    const { data } = await supabase
+      .from('passcode_reset_requests')
+      .select('*')
+      .eq('class_id', classId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    setResetRequests(data || []);
   };
 
   const fetchAssignments = async (classId) => {
@@ -162,8 +193,43 @@ export default function ClassroomDashboard() {
     setClassDetailTab('students');
     setSelectedAssignment(null);
     setEditingAssignment(false);
+    setApprovedPasscodes({});
     await fetchClassMembers(cls.id);
+    await fetchResetRequests(cls.id);
     await fetchAssignments(cls.id);
+  };
+
+  const handleApproveReset = async (request) => {
+    setApprovingReset(prev => ({ ...prev, [request.id]: true }));
+    const newPasscode = generatePasscode();
+
+    try {
+      const response = await fetch('/api/reset-passcode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId: request.student_id, newPasscode }),
+      });
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error);
+
+      // Mark request as resolved
+      await supabase
+        .from('passcode_reset_requests')
+        .update({ status: 'resolved', new_passcode: newPasscode })
+        .eq('id', request.id);
+
+      // Show the new passcode to the teacher
+      setApprovedPasscodes(prev => ({ ...prev, [request.id]: { username: request.username, passcode: newPasscode } }));
+
+      // Remove from pending list
+      setResetRequests(prev => prev.filter(r => r.id !== request.id));
+
+      // Update class list badge count
+      setResetRequestCounts(prev => ({ ...prev, [selectedClass.id]: Math.max(0, (prev[selectedClass.id] || 1) - 1) }));
+    } catch (e) {
+      setError('Failed to reset passcode. Please try again.');
+    }
+    setApprovingReset(prev => ({ ...prev, [request.id]: false }));
   };
 
   const handleStartEdit = (assignment) => {
@@ -294,15 +360,9 @@ export default function ClassroomDashboard() {
     if (insertError) { setError('Failed to create assignment: ' + insertError.message); setSavingAssignment(false); return; }
     setAssignments(prev => [{ ...data, submissionCount: 0 }, ...prev]);
     setShowCreateAssignment(false);
-    setAssignmentTitle('');
-    setAssignmentGenre('');
-    setAssignmentAction('');
-    setAssignmentWord('');
-    setAssignmentLocation('');
-    setAssignmentObject('');
-    setAssignmentDueDate('');
-    setAssignmentTarget('class');
-    setAssignmentStudentId('');
+    setAssignmentTitle(''); setAssignmentGenre(''); setAssignmentAction('');
+    setAssignmentWord(''); setAssignmentLocation(''); setAssignmentObject('');
+    setAssignmentDueDate(''); setAssignmentTarget('class'); setAssignmentStudentId('');
     setSavingAssignment(false);
     setSuccess('Assignment created!');
     setTimeout(() => setSuccess(null), 3000);
@@ -320,6 +380,7 @@ export default function ClassroomDashboard() {
   };
 
   const wordCountOptions = assignmentPromptType === 'microfiction' ? [100, 200, 300] : [500, 1000];
+  const totalPendingResets = Object.values(resetRequestCounts).reduce((sum, n) => sum + n, 0);
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#F5EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#9A8878', fontStyle: 'italic' }}>Loading...</div>
@@ -353,6 +414,14 @@ export default function ClassroomDashboard() {
               }} style={btnPrimary}>+ New Class</button>
             </div>
 
+            {/* Global reset request alert */}
+            {totalPendingResets > 0 && (
+              <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '10px', padding: '0.85rem 1.1rem', marginBottom: '1.25rem', fontSize: '0.88rem', color: '#9A6830', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1rem' }}>🔑</span>
+                <span><strong>{totalPendingResets}</strong> student{totalPendingResets !== 1 ? 's have' : ' has'} requested a passcode reset. Click the class below to approve.</span>
+              </div>
+            )}
+
             {error && !showCreateClass && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', color: '#B56840', padding: '0.85rem 1.1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>{error}</div>}
             {success && <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', color: '#3A7040', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>{success}</div>}
 
@@ -380,21 +449,31 @@ export default function ClassroomDashboard() {
               <div style={{ textAlign: 'center', padding: '4rem 0', color: '#9A8878', fontStyle: 'italic' }}>No classes yet — create your first class to get started.</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {classes.map(cls => (
-                  <div key={cls.id} onClick={() => handleSelectClass(cls)}
-                    style={{ ...sectionStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: 0 }}
-                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.1)'}
-                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '0.25rem' }}>{cls.name}</div>
-                      <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>{cls.grade_level || 'No grade level set'}</div>
+                {classes.map(cls => {
+                  const pendingCount = resetRequestCounts[cls.id] || 0;
+                  return (
+                    <div key={cls.id} onClick={() => handleSelectClass(cls)}
+                      style={{ ...sectionStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: 0, borderColor: pendingCount > 0 ? '#C8A060' : '#D9C9B0' }}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.1)'}
+                      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                          <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>{cls.name}</div>
+                          {pendingCount > 0 && (
+                            <span style={{ background: '#C8A060', color: '#FFFCF8', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.5rem', borderRadius: '20px' }}>
+                              🔑 {pendingCount} reset{pendingCount !== 1 ? 's' : ''} pending
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>{cls.grade_level || 'No grade level set'}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#9A8878', marginBottom: '0.25rem' }}>Class code</div>
+                        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#2E6DA4', letterSpacing: '0.15em' }}>{cls.class_code}</div>
+                      </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#9A8878', marginBottom: '0.25rem' }}>Class code</div>
-                      <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#2E6DA4', letterSpacing: '0.15em' }}>{cls.class_code}</div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -427,17 +506,64 @@ export default function ClassroomDashboard() {
             <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '12px', padding: '4px', gap: '2px', marginBottom: '1.5rem' }}>
               {['students', 'assignments'].map(t => (
                 <button key={t} onClick={() => { setClassDetailTab(t); setSelectedAssignment(null); setShowBulkGenerate(false); setShowCreateAssignment(false); setEditingAssignment(false); setError(null); }}
-                  style={{ flex: 1, background: classDetailTab === t ? '#FFFCF8' : 'transparent', border: 'none', borderRadius: '9px', color: classDetailTab === t ? '#3A3226' : '#9A8878', fontFamily: 'sans-serif', fontWeight: classDetailTab === t ? 600 : 400, fontSize: '0.85rem', padding: '0.5rem 1rem', cursor: 'pointer', transition: 'all 0.18s', boxShadow: classDetailTab === t ? '0 1px 4px rgba(58,50,38,0.1)' : 'none' }}>
-                  {t === 'students' ? `Students (${classMembers.length})` : `Assignments (${assignments.length})`}
+                  style={{ flex: 1, background: classDetailTab === t ? '#FFFCF8' : 'transparent', border: 'none', borderRadius: '9px', color: classDetailTab === t ? '#3A3226' : '#9A8878', fontFamily: 'sans-serif', fontWeight: classDetailTab === t ? 600 : 400, fontSize: '0.85rem', padding: '0.5rem 1rem', cursor: 'pointer', transition: 'all 0.18s', boxShadow: classDetailTab === t ? '0 1px 4px rgba(58,50,38,0.1)' : 'none', position: 'relative' }}>
+                  {t === 'students'
+                    ? `Students (${classMembers.length})${resetRequests.length > 0 ? ` 🔑` : ''}`
+                    : `Assignments (${assignments.length})`}
                 </button>
               ))}
             </div>
 
             {classDetailTab === 'students' && (
               <div>
+                {/* Passcode reset requests */}
+                {resetRequests.length > 0 && (
+                  <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1rem' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#9A6830', marginBottom: '0.75rem' }}>
+                      🔑 Passcode reset requests ({resetRequests.length})
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {resetRequests.map(req => (
+                        <div key={req.id} style={{ background: '#FFFCF8', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#3A3226' }}>{req.username}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#9A8878', marginTop: '0.1rem' }}>
+                              Requested {new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleApproveReset(req)}
+                            disabled={approvingReset[req.id]}
+                            style={{ background: '#C8A060', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 600, cursor: approvingReset[req.id] ? 'not-allowed' : 'pointer', opacity: approvingReset[req.id] ? 0.6 : 1 }}>
+                            {approvingReset[req.id] ? 'Resetting...' : 'Approve reset'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Approved passcodes to hand out */}
+                {Object.keys(approvedPasscodes).length > 0 && (
+                  <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1rem' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#3A7040', marginBottom: '0.75rem' }}>
+                      ✓ New passcodes — give these to your students
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {Object.values(approvedPasscodes).map((item, i) => (
+                        <div key={i} style={{ background: '#FFFCF8', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#3A3226' }}>{item.username}</div>
+                          <div style={{ fontWeight: 700, fontSize: '1.2rem', color: '#2E6DA4', letterSpacing: '0.2em' }}>{item.passcode}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
                   <button onClick={() => setShowBulkGenerate(!showBulkGenerate)} style={btnPrimary}>Generate student accounts</button>
                 </div>
+
                 {showBulkGenerate && (
                   <div style={sectionStyle}>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>Bulk generate student accounts</h3>
@@ -473,6 +599,7 @@ export default function ClassroomDashboard() {
                     )}
                   </div>
                 )}
+
                 <div style={sectionStyle}>
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>
                     Students ({classMembers.length}{profile.account_type !== 'premium' ? '/30' : ''})
@@ -603,8 +730,7 @@ export default function ClassroomDashboard() {
                     {assignments.map(a => {
                       const isOverdue = a.due_date && new Date(a.due_date) < new Date();
                       return (
-                        <div key={a.id}
-                          style={{ ...sectionStyle, marginBottom: 0, cursor: 'pointer' }}
+                        <div key={a.id} style={{ ...sectionStyle, marginBottom: 0, cursor: 'pointer' }}
                           onClick={() => fetchAssignmentSubmissions(a)}
                           onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.1)'}
                           onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
@@ -641,7 +767,6 @@ export default function ClassroomDashboard() {
               <div>
                 <button onClick={() => { setSelectedAssignment(null); setEditingAssignment(false); }} style={{ ...btnSecondary, marginBottom: '1.5rem' }}>← Back to assignments</button>
 
-                {/* Assignment detail / edit */}
                 <div style={sectionStyle}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem', gap: '1rem' }}>
                     <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A' }}>Assignment</div>
@@ -754,9 +879,7 @@ export default function ClassroomDashboard() {
                             style={{ ...inputStyle, resize: 'vertical', marginBottom: '0.5rem' }}
                           />
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <button
-                              onClick={() => handleSaveFeedback(sub.id)}
-                              disabled={savingFeedback[sub.id]}
+                            <button onClick={() => handleSaveFeedback(sub.id)} disabled={savingFeedback[sub.id]}
                               style={{ ...btnPrimary, fontSize: '0.8rem', padding: '0.4rem 1rem', opacity: savingFeedback[sub.id] ? 0.6 : 1 }}>
                               {savingFeedback[sub.id] ? 'Saving...' : sub.teacher_feedback ? 'Update feedback' : 'Save feedback'}
                             </button>
