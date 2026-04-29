@@ -431,17 +431,21 @@ export default function ClassroomDashboard() {
                     <p style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>No students yet. Generate accounts or share the class code <strong style={{ color: '#2E6DA4' }}>{selectedClass.class_code}</strong> with your students.</p>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {classMembers.map((member) => (
-                        <div key={member.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#F5EFE6', borderRadius: '8px' }}>
-                          <div>
-                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{member.users.display_name || member.users.username}</div>
-                            <div style={{ fontSize: '0.78rem', color: '#9A8878' }}>@{member.users.username}</div>
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: '#9A8878' }}>
-                            {member.users.account_type === 'student' ? 'Class account' : 'Self-registered'}
-                          </div>
-                        </div>
-                      ))}
+                   {classMembers.filter(member => member.users).map((member) => (
+  <div key={member.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#F5EFE6', borderRadius: '8px' }}>
+    <div>
+      <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{member.users.display_name || member.users.username}</div>
+      <div style={{ fontSize: '0.78rem', color: '#9A8878' }}>@{member.users.username}</div>
+    </div>
+    <div style={{ fontSize: '0.75rem', color: '#9A8878' }}>
+      {member.users.account_type === 'student' ? 'Class account' : 'Self-registered'}
+    </div>
+  </div>
+))}
+The only change is .filter(member => member.users) before the .map() — silently skips any member whose user record didn't join correctly. Also worth checking in Supabase whether the class_members table has a foreign key to users or auth.users, since the select *, users(*) needs to match the actual table name.
+
+
+
                     </div>
                   )}
                 </div>
