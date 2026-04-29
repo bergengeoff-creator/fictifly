@@ -16,6 +16,54 @@ const BADGE_COLORS = {
   'Prolific Storyteller': '#B07AC0',
 };
 
+const FictiflyLogo = () => (
+  <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '200px', height: '35px', display: 'block' }}>
+    <text x="0" y="28" fontSize="28" fontWeight="600" letterSpacing="-1.5" fontFamily="system-ui, sans-serif">
+      <tspan fill="#3A3226">ficti</tspan><tspan fill="#D4845A">fly</tspan>
+    </text>
+    <rect x="0" y="34" width="16" height="3" rx="1.5" fill="#5B9EC9" opacity="0.35"/>
+    <rect x="20" y="33" width="19" height="4" rx="2" fill="#5B9EC9" opacity="0.55"/>
+    <rect x="43" y="32" width="21" height="5" rx="2.5" fill="#5B9EC9" opacity="0.75"/>
+    <rect x="68" y="31" width="24" height="6" rx="3" fill="#5B9EC9"/>
+    <rect x="96" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
+    <rect x="124" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
+    <rect x="152" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
+  </svg>
+);
+
+const StoryModal = ({ story, onClose }) => {
+  useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(58,50,38,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#FFFCF8', borderRadius: '16px', padding: '2rem', maxWidth: '600px', width: '100%', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(58,50,38,0.18)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.25rem', gap: '1rem' }}>
+          <div>
+            {story.title && <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#3A3226', marginBottom: '0.4rem' }}>{story.title}</h2>}
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <span style={{ background: '#EDE3D4', color: '#6B5D4E', fontSize: '0.65rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                {story.saved_prompts?.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {story.saved_prompts?.word_count} words
+              </span>
+              {story.saved_prompts?.genre && (
+                <span style={{ background: '#EAF4FB', color: '#2E6DA4', fontSize: '0.65rem', fontWeight: 500, padding: '0.15rem 0.5rem', borderRadius: '20px' }}>{story.saved_prompts.genre}</span>
+              )}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#9A8878', fontSize: '0.85rem', padding: '0.3rem 0.7rem', cursor: 'pointer', flexShrink: 0 }}>✕ Close</button>
+        </div>
+        <p style={{ fontSize: '0.95rem', color: '#3A3226', lineHeight: 1.8, fontFamily: 'Georgia, serif', whiteSpace: 'pre-wrap' }}>{story.content}</p>
+        <div style={{ fontSize: '0.72rem', color: '#9A8878', marginTop: '1rem' }}>
+          {new Date(story.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function PublicProfile() {
   const { username } = useParams();
   const [profile, setProfile] = useState(null);
@@ -25,6 +73,7 @@ export default function PublicProfile() {
   const [notFound, setNotFound] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   const [stories, setStories] = useState([]);
+  const [modalStory, setModalStory] = useState(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -50,7 +99,6 @@ export default function PublicProfile() {
 
       setProfile(profileData);
 
-      // Fetch badges
       const { data: userBadgeData } = await supabase
         .from('user_badges')
         .select('id, badge_id, earned_at')
@@ -69,7 +117,6 @@ export default function PublicProfile() {
         setBadges(merged);
       }
 
-      // Fetch stats
       const { data: usageData } = await supabase
         .from('prompt_usage')
         .select('count')
@@ -91,7 +138,6 @@ export default function PublicProfile() {
 
       setStats({ prompts: totalPrompts, written: totalWritten, streak });
 
-      // Fetch public stories
       const { data: storiesData } = await supabase
         .from('submissions')
         .select('*, saved_prompts(genre, word_count, action, word, location, object, prompt_type)')
@@ -102,7 +148,6 @@ export default function PublicProfile() {
 
       setLoading(false);
     };
-    
 
     fetchProfile();
   }, [username]);
@@ -153,12 +198,13 @@ export default function PublicProfile() {
     <div style={{ minHeight: '100vh', background: '#F5EFE6', fontFamily: 'sans-serif', color: '#3A3226', padding: '0 1.25rem 5rem' }}>
       <div style={{ maxWidth: '640px', margin: '0 auto', padding: '1.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #D9C9B0', marginBottom: '2.5rem' }}>
         <Link to="/login" style={{ color: '#6B5D4E', textDecoration: 'none', fontSize: '0.85rem' }}>← Fictifly</Link>
-        <div style={{ fontSize: '1.3rem', fontWeight: 700 }}>Fictifly</div>
+        <Link to="/login" style={{ textDecoration: 'none', display: 'block' }}>
+          <FictiflyLogo />
+        </Link>
       </div>
 
       <div style={{ maxWidth: '640px', margin: '0 auto' }}>
 
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
           {getAvatarDisplay(90)}
           <div>
@@ -171,7 +217,6 @@ export default function PublicProfile() {
           </div>
         </div>
 
-        {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
           {[
             { label: 'Prompts Generated', value: stats.prompts },
@@ -185,7 +230,6 @@ export default function PublicProfile() {
           ))}
         </div>
 
-        {/* Bio */}
         <div style={sectionStyle}>
           <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>About</div>
           {profile.bio ? (
@@ -195,7 +239,6 @@ export default function PublicProfile() {
           )}
         </div>
 
-        {/* Favourite genres */}
         {profile.favourite_genres && profile.favourite_genres.length > 0 && (
           <div style={sectionStyle}>
             <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Favourite genres</div>
@@ -207,7 +250,6 @@ export default function PublicProfile() {
           </div>
         )}
 
-        {/* Educator info */}
         {profile.account_type === 'teacher' && (profile.school_name || profile.subject) && (
           <div style={sectionStyle}>
             <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Educator</div>
@@ -216,7 +258,6 @@ export default function PublicProfile() {
           </div>
         )}
 
-        {/* Badges */}
         {badges.length > 0 && (
           <div style={sectionStyle}>
             <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Badges</div>
@@ -230,34 +271,49 @@ export default function PublicProfile() {
             </div>
           </div>
         )}
-{stories.length > 0 && (
-  <div style={sectionStyle}>
-    <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '1rem' }}>Stories</div>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      {stories.map(s => (
-        <div key={s.id} style={{ borderBottom: '1px solid #EDE3D4', paddingBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-            {s.title && <div style={{ fontWeight: 700, fontSize: '1rem', color: '#3A3226' }}>{s.title}</div>}
-            <span style={{ background: '#EDE3D4', color: '#6B5D4E', fontSize: '0.65rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              {s.saved_prompts?.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {s.saved_prompts?.word_count} words
-            </span>
-            {s.saved_prompts?.genre && (
-              <span style={{ background: '#EAF4FB', color: '#2E6DA4', fontSize: '0.65rem', fontWeight: 500, padding: '0.15rem 0.5rem', borderRadius: '20px' }}>{s.saved_prompts.genre}</span>
-            )}
+
+        {stories.length > 0 && (
+          <div style={sectionStyle}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '1rem' }}>Stories</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {stories.map(s => {
+                const excerpt = s.content && s.content.length > 180
+                  ? s.content.slice(0, 180).trimEnd() + '…'
+                  : s.content;
+                const hasMore = s.content && s.content.length > 180;
+                return (
+                  <div key={s.id} style={{ borderBottom: '1px solid #EDE3D4', paddingBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                      {s.title && <div style={{ fontWeight: 700, fontSize: '1rem', color: '#3A3226' }}>{s.title}</div>}
+                      <span style={{ background: '#EDE3D4', color: '#6B5D4E', fontSize: '0.65rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        {s.saved_prompts?.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {s.saved_prompts?.word_count} words
+                      </span>
+                      {s.saved_prompts?.genre && (
+                        <span style={{ background: '#EAF4FB', color: '#2E6DA4', fontSize: '0.65rem', fontWeight: 500, padding: '0.15rem 0.5rem', borderRadius: '20px' }}>{s.saved_prompts.genre}</span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: '0.92rem', color: '#3A3226', lineHeight: 1.75, fontFamily: 'Georgia, serif', whiteSpace: 'pre-wrap', marginBottom: hasMore ? '0.5rem' : 0 }}>{excerpt}</p>
+                    {hasMore && (
+                      <button onClick={() => setModalStory(s)} style={{ background: 'transparent', border: 'none', color: '#2E6DA4', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+                        Read more →
+                      </button>
+                    )}
+                    <div style={{ fontSize: '0.72rem', color: '#9A8878', marginTop: '0.5rem' }}>
+                      {new Date(s.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <p style={{ fontSize: '0.92rem', color: '#3A3226', lineHeight: 1.75, fontFamily: 'Georgia, serif', whiteSpace: 'pre-wrap' }}>{s.content}</p>
-          <div style={{ fontSize: '0.72rem', color: '#9A8878', marginTop: '0.5rem' }}>
-            {new Date(s.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
+        )}
+
         <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.85rem', color: '#9A8878' }}>
           <Link to="/age-gate" style={{ color: '#2E6DA4', textDecoration: 'none', fontWeight: 600 }}>Join Fictifly</Link> to start writing!
         </div>
       </div>
+
+      {modalStory && <StoryModal story={modalStory} onClose={() => setModalStory(null)} />}
     </div>
   );
 }

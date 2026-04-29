@@ -33,6 +33,21 @@ const labelStyle = { fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', dis
 const btnPrimary = { background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.6rem 1.25rem', fontWeight: 600, fontSize: '0.88rem', cursor: 'pointer' };
 const btnSecondary = { background: 'transparent', color: '#6B5D4E', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.6rem 1.25rem', fontWeight: 500, fontSize: '0.88rem', cursor: 'pointer' };
 
+const FictiflyLogo = () => (
+  <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '200px', height: '35px', display: 'block' }}>
+    <text x="0" y="28" fontSize="28" fontWeight="600" letterSpacing="-1.5" fontFamily="system-ui, sans-serif">
+      <tspan fill="#3A3226">ficti</tspan><tspan fill="#D4845A">fly</tspan>
+    </text>
+    <rect x="0" y="34" width="16" height="3" rx="1.5" fill="#5B9EC9" opacity="0.35"/>
+    <rect x="20" y="33" width="19" height="4" rx="2" fill="#5B9EC9" opacity="0.55"/>
+    <rect x="43" y="32" width="21" height="5" rx="2.5" fill="#5B9EC9" opacity="0.75"/>
+    <rect x="68" y="31" width="24" height="6" rx="3" fill="#5B9EC9"/>
+    <rect x="96" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
+    <rect x="124" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
+    <rect x="152" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
+  </svg>
+);
+
 export default function ClassroomDashboard() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
@@ -101,36 +116,36 @@ export default function ClassroomDashboard() {
     setTimeout(() => setSuccess(null), 3000);
   };
 
-const handleBulkGenerate = async () => {
-  if (!bulkPrefix.trim()) { setError('Please enter a username prefix.'); return; }
-if (bulkCount < 1 || bulkCount > 30) { setError('Please generate between 1 and 30 accounts.'); return; } 
- if (classMembers.length + bulkCount > 30 && profile.account_type !== 'premium') {
-    setError('Free accounts are limited to 30 students per class. Contact us at upgrade@fictifly.com to add more.');
-    return;
-  }
-  setGenerating(true);
-  setError(null);
+  const handleBulkGenerate = async () => {
+    if (!bulkPrefix.trim()) { setError('Please enter a username prefix.'); return; }
+    if (bulkCount < 1 || bulkCount > 30) { setError('Please generate between 1 and 30 accounts.'); return; }
+    if (classMembers.length + bulkCount > 30 && profile.account_type !== 'premium') {
+      setError('Free accounts are limited to 30 students per class. Contact us at upgrade@fictifly.com to add more.');
+      return;
+    }
+    setGenerating(true);
+    setError(null);
 
-  const accounts = Array.from({ length: bulkCount }, () => ({
-    username: generateUsername(bulkPrefix.trim()),
-    passcode: generatePasscode(),
-  }));
+    const accounts = Array.from({ length: bulkCount }, () => ({
+      username: generateUsername(bulkPrefix.trim()),
+      passcode: generatePasscode(),
+    }));
 
-  try {
-    const response = await fetch('/api/create-students', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accounts, classId: selectedClass.id }),
-    });
-    const data = await response.json();
-    const successful = data.results.filter(r => r.success);
-    setGeneratedAccounts(successful);
-    await fetchClassMembers(selectedClass.id);
-  } catch (e) {
-    setError('Something went wrong generating accounts. Please try again.');
-  }
-  setGenerating(false);
-};
+    try {
+      const response = await fetch('/api/create-students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accounts, classId: selectedClass.id }),
+      });
+      const data = await response.json();
+      const successful = data.results.filter(r => r.success);
+      setGeneratedAccounts(successful);
+      await fetchClassMembers(selectedClass.id);
+    } catch (e) {
+      setError('Something went wrong generating accounts. Please try again.');
+    }
+    setGenerating(false);
+  };
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -152,15 +167,17 @@ if (bulkCount < 1 || bulkCount > 30) { setError('Please generate between 1 and 3
   return (
     <div style={{ minHeight: '100vh', background: '#F5EFE6', fontFamily: 'sans-serif', color: '#3A3226', padding: '0 1.25rem 5rem' }}>
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #D9C9B0', marginBottom: '2.5rem' }}>
-        <Link to="/dashboard" style={{ color: '#6B5D4E', textDecoration: 'none', fontSize: '0.85rem' }}>Back to dashboard</Link>
-        <div style={{ fontSize: '1.3rem', fontWeight: 700 }}>Fictifly</div>
+        <Link to="/dashboard" style={{ color: '#6B5D4E', textDecoration: 'none', fontSize: '0.85rem' }}>← Dashboard</Link>
+        <Link to="/dashboard" style={{ textDecoration: 'none', display: 'block' }}>
+          <FictiflyLogo />
+        </Link>
       </div>
 
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
 
         {view === 'classes' && (
           <div>
-<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
                 <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.4rem' }}>Educator</div>
                 <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>My Classes</h1>
@@ -245,10 +262,10 @@ if (bulkCount < 1 || bulkCount > 30) { setError('Please generate between 1 and 3
               </div>
               <button onClick={() => setShowBulkGenerate(!showBulkGenerate)} style={btnPrimary}>Generate student accounts</button>
               {classMembers.length >= 30 && profile.account_type !== 'premium' && (
-  <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', padding: '0.85rem 1.1rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#B56840' }}>
-    You have reached the 30 student limit for free accounts. <a href="mailto:upgrade@fictifly.com" style={{ color: '#D4845A', fontWeight: 600 }}>Contact us to upgrade.</a>
-  </div>
-)}
+                <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', padding: '0.85rem 1.1rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#B56840' }}>
+                  You have reached the 30 student limit for free accounts. <a href="mailto:upgrade@fictifly.com" style={{ color: '#D4845A', fontWeight: 600 }}>Contact us to upgrade.</a>
+                </div>
+              )}
             </div>
 
             {showBulkGenerate && (
@@ -293,10 +310,10 @@ if (bulkCount < 1 || bulkCount > 30) { setError('Please generate between 1 and 3
 
             <div style={sectionStyle}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-<h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-  Students ({classMembers.length}{profile.account_type !== 'premium' ? '/30' : ''})
-</h3>              
-</div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                  Students ({classMembers.length}{profile.account_type !== 'premium' ? '/30' : ''})
+                </h3>
+              </div>
               {classMembers.length === 0 ? (
                 <p style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>No students yet. Generate accounts or share the class code <strong style={{ color: '#2E6DA4' }}>{selectedClass.class_code}</strong> with your students.</p>
               ) : (
