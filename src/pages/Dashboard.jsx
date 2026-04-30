@@ -166,7 +166,6 @@ export default function Dashboard() {
         if (data && data.id) {
           setDailyPrompt(data);
           // Check if user already wrote today's prompt
-          const today = new Date().toISOString().split('T')[0];
           const { data: existing } = await supabase
             .from('submissions')
             .select('id')
