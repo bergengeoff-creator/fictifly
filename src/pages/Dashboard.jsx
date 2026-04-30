@@ -122,7 +122,7 @@ export default function Dashboard() {
           .select('class_id')
           .eq('student_id', user.id);
         const classIds = memberships ? memberships.map(m => m.class_id) : [];
-
+        const today = new Date().toISOString().split('T')[0];
         let allAssignments = [];
 
         if (classIds.length > 0) {
@@ -141,6 +141,7 @@ export default function Dashboard() {
           .eq('student_id', user.id)
           .gte('due_date', today)
           .order('due_date', { ascending: true });
+          
         allAssignments = [...allAssignments, ...(individualAssignments || [])];
 
         const seen = new Set();
