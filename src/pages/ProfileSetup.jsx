@@ -35,12 +35,23 @@ const generateSeeds = () => Array.from({ length: 4 }, () => Math.random().toStri
 const SUBJECTS = ['English','Creative Writing','Language Arts','Literature','Other'];
 const REGIONS = ['North America','South America','Europe','Asia','Africa','Australia/Oceania','Other'];
 
-const inputStyle = { width: '100%', background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#3A3226', fontFamily: 'sans-serif', fontSize: '0.95rem', padding: '0.6rem 0.9rem', outline: 'none' };
+const inputStyle = {
+  width: '100%',
+  boxSizing: 'border-box',
+  background: '#F5EFE6',
+  border: '1px solid #D9C9B0',
+  borderRadius: '8px',
+  color: '#3A3226',
+  fontFamily: 'sans-serif',
+  fontSize: '0.95rem',
+  padding: '0.6rem 0.9rem',
+  outline: 'none',
+};
 const sectionStyle = { background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', marginBottom: '1rem' };
 const labelStyle = { fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.5rem' };
 
 export default function ProfileSetup() {
-  const { user, profile, fetchProfile } = useAuth();
+  const { user, profile, loading: authLoading, fetchProfile } = useAuth();
   const navigate = useNavigate();
 
   const [displayName, setDisplayName] = useState('');
@@ -58,11 +69,23 @@ export default function ProfileSetup() {
   const [error, setError] = useState(null);
   const [avatarError, setAvatarError] = useState(null);
 
+  const isMinor = profile && (profile.account_type === 'minor' || profile.account_type === 'student');
   const isTeacher = profile && profile.account_type === 'teacher';
+
   const getAvailableStyles = () => AVATAR_STYLES[profile ? profile.account_type : 'standard'] || AVATAR_STYLES.standard;
-const [avatarStyle, setAvatarStyle] = useState(() => getAvailableStyles()[0].id);
-const [avatarSeeds, setAvatarSeeds] = useState(generateSeeds());
-const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(null);
+  const [avatarStyle, setAvatarStyle] = useState(() => getAvailableStyles()[0].id);
+  const [avatarSeeds, setAvatarSeeds] = useState(generateSeeds());
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(null);
+
+  // Wait for auth to finish loading before rendering anything
+  // This prevents the flash where the adult layout shows briefly before profile loads
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#F5EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#9A8878', fontStyle: 'italic' }}>
+        Loading...
+      </div>
+    );
+  }
 
   const handleAvatarUpload = (e) => {
     const file = e.target.files[0];
@@ -89,16 +112,16 @@ const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(null);
 
   const handleSubmit = async () => {
     if (!displayName.trim()) { setError('Please enter a display name.'); return; }
-if (!profile || !profile.username) {
-  if (!username.trim()) { setError('Please choose a username.'); return; }
-  if (username.trim().includes(' ')) { setError('Username cannot contain spaces.'); return; }
-  const { data: existing } = await supabase.from('users').select('id').eq('username', username.trim()).single();
-  if (existing) { setError('That username is already taken. Please choose another.'); return; }
-}
+    if (!profile || !profile.username) {
+      if (!username.trim()) { setError('Please choose a username.'); return; }
+      if (username.trim().includes(' ')) { setError('Username cannot contain spaces.'); return; }
+      const { data: existing } = await supabase.from('users').select('id').eq('username', username.trim()).single();
+      if (existing) { setError('That username is already taken. Please choose another.'); return; }
+    }
     if (profilePublic === null) { setError('Please choose whether your profile is public or private.'); return; }
     setLoading(true);
-let avatarUrl = selectedAvatarUrl || null;
-if (uploadedAvatar) {
+    let avatarUrl = selectedAvatarUrl || null;
+    if (uploadedAvatar) {
       const fileExt = uploadedAvatar.name.split('.').pop();
       const filePath = user.id + '/avatar.' + fileExt;
       const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, uploadedAvatar, { upsert: true });
@@ -106,12 +129,12 @@ if (uploadedAvatar) {
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
       avatarUrl = urlData.publicUrl;
     }
-const updates = {
-  ...((!profile || !profile.username) && { username: username.trim() }),
-  display_name: displayName.trim(),
+    const updates = {
+      ...((!profile || !profile.username) && { username: username.trim() }),
+      display_name: displayName.trim(),
       bio: bio.trim() || null,
       avatar_url: uploadedAvatar ? avatarUrl : selectedAvatarUrl,
-avatar_preset: null,
+      avatar_preset: null,
       favourite_genres: selectedGenres.length > 0 ? selectedGenres : null,
       profile_public: profilePublic,
       profile_complete: true,
@@ -135,71 +158,112 @@ avatar_preset: null,
           <p style={{ color: '#6B5D4E', fontSize: '0.95rem' }}>Only your display name and privacy setting are required.</p>
         </div>
 
- <div style={sectionStyle}>
-  <label style={labelStyle}>Display name <span style={{ color: '#D4845A' }}>*</span></label>
-  <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="How should we call you?" maxLength={40} style={{ ...inputStyle, marginBottom: '0.75rem' }} />
-  {(!profile || !profile.username) && (
-    <div>
-      <label style={labelStyle}>Username <span style={{ color: '#D4845A' }}>*</span></label>
-      <input type="text" value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))} placeholder="Choose a unique username..." maxLength={30} style={inputStyle} />
-      <div style={{ fontSize: '0.75rem', color: '#9A8878', marginTop: '0.25rem' }}>No spaces allowed. This is how others find you.</div>
-    </div>
-  )}
-</div>
-
-<div style={sectionStyle}>
-  <label style={labelStyle}>Profile picture (optional)</label>
-  <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '10px', padding: '4px', gap: '4px', marginBottom: '1rem', flexWrap: 'wrap' }}>
-    {getAvailableStyles().map((style) => (
-      <button key={style.id} onClick={() => { setAvatarStyle(style.id); setAvatarSeeds(generateSeeds()); }}
-        style={{ flex: 1, padding: '0.4rem 0.5rem', borderRadius: '8px', border: 'none', background: avatarStyle === style.id ? '#FFFCF8' : 'transparent', color: avatarStyle === style.id ? '#3A3226' : '#9A8878', fontWeight: avatarStyle === style.id ? 600 : 400, cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-        {style.name}
-      </button>
-    ))}
-  </div>
-  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
-    {avatarSeeds.map((seed) => {
-      const url = 'https://api.dicebear.com/7.x/' + avatarStyle + '/svg?seed=' + seed + '&backgroundColor=f5efe6';
-      return (
-        <div key={seed} onClick={() => setSelectedAvatarUrl(url)}
-          style={{ cursor: 'pointer', borderRadius: '10px', border: '2px solid ' + (selectedAvatarUrl === url ? '#D4845A' : 'transparent'), padding: '4px', background: selectedAvatarUrl === url ? '#FDF0E8' : 'transparent' }}>
-          <img src={url} alt="avatar option" style={{ width: '100%', borderRadius: '8px' }} />
+        <div style={sectionStyle}>
+          <label style={labelStyle}>Display name <span style={{ color: '#D4845A' }}>*</span></label>
+          <input
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="How should we call you?"
+            maxLength={40}
+            style={{ ...inputStyle, marginBottom: isMinor ? '0.5rem' : '0.75rem' }}
+          />
+          {isMinor && (
+            <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '8px', padding: '0.6rem 0.85rem', marginBottom: '0.75rem', fontSize: '0.8rem', color: '#9A6830', lineHeight: 1.5 }}>
+              🔒 For your safety, please don't use your real name or any information that could identify you (school name, location, etc.). A nickname or pen name works great!
+            </div>
+          )}
+          {(!profile || !profile.username) && (
+            <div>
+              <label style={labelStyle}>Username <span style={{ color: '#D4845A' }}>*</span></label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
+                placeholder="Choose a unique username..."
+                maxLength={30}
+                style={inputStyle}
+              />
+              <div style={{ fontSize: '0.75rem', color: '#9A8878', marginTop: '0.25rem' }}>No spaces allowed. This is how others find you.</div>
+            </div>
+          )}
         </div>
-      );
-    })}
-  </div>
-  <button onClick={() => setAvatarSeeds(generateSeeds())}
-    style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.78rem', padding: '0.4rem 0.9rem', cursor: 'pointer', marginBottom: '1rem' }}>
-    Regenerate options
-  </button>
-  <div style={{ borderTop: '1px solid #EDE3D4', paddingTop: '0.75rem' }}>
-    <div style={{ fontSize: '0.75rem', color: '#9A8878', marginBottom: '0.5rem' }}>Or upload your own photo (JPG, PNG, WebP — max 2MB)</div>
-    <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} style={{ display: 'none' }} id="avatar-upload" />
-    <label htmlFor="avatar-upload" style={{ display: 'inline-block', background: '#F5EFE6', border: '1.5px dashed #D9C9B0', borderRadius: '8px', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.82rem', color: '#6B5D4E' }}>
-      {uploadedAvatarUrl ? 'Photo selected' : 'Choose photo'}
-    </label>
-    {uploadedAvatarUrl && <img src={uploadedAvatarUrl} alt="upload preview" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', marginLeft: '0.75rem', verticalAlign: 'middle' }} />}
-    {avatarError && <div style={{ color: '#B56840', fontSize: '0.82rem', marginTop: '0.5rem' }}>{avatarError}</div>}
-  </div>
-</div>
+
+        <div style={sectionStyle}>
+          <label style={labelStyle}>Profile picture (optional)</label>
+          <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '10px', padding: '4px', gap: '4px', marginBottom: '1rem', flexWrap: 'wrap' }}>
+            {getAvailableStyles().map((style) => (
+              <button key={style.id} onClick={() => { setAvatarStyle(style.id); setAvatarSeeds(generateSeeds()); }}
+                style={{ flex: 1, padding: '0.4rem 0.5rem', borderRadius: '8px', border: 'none', background: avatarStyle === style.id ? '#FFFCF8' : 'transparent', color: avatarStyle === style.id ? '#3A3226' : '#9A8878', fontWeight: avatarStyle === style.id ? 600 : 400, cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                {style.name}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            {avatarSeeds.map((seed) => {
+              const url = 'https://api.dicebear.com/7.x/' + avatarStyle + '/svg?seed=' + seed + '&backgroundColor=f5efe6';
+              return (
+                <div key={seed} onClick={() => setSelectedAvatarUrl(url)}
+                  style={{ cursor: 'pointer', borderRadius: '10px', border: '2px solid ' + (selectedAvatarUrl === url ? '#D4845A' : 'transparent'), padding: '4px', background: selectedAvatarUrl === url ? '#FDF0E8' : 'transparent' }}>
+                  <img src={url} alt="avatar option" style={{ width: '100%', borderRadius: '8px' }} />
+                </div>
+              );
+            })}
+          </div>
+          <button onClick={() => setAvatarSeeds(generateSeeds())}
+            style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.78rem', padding: '0.4rem 0.9rem', cursor: 'pointer', marginBottom: '1rem' }}>
+            Regenerate options
+          </button>
+          {!isMinor && (
+            <div style={{ borderTop: '1px solid #EDE3D4', paddingTop: '0.75rem' }}>
+              <div style={{ fontSize: '0.75rem', color: '#9A8878', marginBottom: '0.5rem' }}>Or upload your own photo (JPG, PNG, WebP — max 2MB)</div>
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} style={{ display: 'none' }} id="avatar-upload" />
+              <label htmlFor="avatar-upload" style={{ display: 'inline-block', background: '#F5EFE6', border: '1.5px dashed #D9C9B0', borderRadius: '8px', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.82rem', color: '#6B5D4E' }}>
+                {uploadedAvatarUrl ? 'Photo selected' : 'Choose photo'}
+              </label>
+              {uploadedAvatarUrl && <img src={uploadedAvatarUrl} alt="upload preview" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', marginLeft: '0.75rem', verticalAlign: 'middle' }} />}
+              {avatarError && <div style={{ color: '#B56840', fontSize: '0.82rem', marginTop: '0.5rem' }}>{avatarError}</div>}
+            </div>
+          )}
+        </div>
 
         <div style={sectionStyle}>
           <label style={labelStyle}>Bio (optional)</label>
-          <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell the community a little about yourself as a writer..." maxLength={200} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            placeholder={isMinor ? 'Tell the community a little about yourself as a writer...' : 'Tell the community a little about yourself as a writer...'}
+            maxLength={200}
+            rows={3}
+            style={{ ...inputStyle, resize: 'vertical' }}
+          />
           <div style={{ fontSize: '0.75rem', color: '#9A8878', textAlign: 'right', marginTop: '0.25rem' }}>{bio.length}/200</div>
+          {isMinor && (
+            <div style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.25rem' }}>
+              Keep it about your writing — avoid sharing personal details.
+            </div>
+          )}
         </div>
 
         <div style={sectionStyle}>
           <label style={labelStyle}>Favourite genres (optional)</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
             {GENRES.map((genre) => (
-              <button key={genre} onClick={() => toggleGenre(genre)} style={{ padding: '0.3rem 0.75rem', borderRadius: '20px', border: '1.5px solid ' + (selectedGenres.includes(genre) ? '#D4845A' : '#D9C9B0'), background: selectedGenres.includes(genre) ? '#D4845A' : 'transparent', color: selectedGenres.includes(genre) ? '#FFFCF8' : '#6B5D4E', fontSize: '0.78rem', cursor: 'pointer' }}>
+              <button key={genre} onClick={() => toggleGenre(genre)}
+                style={{ padding: '0.3rem 0.75rem', borderRadius: '20px', border: '1.5px solid ' + (selectedGenres.includes(genre) ? '#D4845A' : '#D9C9B0'), background: selectedGenres.includes(genre) ? '#D4845A' : 'transparent', color: selectedGenres.includes(genre) ? '#FFFCF8' : '#6B5D4E', fontSize: '0.78rem', cursor: 'pointer' }}>
                 {genre}
               </button>
             ))}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input type="text" value={customGenre} onChange={(e) => setCustomGenre(e.target.value)} placeholder="Add your own genre..." style={{ ...inputStyle, flex: 1 }} onKeyDown={(e) => { if (e.key === 'Enter') addCustomGenre(); }} />
+            <input
+              type="text"
+              value={customGenre}
+              onChange={(e) => setCustomGenre(e.target.value)}
+              placeholder="Add your own genre..."
+              style={{ ...inputStyle, flex: 1 }}
+              onKeyDown={(e) => { if (e.key === 'Enter') addCustomGenre(); }}
+            />
             <button onClick={addCustomGenre} style={{ background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0 1rem', cursor: 'pointer', fontWeight: 600 }}>Add</button>
           </div>
         </div>
@@ -223,10 +287,15 @@ avatar_preset: null,
 
         <div style={sectionStyle}>
           <label style={labelStyle}>Profile visibility <span style={{ color: '#D4845A' }}>*</span></label>
-          <p style={{ fontSize: '0.82rem', color: '#9A8878', marginBottom: '0.75rem' }}>Public profiles can be seen by other writers. Private profiles are only visible to you and your teacher.</p>
+          <p style={{ fontSize: '0.82rem', color: '#9A8878', marginBottom: '0.75rem' }}>
+            {isMinor
+              ? 'Public profiles can be seen by other writers. Your display name and writing will be visible — no personal information is shown.'
+              : 'Public profiles can be seen by other writers. Private profiles are only visible to you and your teacher.'}
+          </p>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            {[{ value: true, label: 'Public', desc: 'Visible to the community' },{ value: false, label: 'Private', desc: 'Only visible to you' }].map((option) => (
-              <div key={String(option.value)} onClick={() => setProfilePublic(option.value)} style={{ flex: 1, padding: '0.85rem', borderRadius: '10px', border: '1.5px solid ' + (profilePublic === option.value ? '#D4845A' : '#D9C9B0'), background: profilePublic === option.value ? '#FDF0E8' : 'transparent', cursor: 'pointer' }}>
+            {[{ value: true, label: 'Public', desc: 'Visible to the community' }, { value: false, label: 'Private', desc: 'Only visible to you' }].map((option) => (
+              <div key={String(option.value)} onClick={() => setProfilePublic(option.value)}
+                style={{ flex: 1, padding: '0.85rem', borderRadius: '10px', border: '1.5px solid ' + (profilePublic === option.value ? '#D4845A' : '#D9C9B0'), background: profilePublic === option.value ? '#FDF0E8' : 'transparent', cursor: 'pointer' }}>
                 <div style={{ fontWeight: 600, color: '#3A3226', marginBottom: '0.2rem' }}>{option.label}</div>
                 <div style={{ fontSize: '0.78rem', color: '#9A8878' }}>{option.desc}</div>
               </div>
@@ -236,7 +305,8 @@ avatar_preset: null,
 
         {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginBottom: '1rem' }}>{error}</div>}
 
-        <button onClick={handleSubmit} disabled={loading} style={{ background: loading ? '#D9C9B0' : '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '10px', padding: '0.85rem', fontWeight: 600, fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer', width: '100%' }}>
+        <button onClick={handleSubmit} disabled={loading}
+          style={{ background: loading ? '#D9C9B0' : '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '10px', padding: '0.85rem', fontWeight: 600, fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer', width: '100%' }}>
           {loading ? 'Saving...' : 'Save profile and continue'}
         </button>
       </div>
