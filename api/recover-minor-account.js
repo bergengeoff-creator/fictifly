@@ -23,9 +23,9 @@ export default async function handler(req, res) {
     'Authorization': `Bearer ${serviceKey}`,
   };
 
-  // Look up minor by username
+  // Look up by username only — check account type in code to avoid multi-filter URL issues
   const userRes = await fetch(
-    `${baseUrl}/rest/v1/users?username=eq.${encodeURIComponent(username)}&account_type=eq.minor&select=id,recovery_phrase_hash,recovery_type`,
+    `${baseUrl}/rest/v1/users?username=eq.${encodeURIComponent(username.trim())}&select=id,account_type,recovery_phrase_hash,recovery_type`,
     { headers }
   );
   const users = await userRes.json();
@@ -36,13 +36,20 @@ export default async function handler(req, res) {
 
   const user = users[0];
 
-  if (user.recovery_type !== 'phrase' || !user.recovery_phrase_hash) {
-    return res.status(400).json({ error: 'This account does not use recovery phrase. Please ask your teacher for help.' });
+  // Must be a minor account
+  if (user.account_type !== 'minor') {
+    return res.status(400).json({ error: 'This account does not support phrase recovery. Please ask your teacher for help.' });
   }
 
+  // Must have a recovery phrase set up
+  if (user.recovery_type !== 'phrase' || !user.recovery_phrase_hash) {
+    return res.status(400).json({ error: 'No recovery phrase is set up for this account. Please ask your teacher for help.' });
+  }
+
+  // Compare hashes
   const inputHash = hashPhrase(recoveryPhrase);
   if (inputHash !== user.recovery_phrase_hash) {
-    return res.status(401).json({ error: 'Recovery phrase is incorrect. Please try again.' });
+    return res.status(401).json({ error: 'Recovery phrase is incorrect. Please check your words and try again.' });
   }
 
   // Reset the passcode in Supabase Auth
@@ -56,7 +63,8 @@ export default async function handler(req, res) {
   );
 
   if (!resetRes.ok) {
-    return res.status(500).json({ error: 'Failed to reset passcode. Please try again.' });
+    const resetData = await resetRes.json();
+    return res.status(500).json({ error: resetData.message || 'Failed to reset passcode. Please try again.' });
   }
 
   return res.status(200).json({ success: true });
