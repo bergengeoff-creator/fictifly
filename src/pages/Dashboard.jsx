@@ -124,7 +124,6 @@ export default function Dashboard() {
         const classIds = memberships ? memberships.map(m => m.class_id) : [];
 
         let allAssignments = [];
-        const today = new Date().toISOString().split('T')[0];
 
         if (classIds.length > 0) {
           const { data: classAssignments } = await supabase
