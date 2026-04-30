@@ -90,7 +90,7 @@ export default function Signup() {
   };
 
   const handleMinorSignup = async () => {
-    if (passcode.length < 4) { setError('Passcode must be at least 4 digits.'); return; }
+    if (!/^\d{6}$/.test(passcode)) { setError('Passcode must be exactly 6 digits (numbers only).'); return; }
     if (passcode !== confirmPasscode) { setError('Passcodes do not match.'); return; }
     if (!parentConsent) { setError('Please confirm parent or guardian consent.'); return; }
     setLoading(true);
@@ -166,7 +166,7 @@ export default function Signup() {
   const inputStyle = { width: '100%', boxSizing: 'border-box', background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#3A3226', fontFamily: 'sans-serif', fontSize: '0.95rem', padding: '0.6rem 0.9rem', outline: 'none' };
   const labelStyle = { fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.5rem' };
 
-  // Recovery phrase screen shown after minor account creation
+  // Recovery phrase screen
   if (showRecoveryPhrase) {
     return (
       <div style={{ minHeight: '100vh', background: '#F5EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.25rem', fontFamily: 'sans-serif' }}>
@@ -278,11 +278,32 @@ export default function Signup() {
 
         {isMinor ? (
           <div>
-            <label style={labelStyle}>Passcode (4-6 digits)
-              <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} maxLength={6} style={{ ...inputStyle, marginTop: '0.4rem' }} />
+            <label style={labelStyle}>Passcode
+              <input
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={passcode}
+                onChange={(e) => setPasscode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                maxLength={6}
+                placeholder="6 digits"
+                style={{ ...inputStyle, marginTop: '0.4rem' }}
+              />
             </label>
-            <label style={{ ...labelStyle, marginTop: '0.75rem' }}>Confirm passcode
-              <input type="password" value={confirmPasscode} onChange={(e) => setConfirmPasscode(e.target.value)} maxLength={6} style={{ ...inputStyle, marginTop: '0.4rem' }} />
+            <div style={{ fontSize: '0.75rem', color: '#9A8878', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
+              Must be exactly 6 numbers (e.g. 482910). Write it down!
+            </div>
+            <label style={labelStyle}>Confirm passcode
+              <input
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={confirmPasscode}
+                onChange={(e) => setConfirmPasscode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                maxLength={6}
+                placeholder="6 digits"
+                style={{ ...inputStyle, marginTop: '0.4rem' }}
+              />
             </label>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', marginTop: '1rem', cursor: 'pointer' }}>
               <input type="checkbox" checked={parentConsent} onChange={(e) => setParentConsent(e.target.checked)} style={{ marginTop: '3px' }} />
