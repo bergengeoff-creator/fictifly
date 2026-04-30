@@ -15,22 +15,32 @@ export default async function handler(req, res) {
     'Authorization': `Bearer ${serviceKey}`,
   };
 
-  // Look up student by username
+  // Look up by username — accepts both student (teacher-created) and minor (self-registered)
   const userRes = await fetch(
-    `${baseUrl}/rest/v1/users?username=eq.${encodeURIComponent(username)}&account_type=eq.student&select=id`,
+    `${baseUrl}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,account_type,recovery_type`,
     { headers }
   );
   const users = await userRes.json();
 
   if (!users || users.length === 0) {
-    return res.status(404).json({ error: 'No student account found with that username.' });
+    return res.status(404).json({ error: 'No account found with that username.' });
   }
 
-  const studentId = users[0].id;
+  const user = users[0];
+
+  // Only student and minor accounts use this flow
+  if (user.account_type !== 'student' && user.account_type !== 'minor') {
+    return res.status(400).json({ error: 'This account type does not use passcode login.' });
+  }
+
+  // Minor accounts with recovery_type 'phrase' should use the phrase recovery flow instead
+  if (user.account_type === 'minor' && user.recovery_type === 'phrase') {
+    return res.status(400).json({ error: 'phrase_recovery', usePhrase: true });
+  }
 
   // Find their class membership
   const memberRes = await fetch(
-    `${baseUrl}/rest/v1/class_members?student_id=eq.${studentId}&select=class_id`,
+    `${baseUrl}/rest/v1/class_members?student_id=eq.${user.id}&select=class_id`,
     { headers }
   );
   const members = await memberRes.json();
@@ -43,7 +53,7 @@ export default async function handler(req, res) {
 
   // Check for existing pending request
   const existingRes = await fetch(
-    `${baseUrl}/rest/v1/passcode_reset_requests?student_id=eq.${studentId}&status=eq.pending&select=id`,
+    `${baseUrl}/rest/v1/passcode_reset_requests?student_id=eq.${user.id}&status=eq.pending&select=id`,
     { headers }
   );
   const existing = await existingRes.json();
@@ -59,7 +69,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { ...headers, 'Prefer': 'return=minimal' },
       body: JSON.stringify({
-        student_id: studentId,
+        student_id: user.id,
         class_id: classId,
         username,
         status: 'pending',
