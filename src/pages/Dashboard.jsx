@@ -166,6 +166,7 @@ export default function Dashboard() {
         if (data && data.id) {
           setDailyPrompt(data);
           // Check if user already wrote today's prompt
+          const today = new Date().toISOString().split('T')[0];
           const { data: existing } = await supabase
             .from('submissions')
             .select('id')
@@ -280,11 +281,11 @@ export default function Dashboard() {
               <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0 }}>Daily Prompt</h2>
             </div>
             {dailyPrompt && (
-              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                <span style={{ background: '#D4845A', color: '#FFFCF8', fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ background: '#D4845A', color: '#FFFCF8', fontSize: '0.82rem', fontWeight: 700, letterSpacing: '0.04em', padding: '0.3rem 0.85rem', borderRadius: '20px' }}>
                   {dailyPrompt.word_count} words
                 </span>
-                <span style={{ background: '#EDE3D4', color: '#6B5D4E', fontSize: '0.62rem', fontWeight: 500, padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
+                <span style={{ background: '#EDE3D4', color: '#3A3226', fontSize: '0.82rem', fontWeight: 600, padding: '0.3rem 0.85rem', borderRadius: '20px' }}>
                   {dailyPrompt.genre}
                 </span>
               </div>
