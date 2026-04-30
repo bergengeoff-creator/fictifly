@@ -11,10 +11,24 @@ const generateUsername = () => {
   return adj + noun + num;
 };
 
+const WORD_LIST = [
+  'apple','river','cloud','stone','tiger','flame','night','ocean','brave','cedar',
+  'frost','globe','maple','noble','pearl','quiet','solar','tulip','ultra','vivid',
+  'wheat','amber','bloom','coral','delta','ember','fable','grace','haven','ivory',
+  'joker','karma','lemon','moose','north','olive','piano','quest','robin','sandy',
+  'toast','uncle','vapor','walnut','xenon','yacht','zebra','birch','crane','dusk',
+  'eagle','finch','grove','hills','inlet','jumbo','knoll','lunar','mango','nectar',
+];
+
+const generateRecoveryPhrase = () => {
+  const shuffled = [...WORD_LIST].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 4).join(' ');
+};
+
 const personalDomains = [
   'gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com',
   'aol.com','live.com','msn.com','me.com','mac.com','protonmail.com',
-  'mail.com','ymail.com','googlemail.com'
+  'mail.com','ymail.com','googlemail.com',
 ];
 
 const isSchoolEmail = (email) => {
@@ -42,6 +56,7 @@ export default function Signup() {
   const { state } = useLocation();
   const isMinor = state ? state.isMinor : false;
   const navigate = useNavigate();
+
   const [accountType, setAccountType] = useState(isMinor ? 'minor' : 'standard');
   const [username, setUsername] = useState(generateUsername());
   const [usernameMode, setUsernameMode] = useState('random');
@@ -56,12 +71,15 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const refreshUsername = () => setUsername(generateUsername());
+  // Recovery phrase flow
+  const [showRecoveryPhrase, setShowRecoveryPhrase] = useState(false);
+  const [recoveryPhrase, setRecoveryPhrase] = useState('');
+  const [phraseConfirmed, setPhraseConfirmed] = useState(false);
+  const [createdUserId, setCreatedUserId] = useState(null);
+  const [savingPhrase, setSavingPhrase] = useState(false);
 
-  const getFinalUsername = () => {
-    if (isMinor) return username;
-    return usernameMode === 'random' ? username : customUsername.trim();
-  };
+  const refreshUsername = () => setUsername(generateUsername());
+  const getFinalUsername = () => isMinor ? username : (usernameMode === 'random' ? username : customUsername.trim());
 
   const handleGoogleSignup = async () => {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
@@ -81,11 +99,40 @@ export default function Signup() {
     const { data, error: signUpError } = await supabase.auth.signUp({ email: minorEmail, password: passcode });
     if (signUpError) { setError(signUpError.message); setLoading(false); return; }
     if (data && data.user) {
-      const { error: insertError } = await supabase.from('users').insert({ id: data.user.id, username: finalUsername, account_type: 'minor', is_minor: true, age_verified: true });
+      const { error: insertError } = await supabase.from('users').insert({
+        id: data.user.id,
+        username: finalUsername,
+        account_type: 'minor',
+        is_minor: true,
+        age_verified: true,
+        recovery_type: 'phrase',
+      });
       if (insertError) { setError('Profile error: ' + insertError.message); setLoading(false); return; }
+      const phrase = generateRecoveryPhrase();
+      setRecoveryPhrase(phrase);
+      setCreatedUserId(data.user.id);
+      setShowRecoveryPhrase(true);
     }
     setLoading(false);
-    navigate('/profile-setup');
+  };
+
+  const handleSavePhrase = async () => {
+    if (!phraseConfirmed) { setError('Please confirm you have written down your recovery phrase.'); return; }
+    setSavingPhrase(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/save-recovery-phrase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: createdUserId, recoveryPhrase }),
+      });
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error);
+      navigate('/profile-setup');
+    } catch (e) {
+      setError('Failed to save recovery phrase. Please try again.');
+    }
+    setSavingPhrase(false);
   };
 
   const handleStandardSignup = async () => {
@@ -102,15 +149,62 @@ export default function Signup() {
     const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
     if (signUpError) { setError(signUpError.message); setLoading(false); return; }
     if (data && data.user) {
-      const { error: insertError } = await supabase.from('users').insert({ id: data.user.id, username: finalUsername, account_type: accountType === 'teacher' ? 'teacher' : 'standard', is_minor: false, age_verified: true });
+      const { error: insertError } = await supabase.from('users').insert({
+        id: data.user.id,
+        username: finalUsername,
+        account_type: accountType === 'teacher' ? 'teacher' : 'standard',
+        is_minor: false,
+        age_verified: true,
+        recovery_type: 'teacher',
+      });
       if (insertError) { setError('Profile error: ' + insertError.message); setLoading(false); return; }
     }
     setLoading(false);
     navigate('/profile-setup');
   };
 
-  const inputStyle = { width: '100%', background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#3A3226', fontFamily: 'sans-serif', fontSize: '0.95rem', padding: '0.6rem 0.9rem', outline: 'none' };
+  const inputStyle = { width: '100%', boxSizing: 'border-box', background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#3A3226', fontFamily: 'sans-serif', fontSize: '0.95rem', padding: '0.6rem 0.9rem', outline: 'none' };
   const labelStyle = { fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.5rem' };
+
+  // Recovery phrase screen shown after minor account creation
+  if (showRecoveryPhrase) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#F5EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.25rem', fontFamily: 'sans-serif' }}>
+        <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '16px', padding: '2.5rem', maxWidth: '480px', width: '100%' }}>
+          <FictiflyLogo />
+          <h1 style={{ color: '#3A3226', marginBottom: '0.5rem', textAlign: 'center', fontSize: '1.5rem' }}>Save your recovery phrase</h1>
+          <p style={{ textAlign: 'center', fontSize: '0.88rem', color: '#6B5D4E', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+            This is the only way to recover your account if you forget your passcode. Write it down and keep it somewhere safe.
+          </p>
+
+          <div style={{ background: '#EAF4FB', border: '2px solid #5B9EC9', borderRadius: '12px', padding: '1.5rem', textAlign: 'center', marginBottom: '1.25rem' }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Your recovery phrase</div>
+            <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {recoveryPhrase.split(' ').map((word, i) => (
+                <span key={i} style={{ background: '#FFFCF8', border: '1px solid #5B9EC9', borderRadius: '8px', padding: '0.4rem 0.85rem', fontSize: '1.1rem', fontWeight: 700, color: '#2E6DA4' }}>{word}</span>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', padding: '0.85rem 1rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: '#B56840', lineHeight: 1.5 }}>
+            ⚠️ If you lose this phrase, you will need to create a new account. We cannot recover it for you.
+          </div>
+
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer', marginBottom: '1.25rem' }}>
+            <input type="checkbox" checked={phraseConfirmed} onChange={e => setPhraseConfirmed(e.target.checked)} style={{ marginTop: '3px', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.85rem', color: '#6B5D4E' }}>I have written down my recovery phrase and stored it somewhere safe.</span>
+          </label>
+
+          {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.85rem' }}>{error}</div>}
+
+          <button onClick={handleSavePhrase} disabled={savingPhrase || !phraseConfirmed}
+            style={{ width: '100%', background: (!phraseConfirmed || savingPhrase) ? '#D9C9B0' : '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.95rem', cursor: (!phraseConfirmed || savingPhrase) ? 'not-allowed' : 'pointer' }}>
+            {savingPhrase ? 'Saving...' : "I've saved it — continue"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#F5EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.25rem', fontFamily: 'sans-serif' }}>

@@ -17,6 +17,11 @@ const FictiflyLogo = () => (
   </svg>
 );
 
+// Forgot passcode states:
+// 'idle' -> 'lookup' (enter username) -> 'phrase' (minor: enter phrase + new passcode)
+//                                      -> 'teacher' (student: request sent to teacher)
+//                                      -> 'success'
+
 export default function Login() {
   const [isMinor, setIsMinor] = useState(false);
   const [username, setUsername] = useState('');
@@ -26,11 +31,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const [showForgotPasscode, setShowForgotPasscode] = useState(false);
+  // Forgot passcode flow
+  const [forgotStep, setForgotStep] = useState('idle'); // idle | lookup | phrase | teacher | success
   const [forgotUsername, setForgotUsername] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotSuccess, setForgotSuccess] = useState(false);
   const [forgotError, setForgotError] = useState(null);
+  const [recoveryPhrase, setRecoveryPhrase] = useState('');
+  const [newPasscode, setNewPasscode] = useState('');
+  const [confirmNewPasscode, setConfirmNewPasscode] = useState('');
 
   const navigate = useNavigate();
 
@@ -61,11 +69,11 @@ export default function Login() {
     if (error) setError(error.message);
   };
 
-  const handleForgotPasscode = async () => {
+  // Step 1: look up the username and route to correct recovery flow
+  const handleForgotLookup = async () => {
     if (!forgotUsername.trim()) { setForgotError('Please enter your username.'); return; }
     setForgotLoading(true);
     setForgotError(null);
-
     try {
       const response = await fetch('/api/request-passcode-reset', {
         method: 'POST',
@@ -73,136 +81,229 @@ export default function Login() {
         body: JSON.stringify({ username: forgotUsername.trim() }),
       });
       const data = await response.json();
+
+      if (response.status === 400 && data.usePhrase) {
+        // Minor account — use recovery phrase
+        setForgotStep('phrase');
+      } else if (!response.ok) {
+        setForgotError(data.error || 'Something went wrong. Please try again.');
+      } else {
+        // Student account — teacher reset request sent
+        setForgotStep('teacher');
+      }
+    } catch {
+      setForgotError('Something went wrong. Please try again.');
+    }
+    setForgotLoading(false);
+  };
+
+  // Step 2a: minor recovery phrase submission
+  const handlePhraseRecovery = async () => {
+    if (!recoveryPhrase.trim()) { setForgotError('Please enter your recovery phrase.'); return; }
+    if (newPasscode.length < 4) { setForgotError('New passcode must be at least 4 digits.'); return; }
+    if (newPasscode !== confirmNewPasscode) { setForgotError('Passcodes do not match.'); return; }
+    setForgotLoading(true);
+    setForgotError(null);
+    try {
+      const response = await fetch('/api/recover-minor-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: forgotUsername.trim(),
+          recoveryPhrase: recoveryPhrase.trim(),
+          newPasscode,
+        }),
+      });
+      const data = await response.json();
       if (!response.ok) {
-        setForgotError(data.error || 'Something went wrong. Please ask your teacher for help.');
+        setForgotError(data.error || 'Recovery failed. Please check your phrase and try again.');
         setForgotLoading(false);
         return;
       }
-      setForgotSuccess(true);
+      setForgotStep('success');
     } catch {
-      setForgotError('Something went wrong. Please ask your teacher for help directly.');
+      setForgotError('Something went wrong. Please try again.');
     }
     setForgotLoading(false);
+  };
+
+  const resetForgotFlow = () => {
+    setForgotStep('idle');
+    setForgotUsername('');
+    setForgotError(null);
+    setRecoveryPhrase('');
+    setNewPasscode('');
+    setConfirmNewPasscode('');
   };
 
   const inputStyle = { width: '100%', boxSizing: 'border-box', background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#3A3226', fontFamily: 'sans-serif', fontSize: '0.95rem', padding: '0.6rem 0.9rem', outline: 'none' };
   const labelStyle = { fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.5rem' };
 
+  // ---- Forgot passcode screens ----
+  if (forgotStep !== 'idle') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#F5EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.25rem', fontFamily: 'sans-serif' }}>
+        <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '16px', padding: '2.5rem', maxWidth: '480px', width: '100%' }}>
+          <FictiflyLogo />
+
+          {/* Step: username lookup */}
+          {forgotStep === 'lookup' && (
+            <div>
+              <h1 style={{ color: '#3A3226', marginBottom: '0.5rem', textAlign: 'center', fontSize: '1.5rem' }}>Forgot passcode?</h1>
+              <p style={{ textAlign: 'center', fontSize: '0.88rem', color: '#6B5D4E', marginBottom: '1.5rem' }}>Enter your username and we'll find your account.</p>
+              <label style={labelStyle}>Your username
+                <input type="text" value={forgotUsername} onChange={e => setForgotUsername(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleForgotLookup(); }}
+                  placeholder="e.g. SwiftNarrator47" style={{ ...inputStyle, marginTop: '0.4rem' }} />
+              </label>
+              {forgotError && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginTop: '0.75rem', fontSize: '0.85rem' }}>{forgotError}</div>}
+              <button onClick={handleForgotLookup} disabled={forgotLoading}
+                style={{ width: '100%', background: forgotLoading ? '#D9C9B0' : '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.95rem', cursor: forgotLoading ? 'not-allowed' : 'pointer', marginTop: '1rem' }}>
+                {forgotLoading ? 'Looking up...' : 'Continue'}
+              </button>
+              <button onClick={resetForgotFlow} style={{ width: '100%', background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.75rem', fontWeight: 500, fontSize: '0.88rem', cursor: 'pointer', marginTop: '0.75rem', color: '#6B5D4E' }}>
+                Back to sign in
+              </button>
+            </div>
+          )}
+
+          {/* Step: recovery phrase (minor accounts) */}
+          {forgotStep === 'phrase' && (
+            <div>
+              <h1 style={{ color: '#3A3226', marginBottom: '0.5rem', textAlign: 'center', fontSize: '1.5rem' }}>Enter recovery phrase</h1>
+              <p style={{ textAlign: 'center', fontSize: '0.88rem', color: '#6B5D4E', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+                Enter the 4-word recovery phrase you wrote down when you created your account, then choose a new passcode.
+              </p>
+              <label style={labelStyle}>Recovery phrase (4 words, separated by spaces)
+                <input type="text" value={recoveryPhrase} onChange={e => setRecoveryPhrase(e.target.value)}
+                  placeholder="e.g. apple river cloud stone" style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
+              </label>
+              <label style={labelStyle}>New passcode (4-6 digits)
+                <input type="password" value={newPasscode} onChange={e => setNewPasscode(e.target.value)}
+                  maxLength={6} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
+              </label>
+              <label style={labelStyle}>Confirm new passcode
+                <input type="password" value={confirmNewPasscode} onChange={e => setConfirmNewPasscode(e.target.value)}
+                  maxLength={6} style={{ ...inputStyle, marginTop: '0.4rem' }} />
+              </label>
+              {forgotError && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginTop: '0.75rem', fontSize: '0.85rem' }}>{forgotError}</div>}
+              <button onClick={handlePhraseRecovery} disabled={forgotLoading}
+                style={{ width: '100%', background: forgotLoading ? '#D9C9B0' : '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.95rem', cursor: forgotLoading ? 'not-allowed' : 'pointer', marginTop: '1rem' }}>
+                {forgotLoading ? 'Verifying...' : 'Reset passcode'}
+              </button>
+              <button onClick={resetForgotFlow} style={{ width: '100%', background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.75rem', fontWeight: 500, fontSize: '0.88rem', cursor: 'pointer', marginTop: '0.75rem', color: '#6B5D4E' }}>
+                Back to sign in
+              </button>
+            </div>
+          )}
+
+          {/* Step: teacher reset (student accounts) */}
+          {forgotStep === 'teacher' && (
+            <div>
+              <h1 style={{ color: '#3A3226', marginBottom: '0.5rem', textAlign: 'center', fontSize: '1.5rem' }}>Request sent ✓</h1>
+              <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', color: '#3A7040', padding: '1rem', textAlign: 'center', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+                <div style={{ fontWeight: 600, marginBottom: '0.3rem' }}>Your teacher has been notified.</div>
+                <div style={{ fontSize: '0.85rem' }}>Ask them to approve your passcode reset — they'll give you a new one to use.</div>
+              </div>
+              <button onClick={resetForgotFlow}
+                style={{ width: '100%', background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer' }}>
+                Back to sign in
+              </button>
+            </div>
+          )}
+
+          {/* Step: success (phrase recovery complete) */}
+          {forgotStep === 'success' && (
+            <div>
+              <h1 style={{ color: '#3A3226', marginBottom: '0.5rem', textAlign: 'center', fontSize: '1.5rem' }}>Passcode reset! ✓</h1>
+              <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', color: '#3A7040', padding: '1rem', textAlign: 'center', marginBottom: '1.5rem' }}>
+                Your passcode has been updated. You can now sign in with your new passcode.
+              </div>
+              <button onClick={resetForgotFlow}
+                style={{ width: '100%', background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer' }}>
+                Sign in
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Normal login screen ----
   return (
     <div style={{ minHeight: '100vh', background: '#F5EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.25rem', fontFamily: 'sans-serif' }}>
       <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '16px', padding: '2.5rem', maxWidth: '480px', width: '100%' }}>
         <FictiflyLogo />
+        <h1 style={{ color: '#3A3226', marginBottom: '1.5rem', textAlign: 'center' }}>Sign in</h1>
 
-        {showForgotPasscode ? (
-          <div>
-            <h1 style={{ color: '#3A3226', marginBottom: '0.5rem', textAlign: 'center', fontSize: '1.5rem' }}>Forgot passcode?</h1>
-            <p style={{ textAlign: 'center', fontSize: '0.88rem', color: '#6B5D4E', marginBottom: '1.5rem' }}>
-              Enter your username and we'll notify your teacher to reset it.
-            </p>
-
-            {forgotSuccess ? (
-              <div>
-                <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', color: '#3A7040', padding: '1rem', textAlign: 'center', marginBottom: '1.5rem' }}>
-                  <div style={{ fontWeight: 600, marginBottom: '0.3rem' }}>Request sent! ✓</div>
-                  <div style={{ fontSize: '0.85rem' }}>Your teacher has been notified. Ask them to approve your passcode reset — they'll give you a new one.</div>
-                </div>
-                <button onClick={() => { setShowForgotPasscode(false); setForgotSuccess(false); setForgotUsername(''); }}
-                  style={{ width: '100%', background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer' }}>
-                  Back to sign in
-                </button>
-              </div>
-            ) : (
-              <div>
-                <label style={labelStyle}>Your username
-                  <input type="text" value={forgotUsername} onChange={e => setForgotUsername(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleForgotPasscode(); }}
-                    placeholder="e.g. SwiftNarrator47" style={{ ...inputStyle, marginTop: '0.4rem' }} />
-                </label>
-                {forgotError && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginTop: '0.75rem', fontSize: '0.85rem' }}>{forgotError}</div>}
-                <button onClick={handleForgotPasscode} disabled={forgotLoading}
-                  style={{ width: '100%', background: forgotLoading ? '#D9C9B0' : '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.95rem', cursor: forgotLoading ? 'not-allowed' : 'pointer', marginTop: '1rem' }}>
-                  {forgotLoading ? 'Sending request...' : 'Request passcode reset'}
-                </button>
-                <button onClick={() => { setShowForgotPasscode(false); setForgotError(null); setForgotUsername(''); }}
-                  style={{ width: '100%', background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.75rem', fontWeight: 500, fontSize: '0.88rem', cursor: 'pointer', marginTop: '0.75rem', color: '#6B5D4E' }}>
-                  Back to sign in
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div>
-            <h1 style={{ color: '#3A3226', marginBottom: '1.5rem', textAlign: 'center' }}>Sign in</h1>
-
-            <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '10px', padding: '4px', gap: '4px', marginBottom: '1.5rem' }}>
-              {[{ value: false, label: 'Writer / Educator' }, { value: true, label: 'Student' }].map((option) => (
-                <button key={String(option.value)} onClick={() => { setIsMinor(option.value); setError(null); }}
-                  style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: 'none', background: isMinor === option.value ? '#FFFCF8' : 'transparent', color: isMinor === option.value ? '#3A3226' : '#9A8878', fontWeight: isMinor === option.value ? 600 : 400, cursor: 'pointer' }}>
-                  {option.label}
-                </button>
-              ))}
-            </div>
-
-            {!isMinor && (
-              <div>
-                <button onClick={handleGoogleLogin} style={{ width: '100%', background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.7rem', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginBottom: '1.25rem', color: '#3A3226' }}>
-                  <svg width="18" height="18" viewBox="0 0 18 18">
-                    <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
-                    <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
-                    <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
-                    <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
-                  </svg>
-                  Continue with Google
-                </button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                  <div style={{ flex: 1, height: '1px', background: '#D9C9B0' }} />
-                  <span style={{ fontSize: '0.78rem', color: '#9A8878' }}>or sign in with email</span>
-                  <div style={{ flex: 1, height: '1px', background: '#D9C9B0' }} />
-                </div>
-              </div>
-            )}
-
-            {isMinor ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <label style={labelStyle}>Username
-                  <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="e.g. SwiftNarrator47" style={{ ...inputStyle, marginTop: '0.4rem' }} />
-                </label>
-                <label style={labelStyle}>Passcode
-                  <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} maxLength={6} style={{ ...inputStyle, marginTop: '0.4rem' }} />
-                </label>
-                <div style={{ textAlign: 'right' }}>
-                  <button onClick={() => { setShowForgotPasscode(true); setForgotUsername(username); setError(null); }}
-                    style={{ background: 'none', border: 'none', fontSize: '0.82rem', color: '#2E6DA4', cursor: 'pointer', fontWeight: 500, padding: 0 }}>
-                    Forgot passcode?
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <label style={labelStyle}>Email address
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={{ ...inputStyle, marginTop: '0.4rem' }} />
-                </label>
-                <label style={labelStyle}>Password
-                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Your password" style={{ ...inputStyle, marginTop: '0.4rem' }} />
-                </label>
-                <div style={{ textAlign: 'right' }}>
-                  <Link to="/forgot-password" style={{ fontSize: '0.82rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Forgot password?</Link>
-                </div>
-              </div>
-            )}
-
-            {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginTop: '1rem' }}>{error}</div>}
-
-            <button onClick={isMinor ? handleMinorLogin : handleStandardLogin} disabled={loading}
-              style={{ background: loading ? '#D9C9B0' : '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer', width: '100%', marginTop: '1.5rem' }}>
-              {loading ? 'Signing in...' : 'Sign in'}
+        <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '10px', padding: '4px', gap: '4px', marginBottom: '1.5rem' }}>
+          {[{ value: false, label: 'Writer / Educator' }, { value: true, label: 'Student' }].map((option) => (
+            <button key={String(option.value)} onClick={() => { setIsMinor(option.value); setError(null); }}
+              style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: 'none', background: isMinor === option.value ? '#FFFCF8' : 'transparent', color: isMinor === option.value ? '#3A3226' : '#9A8878', fontWeight: isMinor === option.value ? 600 : 400, cursor: 'pointer' }}>
+              {option.label}
             </button>
+          ))}
+        </div>
 
-            <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.85rem', color: '#6B5D4E' }}>
-              Don't have an account? <Link to="/age-gate" style={{ color: '#2E6DA4', fontWeight: 600 }}>Sign up</Link>
-            </p>
+        {!isMinor && (
+          <div>
+            <button onClick={handleGoogleLogin} style={{ width: '100%', background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.7rem', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginBottom: '1.25rem', color: '#3A3226' }}>
+              <svg width="18" height="18" viewBox="0 0 18 18">
+                <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+                <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+                <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
+                <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+              </svg>
+              Continue with Google
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ flex: 1, height: '1px', background: '#D9C9B0' }} />
+              <span style={{ fontSize: '0.78rem', color: '#9A8878' }}>or sign in with email</span>
+              <div style={{ flex: 1, height: '1px', background: '#D9C9B0' }} />
+            </div>
           </div>
         )}
+
+        {isMinor ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <label style={labelStyle}>Username
+              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="e.g. SwiftNarrator47" style={{ ...inputStyle, marginTop: '0.4rem' }} />
+            </label>
+            <label style={labelStyle}>Passcode
+              <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} maxLength={6} style={{ ...inputStyle, marginTop: '0.4rem' }} />
+            </label>
+            <div style={{ textAlign: 'right' }}>
+              <button onClick={() => { setForgotStep('lookup'); setForgotUsername(username); setError(null); }}
+                style={{ background: 'none', border: 'none', fontSize: '0.82rem', color: '#2E6DA4', cursor: 'pointer', fontWeight: 500, padding: 0 }}>
+                Forgot passcode?
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <label style={labelStyle}>Email address
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={{ ...inputStyle, marginTop: '0.4rem' }} />
+            </label>
+            <label style={labelStyle}>Password
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Your password" style={{ ...inputStyle, marginTop: '0.4rem' }} />
+            </label>
+            <div style={{ textAlign: 'right' }}>
+              <Link to="/forgot-password" style={{ fontSize: '0.82rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Forgot password?</Link>
+            </div>
+          </div>
+        )}
+
+        {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginTop: '1rem' }}>{error}</div>}
+
+        <button onClick={isMinor ? handleMinorLogin : handleStandardLogin} disabled={loading}
+          style={{ background: loading ? '#D9C9B0' : '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer', width: '100%', marginTop: '1.5rem' }}>
+          {loading ? 'Signing in...' : 'Sign in'}
+        </button>
+
+        <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.85rem', color: '#6B5D4E' }}>
+          Don't have an account? <Link to="/age-gate" style={{ color: '#2E6DA4', fontWeight: 600 }}>Sign up</Link>
+        </p>
       </div>
     </div>
   );
