@@ -35,20 +35,7 @@ export default async function handler(req, res) {
   const wordCount = wordCounts[Math.floor(Math.random() * wordCounts.length)];
   const genre = GENRES[Math.floor(Math.random() * GENRES.length)];
 
-  const promptContent = `Generate 1 microfiction writing prompt for a ${wordCount}-word challenge.
-Genre: "${genre}"
-Provide:
-- An ACTION: a creative gerund word (e.g. "Wandering", "Unraveling", "Dissolving")
-- A WORD: a single evocative word (e.g. "Courage", "Mirror", "Threshold")
-
-${wordCount === 100
-  ? 'This is a 100-WORD challenge. Choose ingredients that point to a single contained moment or emotional beat.'
-  : wordCount === 200
-  ? 'This is a 200-WORD challenge. Choose ingredients that suggest a small but complete arc.'
-  : 'This is a 300-WORD challenge. Choose ingredients that can carry real narrative complexity.'}
-
-Respond ONLY with JSON, no markdown:
-{"action":"...","word":"..."}`;
+  const promptContent = `Generate 1 microfiction writing prompt for a ${wordCount}-word challenge. Genre: "${genre}". Provide an ACTION (a creative gerund word like "Wandering") and a WORD (a single evocative word like "Courage"). Respond ONLY with JSON, no markdown, no explanation: {"action":"...","word":"..."}`;
 
   const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -64,15 +51,29 @@ Respond ONLY with JSON, no markdown:
     }),
   });
 
+  if (!claudeRes.ok) {
+    const errText = await claudeRes.text();
+    return res.status(500).json({ error: 'Claude API error', detail: errText });
+  }
+
   const claudeData = await claudeRes.json();
-  const text = claudeData.content?.map(b => b.text || '').join('') || '';
+
+  if (!claudeData.content || claudeData.content.length === 0) {
+    return res.status(500).json({ error: 'Empty Claude response', detail: claudeData });
+  }
+
+  const text = claudeData.content.map(b => b.text || '').join('').trim();
   const clean = text.replace(/```json|```/g, '').trim();
 
   let parsed;
   try {
     parsed = JSON.parse(clean);
-  } catch {
-    return res.status(500).json({ error: 'Failed to generate daily prompt.' });
+  } catch (e) {
+    return res.status(500).json({ error: 'JSON parse failed', rawText: text, cleanText: clean });
+  }
+
+  if (!parsed.action || !parsed.word) {
+    return res.status(500).json({ error: 'Missing fields in response', parsed });
   }
 
   // Save to database
@@ -93,8 +94,9 @@ Respond ONLY with JSON, no markdown:
   );
 
   const inserted = await insertRes.json();
+
   if (!insertRes.ok) {
-    return res.status(500).json({ error: 'Failed to save daily prompt.' });
+    return res.status(500).json({ error: 'DB insert failed', detail: inserted });
   }
 
   return res.status(200).json(inserted[0]);
