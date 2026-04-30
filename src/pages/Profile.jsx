@@ -182,7 +182,11 @@ export default function Profile() {
     setTimeout(() => setSuccess(false), 3000);
   };
 
-  if (!profile) return null;
+  if (!profile) return (
+    <div style={{ minHeight: '100vh', background: '#F5EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#9A8878', fontStyle: 'italic' }}>
+      Loading...
+    </div>
+  );
 
   return (
     <div style={{ minHeight: '100vh', background: '#F5EFE6', fontFamily: 'sans-serif', color: '#3A3226', padding: '0 1.25rem 5rem' }}>
