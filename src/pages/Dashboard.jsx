@@ -33,10 +33,15 @@ export default function Dashboard() {
   const [storiesWritten, setStoriesWritten] = useState(0);
   const [writtenPromptIds, setWrittenPromptIds] = useState([]);
 
+  // Daily prompt
+  const [dailyPrompt, setDailyPrompt] = useState(null);
+  const [dailyPromptLoading, setDailyPromptLoading] = useState(true);
+  const [dailyWritten, setDailyWritten] = useState(false);
+
   // Assignments (students only)
   const [assignments, setAssignments] = useState([]);
   const [submittedAssignmentIds, setSubmittedAssignmentIds] = useState([]);
-  const [assignmentFeedback, setAssignmentFeedback] = useState({}); // assignmentId -> { feedback, feedback_at }
+  const [assignmentFeedback, setAssignmentFeedback] = useState({});
   const [storyModalData, setStoryModalData] = useState(null);
 
   useEffect(() => {
@@ -67,7 +72,7 @@ export default function Dashboard() {
 
       const { data: submissionsData } = await supabase
         .from('submissions')
-        .select('id, prompt_id, assignment_id, submitted_to_teacher, teacher_feedback, feedback_at')
+        .select('id, prompt_id, assignment_id, submitted_to_teacher, teacher_feedback, feedback_at, daily_prompt_id')
         .eq('user_id', user.id);
       setStoriesWritten(submissionsData ? submissionsData.length : 0);
       setWrittenPromptIds(submissionsData ? submissionsData.map(s => s.prompt_id) : []);
@@ -79,7 +84,6 @@ export default function Dashboard() {
         : [];
       setSubmittedAssignmentIds(submittedIds);
 
-      // Build feedback map: assignmentId -> { feedback, feedback_at }
       const fmap = {};
       (submissionsData || []).forEach(s => {
         if (s.assignment_id && s.teacher_feedback) {
@@ -112,7 +116,6 @@ export default function Dashboard() {
         setBadgeCount(0);
       }
 
-      // Fetch assignments for students
       if (profile && isStudentAccount(profile)) {
         const { data: memberships } = await supabase
           .from('class_members')
@@ -153,6 +156,33 @@ export default function Dashboard() {
     fetchData();
   }, [user, profile]);
 
+  // Fetch daily prompt separately
+  useEffect(() => {
+    const fetchDailyPrompt = async () => {
+      setDailyPromptLoading(true);
+      try {
+        const response = await fetch('/api/daily-prompt');
+        const data = await response.json();
+        if (data && data.id) {
+          setDailyPrompt(data);
+          // Check if user already wrote today's prompt
+          const today = new Date().toISOString().split('T')[0];
+          const { data: existing } = await supabase
+            .from('submissions')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('daily_prompt_id', data.id)
+            .maybeSingle();
+          setDailyWritten(!!existing);
+        }
+      } catch (e) {
+        console.error('Failed to fetch daily prompt:', e);
+      }
+      setDailyPromptLoading(false);
+    };
+    if (user) fetchDailyPrompt();
+  }, [user]);
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
@@ -172,6 +202,21 @@ export default function Dashboard() {
       object: assignment.object,
     };
     setStoryModalData({ prompt, assignmentId: assignment.id });
+  };
+
+  const handleOpenDailyPrompt = () => {
+    if (!dailyPrompt) return;
+    const prompt = {
+      id: null,
+      dbId: null,
+      prompt_type: 'microfiction',
+      word_count: dailyPrompt.word_count,
+      wordCount: dailyPrompt.word_count,
+      genre: dailyPrompt.genre,
+      action: dailyPrompt.action,
+      word: dailyPrompt.word,
+    };
+    setStoryModalData({ prompt, dailyPromptId: dailyPrompt.id });
   };
 
   const isNewUser = profile && !profile.bio && !profile.avatar_url && !profile.avatar_preset;
@@ -227,6 +272,61 @@ export default function Dashboard() {
             <Link to="/profile" style={{ background: '#2E6DA4', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}>Complete profile</Link>
           </div>
         )}
+
+        {/* Daily prompt */}
+        <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginBottom: '2rem', borderLeft: '4px solid #D4845A' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.25rem' }}>Today's Challenge</div>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0 }}>Daily Prompt</h2>
+            </div>
+            {dailyPrompt && (
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <span style={{ background: '#D4845A', color: '#FFFCF8', fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
+                  {dailyPrompt.word_count} words
+                </span>
+                <span style={{ background: '#EDE3D4', color: '#6B5D4E', fontSize: '0.62rem', fontWeight: 500, padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
+                  {dailyPrompt.genre}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {dailyPromptLoading ? (
+            <div style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>Loading today's prompt...</div>
+          ) : dailyPrompt ? (
+            <div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', minWidth: 52 }}>Action</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 500, color: '#3A3226', fontStyle: 'italic' }}>{dailyPrompt.action}</span>
+                </div>
+                <div style={{ height: '1px', background: '#EDE3D4' }} />
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', minWidth: 52 }}>Word</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 500, color: '#2E6DA4', fontStyle: 'italic' }}>{dailyPrompt.word}</span>
+                </div>
+              </div>
+
+              {dailyWritten ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ background: '#F0F7ED', border: '1px solid #6BAF72', color: '#3A7040', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
+                  <button onClick={handleOpenDailyPrompt}
+                    style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer' }}>
+                    Edit story
+                  </button>
+                </div>
+              ) : (
+                <button onClick={handleOpenDailyPrompt}
+                  style={{ background: '#D4845A', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+                  Write today's story →
+                </button>
+              )}
+            </div>
+          ) : (
+            <div style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>Today's prompt is on its way — check back shortly.</div>
+          )}
+        </div>
 
         {/* Assignments — students only */}
         {profile && isStudentAccount(profile) && assignments.length > 0 && (
@@ -423,11 +523,15 @@ export default function Dashboard() {
         <StoryModal
           prompt={storyModalData.prompt}
           assignmentId={storyModalData.assignmentId}
-          isStudentSubmission={true}
+          dailyPromptId={storyModalData.dailyPromptId}
+          isStudentSubmission={isStudentAccount(profile)}
           onClose={() => setStoryModalData(null)}
           onSaved={() => {
             if (storyModalData.assignmentId) {
               setSubmittedAssignmentIds(prev => [...prev, storyModalData.assignmentId]);
+            }
+            if (storyModalData.dailyPromptId) {
+              setDailyWritten(true);
             }
             setStoryModalData(null);
           }}

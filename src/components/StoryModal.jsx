@@ -20,7 +20,7 @@ const inputBase = {
   outline: 'none',
 };
 
-export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isStudentSubmission }) {
+export default function StoryModal({ prompt, onClose, onSaved, assignmentId, dailyPromptId, isStudentSubmission }) {
   const { user, profile } = useAuth();
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
@@ -42,9 +42,17 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isS
     const fetchExisting = async () => {
       let data = null;
 
-      // For assignment submissions, fetch by assignment_id directly
-      // since prompt.id is null when opening from the dashboard assignments section
-      if (assignmentId) {
+      if (dailyPromptId) {
+        // Fetch by daily_prompt_id
+        const { data: byDaily } = await supabase
+          .from('submissions')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('daily_prompt_id', dailyPromptId)
+          .maybeSingle();
+        data = byDaily;
+      } else if (assignmentId) {
+        // Fetch by assignment_id
         const { data: byAssignment } = await supabase
           .from('submissions')
           .select('*')
@@ -53,7 +61,7 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isS
           .maybeSingle();
         data = byAssignment;
       } else {
-        // For regular prompt submissions, fetch by prompt_id
+        // Fetch by prompt_id
         const promptId = prompt.id || prompt.dbId;
         if (!promptId) return;
         const { data: byPrompt } = await supabase
@@ -73,7 +81,7 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isS
       }
     };
     fetchExisting();
-  }, [user.id, prompt, assignmentId]);
+  }, [user.id, prompt, assignmentId, dailyPromptId]);
 
   const handleSave = async () => {
     if (!content.trim()) { setError('Please write your story before saving.'); return; }
@@ -92,7 +100,7 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isS
         updated_at: new Date().toISOString(),
       };
       if (!isStudent) updates.sharing = sharing;
-      if (isStudent) updates.submitted_to_teacher = true;
+      if (isStudent && assignmentId) updates.submitted_to_teacher = true;
       const { error: updateError } = await supabase
         .from('submissions')
         .update(updates)
@@ -108,7 +116,10 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isS
         prompt_type: prompt.prompt_type,
         genre: prompt.genre || null,
       };
-      if (isStudent) {
+      if (dailyPromptId) {
+        insert.daily_prompt_id = dailyPromptId;
+        insert.sharing = isStudent ? 'private' : sharing;
+      } else if (isStudent) {
         insert.submitted_to_teacher = true;
         insert.sharing = 'private';
         if (assignmentId) insert.assignment_id = assignmentId;
@@ -140,20 +151,36 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isS
     prompt.object && `Object: ${prompt.object}`,
   ].filter(Boolean).join(' · ');
 
+  const modalTitle = dailyPromptId
+    ? (existingSubmission ? 'Edit today\'s story' : 'Write today\'s story')
+    : existingSubmission ? 'Edit your story'
+    : isStudent ? 'Submit your story'
+    : 'Add your story';
+
+  const saveLabel = loading ? 'Saving...'
+    : existingSubmission ? 'Save changes'
+    : dailyPromptId ? 'Save story'
+    : isStudent ? 'Submit to teacher'
+    : 'Save story';
+
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(58,50,38,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1.25rem' }}>
       <div style={{ background: B.white, border: `1px solid ${B.sandDeep}`, borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(58,50,38,0.18)', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: B.ink, marginBottom: '0.25rem' }}>
-              {existingSubmission ? 'Edit your story' : isStudent ? 'Submit your story' : 'Add your story'}
-            </h2>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: B.ink, marginBottom: '0.25rem' }}>{modalTitle}</h2>
             <div style={{ fontSize: '0.78rem', color: B.inkLight }}>
               {[prompt.genre, targetWordCount && `${targetWordCount} words`, promptIngredients].filter(Boolean).join(' · ')}
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', color: B.inkLight, cursor: 'pointer', lineHeight: 1, flexShrink: 0, marginLeft: '1rem' }}>×</button>
         </div>
+
+        {dailyPromptId && (
+          <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.82rem', color: '#9A6830' }}>
+            ✨ Today's daily challenge — resets at midnight.
+          </div>
+        )}
 
         {isStudent && assignmentId && (
           <div style={{ background: '#EAF4FB', border: '1px solid #5B9EC9', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.82rem', color: '#2E6DA4' }}>
@@ -207,7 +234,7 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isS
           </div>
         )}
 
-        {!isStudent && (
+        {!isStudent && !dailyPromptId && (
           <div style={{ marginBottom: '1.25rem' }}>
             <label style={{ fontSize: '0.78rem', fontWeight: 600, color: B.inkMid, display: 'block', marginBottom: '0.5rem' }}>Sharing</label>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -228,7 +255,7 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, isS
           <button onClick={onClose} style={{ flex: 1, background: 'transparent', border: `1px solid ${B.sandDeep}`, borderRadius: '10px', color: B.inkMid, padding: '0.75rem', fontWeight: 500, fontSize: '0.9rem', cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleSave} disabled={loading || !canSubmit}
             style={{ flex: 2, background: loading ? B.sandDeep : B.seaDeep, color: B.white, border: 'none', borderRadius: '10px', padding: '0.75rem', fontWeight: 600, fontSize: '0.9rem', cursor: loading || !canSubmit ? 'not-allowed' : 'pointer', opacity: !canSubmit && !loading ? 0.5 : 1 }}>
-            {loading ? 'Saving...' : existingSubmission ? 'Save changes' : isStudent ? 'Submit to teacher' : 'Save story'}
+            {saveLabel}
           </button>
         </div>
       </div>
