@@ -235,6 +235,14 @@ export default function Dashboard() {
   const pendingAssignments = assignments.filter(a => !submittedAssignmentIds.includes(a.id));
   const submittedAssignments = assignments.filter(a => submittedAssignmentIds.includes(a.id));
 
+  // Account label — minor accounts are writers, student accounts are classroom students
+  const accountLabel =
+    profile && profile.account_type === 'teacher'
+      ? 'Educator account'
+      : profile && profile.account_type === 'student'
+      ? 'Student account'
+      : 'Writer account';
+
   return (
     <div style={{ minHeight: '100vh', background: '#F5EFE6', fontFamily: 'sans-serif', color: '#3A3226', padding: '0 1.25rem 5rem' }}>
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #D9C9B0', marginBottom: '2.5rem' }}>
@@ -259,7 +267,7 @@ export default function Dashboard() {
           </span>
         </h1>
         <p style={{ color: '#6B5D4E', fontSize: '0.95rem', marginBottom: '2rem' }}>
-          {profile && profile.account_type === 'teacher' ? 'Educator account' : profile && profile.account_type === 'minor' ? 'Student account' : 'Writer account'}
+          {accountLabel}
         </p>
 
         {isNewUser && (
@@ -404,7 +412,7 @@ export default function Dashboard() {
                             {fb.feedback_at && (
                               <div style={{ fontSize: '0.7rem', color: '#9A8878', marginTop: '0.4rem' }}>
                                 {new Date(fb.feedback_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                              </div>
+                            </div>
                             )}
                           </div>
                         )}
