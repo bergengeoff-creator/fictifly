@@ -161,20 +161,19 @@ export default function Signup() {
       },
     });
     if (signUpError) { setError(signUpError.message); setLoading(false); return; }
-    if (data && data.user) {
-      const { error: insertError } = await supabase.from('users').insert({
+
+    // No session exists yet — email unconfirmed. Store the pending profile
+    // data in localStorage so AuthCallback can insert it after confirmation,
+    // when the user has a valid verified JWT that satisfies RLS.
+    if (data?.user) {
+      localStorage.setItem('fictifly_pending_profile', JSON.stringify({
         id: data.user.id,
         username: finalUsername,
         account_type: accountType === 'teacher' ? 'teacher' : 'standard',
-        is_minor: false,
-        age_verified: true,
-        recovery_type: 'teacher',
-      });
-      if (insertError) { setError('Profile error: ' + insertError.message); setLoading(false); return; }
+      }));
     }
+
     setLoading(false);
-    // Standard/teacher must verify email before continuing — pass email
-    // through router state so the verify page can show it and offer resend
     navigate('/verify-email', { state: { email } });
   };
 
@@ -364,4 +363,4 @@ export default function Signup() {
       </div>
     </div>
   );
-}
+}Alibi

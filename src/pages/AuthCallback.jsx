@@ -22,48 +22,73 @@ export default function AuthCallback() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const handleSession = async (session) => {
+      if (!session) return;
+
+      // Check if a pending profile exists in localStorage from signup.
+      // This is set by Signup.jsx because no session exists at signup time
+      // when email verification is required — the insert must happen here
+      // after confirmation, when the user has a valid verified JWT.
+      const pending = localStorage.getItem('fictifly_pending_profile');
+      if (pending) {
+        try {
+          const { id, username, account_type } = JSON.parse(pending);
+          // Only insert if this session matches the pending profile
+          if (id === session.user.id) {
+            const { error: insertError } = await supabase.from('users').insert({
+              id,
+              username,
+              account_type,
+              is_minor: false,
+              age_verified: true,
+              profile_public: false,
+              profile_complete: false,
+              recovery_type: 'teacher',
+            });
+            if (insertError) {
+              // If it already exists (e.g. double-click on link), that's fine
+              if (!insertError.message.includes('duplicate') && !insertError.message.includes('already exists')) {
+                console.error('Profile insert error:', insertError);
+                setError('Account confirmed but profile setup failed. Please contact support.');
+                return;
+              }
+            }
+            localStorage.removeItem('fictifly_pending_profile');
+          }
+        } catch (e) {
+          console.error('Failed to parse pending profile:', e);
+          localStorage.removeItem('fictifly_pending_profile');
+        }
+      }
+
+      // Check if profile is already complete (returning user clicking old link)
+      const { data: profile } = await supabase
+        .from('users')
+        .select('profile_complete')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (profile?.profile_complete) {
+        navigate('/dashboard', { replace: true });
+      } else {
+        navigate('/profile-setup', { replace: true });
+      }
+    };
+
     // Supabase automatically exchanges the token from the URL fragment.
     // We listen for the session to confirm it worked, then redirect.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          // Confirmed — go to profile setup if new, dashboard if returning
-          const { data: profile } = await supabase
-            .from('users')
-            .select('profile_complete')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (profile?.profile_complete) {
-            navigate('/dashboard', { replace: true });
-          } else {
-            navigate('/profile-setup', { replace: true });
-          }
-        }
-
-        if (event === 'USER_UPDATED' && session) {
-          // Also fires on email confirmation in some Supabase versions
-          navigate('/profile-setup', { replace: true });
+        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
+          await handleSession(session);
         }
       }
     );
 
     // Fallback: if the session is already active when this page loads
-    // (e.g. token was in URL hash and auto-exchanged before listener attached)
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('profile_complete')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (profile?.profile_complete) {
-          navigate('/dashboard', { replace: true });
-        } else {
-          navigate('/profile-setup', { replace: true });
-        }
-      }
+    // (token was in URL hash and auto-exchanged before listener attached)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) handleSession(session);
     });
 
     // Timeout fallback — if nothing resolves in 8 seconds, show an error
