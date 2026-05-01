@@ -138,14 +138,18 @@ export default function Microfiction() {
   const [assignModalPrompt, setAssignModalPrompt] = useState(null);
   const [assignSuccess, setAssignSuccess] = useState(false);
 
-  const isTeacher = profile && profile.account_type === 'teacher';
-  const FREE_LIMIT =
-    profile && profile.account_type === 'teacher' ? Infinity
-    : profile && profile.account_type === 'premium' ? Infinity
-    : profile && profile.account_type === 'student' ? 15
-    : profile && profile.account_type === 'minor' ? 10
-    : 6;
-  const isUnlimited = profile && (profile.account_type === 'premium' || profile.account_type === 'teacher');
+  const trialActive = profile && profile.premium_expires_at
+  ? new Date(profile.premium_expires_at) > new Date()
+  : false;
+const isPremiumUser = profile && (profile.is_premium || trialActive);
+const isTeacher = profile && profile.account_type === 'teacher';
+const FREE_LIMIT =
+  profile && profile.account_type === 'teacher' ? Infinity
+  : isPremiumUser ? Infinity
+  : profile && profile.account_type === 'student' ? 15
+  : profile && profile.account_type === 'minor' ? 10
+  : 6;
+const isUnlimited = isPremiumUser || (profile && profile.account_type === 'teacher');
 
   useEffect(() => {
     fetchSavedPrompts();
