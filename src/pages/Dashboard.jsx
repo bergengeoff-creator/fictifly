@@ -255,7 +255,6 @@ export default function Dashboard() {
     : 0;
   const showTrialWelcome = trialActive && daysLeft === 14;
   const showTrialWarning = trialActive && daysLeft <= 7;
-  const isOnTrial = trialActive && !profile.is_premium;
   const isPremium = profile && (profile.is_premium || trialActive);
 
   const TRIAL_BENEFITS = [
