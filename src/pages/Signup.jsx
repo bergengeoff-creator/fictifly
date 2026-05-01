@@ -25,16 +25,22 @@ const generateRecoveryPhrase = () => {
   return shuffled.slice(0, 4).join(' ');
 };
 
+// Blocklist of common personal email domains.
+// We don't try to allowlist school domains — they vary too widely.
+// Teachers are prompted to use a school address but a blocklist is the
+// practical enforcement mechanism.
 const personalDomains = [
   'gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com',
   'aol.com','live.com','msn.com','me.com','mac.com','protonmail.com',
-  'mail.com','ymail.com','googlemail.com',
+  'mail.com','ymail.com','googlemail.com','yahoo.co.uk','yahoo.com.au',
+  'hotmail.co.uk','hotmail.com.au','outlook.com.au','bigpond.com',
+  'comcast.net','verizon.net','att.net','sbcglobal.net',
 ];
 
-const isSchoolEmail = (email) => {
+const isPersonalEmail = (email) => {
   const domain = email.split('@')[1];
-  if (!domain) return false;
-  return !personalDomains.includes(domain.toLowerCase());
+  if (!domain) return true;
+  return personalDomains.includes(domain.toLowerCase());
 };
 
 const FictiflyLogo = () => (
@@ -84,7 +90,7 @@ export default function Signup() {
   const handleGoogleSignup = async () => {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/profile-setup' },
+      options: { redirectTo: window.location.origin + '/auth/callback' },
     });
     if (oauthError) setError(oauthError.message);
   };
@@ -128,6 +134,7 @@ export default function Signup() {
       });
       const data = await response.json();
       if (!data.success) throw new Error(data.error);
+      // Minor accounts don't need email verification — go straight to profile setup
       navigate('/profile-setup');
     } catch (e) {
       setError('Failed to save recovery phrase. Please try again.');
@@ -141,12 +148,18 @@ export default function Signup() {
     if (!email || !password) { setError('Please fill in all fields.'); return; }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
-    if (accountType === 'teacher' && !isSchoolEmail(email)) {
+    if (accountType === 'teacher' && isPersonalEmail(email)) {
       setError('Educator accounts require a school or institutional email address. Personal email providers like Gmail or Outlook are not accepted.');
       return;
     }
     setLoading(true);
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin + '/auth/callback',
+      },
+    });
     if (signUpError) { setError(signUpError.message); setLoading(false); return; }
     if (data && data.user) {
       const { error: insertError } = await supabase.from('users').insert({
@@ -160,7 +173,9 @@ export default function Signup() {
       if (insertError) { setError('Profile error: ' + insertError.message); setLoading(false); return; }
     }
     setLoading(false);
-    navigate('/profile-setup');
+    // Standard/teacher must verify email before continuing — pass email
+    // through router state so the verify page can show it and offer resend
+    navigate('/verify-email', { state: { email } });
   };
 
   const inputStyle = { width: '100%', boxSizing: 'border-box', background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#3A3226', fontFamily: 'sans-serif', fontSize: '0.95rem', padding: '0.6rem 0.9rem', outline: 'none' };
@@ -317,7 +332,9 @@ export default function Signup() {
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={accountType === 'teacher' ? 'you@school.edu' : 'you@example.com'} style={{ ...inputStyle, marginTop: '0.4rem' }} />
             </label>
             {accountType === 'teacher' && (
-              <p style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.4rem' }}>Educator accounts require a school or institutional email.</p>
+              <p style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.4rem' }}>
+                Please use your school or institutional email. Many school districts use custom domains — any non-personal address is accepted.
+              </p>
             )}
             <label style={{ ...labelStyle, marginTop: '0.75rem' }}>Password
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" style={{ ...inputStyle, marginTop: '0.4rem' }} />

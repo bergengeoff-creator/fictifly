@@ -13,25 +13,73 @@ const generateUsername = () => {
   return adj + noun + num;
 };
 
+// Minor/student accounts use @minor.fictifly.com addresses — they are never
+// subject to email verification since those addresses don't exist.
+const isMinorEmail = (email) =>
+  typeof email === 'string' && email.endsWith('@minor.fictifly.com');
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  // True when a standard/teacher user has signed up but not yet confirmed email
+  const [awaitingVerification, setAwaitingVerification] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else setLoading(false);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        // If email is unconfirmed and this isn't a minor account, flag it
+        if (!isMinorEmail(u.email) && !u.email_confirmed_at) {
+          setAwaitingVerification(true);
+          setLoading(false);
+        } else {
+          setAwaitingVerification(false);
+          fetchProfile(u.id);
+        }
+      } else {
+        setLoading(false);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchProfile(session.user.id);
-        } else {
+      async (event, session) => {
+        const u = session?.user ?? null;
+        setUser(u);
+
+        if (!u) {
           setProfile(null);
+          setAwaitingVerification(false);
+          return;
+        }
+
+        // EMAIL_CONFIRMED fires when the user clicks the verification link.
+        // SIGNED_IN fires for all sign-ins including unverified ones.
+        // USER_UPDATED fires in some Supabase versions on email confirmation.
+        if (event === 'EMAIL_CONFIRMED' || event === 'USER_UPDATED') {
+          setAwaitingVerification(false);
+          fetchProfile(u.id);
+          return;
+        }
+
+        if (event === 'SIGNED_IN') {
+          // Minor/student accounts are always considered verified
+          if (isMinorEmail(u.email)) {
+            setAwaitingVerification(false);
+            fetchProfile(u.id);
+            return;
+          }
+
+          // Standard/teacher: check email_confirmed_at
+          if (!u.email_confirmed_at) {
+            setAwaitingVerification(true);
+            setLoading(false);
+            return;
+          }
+
+          setAwaitingVerification(false);
+          fetchProfile(u.id);
         }
       }
     );
@@ -59,11 +107,9 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    // No profile found — this is a Google OAuth user who slipped through
-    // Auto-create a minimal profile so they aren't stuck on a blank page
+    // No profile found — Google OAuth user who slipped through.
+    // Auto-create a minimal profile so they aren't stuck.
     let username = generateUsername();
-
-    // Make sure username is unique
     let attempts = 0;
     while (attempts < 5) {
       const { data: existing } = await supabase
@@ -104,12 +150,14 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
+    setAwaitingVerification(false);
   }
 
   const value = {
     user,
     profile,
     loading,
+    awaitingVerification,
     signOut,
     fetchProfile,
   };

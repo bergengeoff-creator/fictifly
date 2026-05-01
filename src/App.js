@@ -11,6 +11,8 @@ import ClassroomDashboard from './pages/ClassroomDashboard';
 import Microfiction from './pages/generators/Microfiction';
 import FlashFiction from './pages/generators/FlashFiction';
 import PublicProfile from './pages/PublicProfile';
+import VerifyEmail from './pages/VerifyEmail';
+import AuthCallback from './pages/AuthCallback';
 
 export default function App() {
   return (
@@ -21,6 +23,10 @@ export default function App() {
           <Route path="/age-gate" element={<AgeGate />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
+          {/* Email verification holding page â€” shown after standard/teacher signup */}
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          {/* Supabase redirects here after user clicks confirmation link */}
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
