@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
@@ -69,23 +69,41 @@ export default function ProfileSetup() {
   const [error, setError] = useState(null);
   const [avatarError, setAvatarError] = useState(null);
 
-  const isMinor = profile && (profile.account_type === 'minor' || profile.account_type === 'student');
-  const isTeacher = profile && profile.account_type === 'teacher';
-
-  const getAvailableStyles = () => AVATAR_STYLES[profile ? profile.account_type : 'standard'] || AVATAR_STYLES.standard;
-  const [avatarStyle, setAvatarStyle] = useState(() => getAvailableStyles()[0].id);
+  // Initialise as null — set reactively once profile is known
+  const [avatarStyle, setAvatarStyle] = useState(null);
   const [avatarSeeds, setAvatarSeeds] = useState(generateSeeds());
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(null);
 
-  // Wait for auth to finish loading before rendering anything
-  // This prevents the flash where the adult layout shows briefly before profile loads
-  if (authLoading) {
+  // Derived from profile — both false until profile is loaded
+  const isMinor = profile && (profile.account_type === 'minor' || profile.account_type === 'student');
+  const isTeacher = profile && profile.account_type === 'teacher';
+
+  const getAvailableStyles = (accountType) =>
+    AVATAR_STYLES[accountType] || AVATAR_STYLES.standard;
+
+  // Set avatarStyle once profile is available — prevents flash of wrong UI
+  useEffect(() => {
+    if (profile && !avatarStyle) {
+      const styles = getAvailableStyles(profile.account_type);
+      setAvatarStyle(styles[0].id);
+    }
+  }, [profile, avatarStyle]);
+
+  // Block render until both auth and profile are fully resolved
+  // Without the profile check, isMinor is briefly false even after authLoading
+  // clears, causing the adult UI to flash before the minor UI takes over
+  if (authLoading || !profile) {
     return (
       <div style={{ minHeight: '100vh', background: '#F5EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#9A8878', fontStyle: 'italic' }}>
         Loading...
       </div>
     );
   }
+
+  // avatarStyle not yet set (profile just arrived) — hold one more tick
+  if (!avatarStyle) return null;
+
+  const availableStyles = getAvailableStyles(profile.account_type);
 
   const handleAvatarUpload = (e) => {
     const file = e.target.files[0];
@@ -192,7 +210,7 @@ export default function ProfileSetup() {
         <div style={sectionStyle}>
           <label style={labelStyle}>Profile picture (optional)</label>
           <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '10px', padding: '4px', gap: '4px', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            {getAvailableStyles().map((style) => (
+            {availableStyles.map((style) => (
               <button key={style.id} onClick={() => { setAvatarStyle(style.id); setAvatarSeeds(generateSeeds()); }}
                 style={{ flex: 1, padding: '0.4rem 0.5rem', borderRadius: '8px', border: 'none', background: avatarStyle === style.id ? '#FFFCF8' : 'transparent', color: avatarStyle === style.id ? '#3A3226' : '#9A8878', fontWeight: avatarStyle === style.id ? 600 : 400, cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                 {style.name}
@@ -232,7 +250,7 @@ export default function ProfileSetup() {
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            placeholder={isMinor ? 'Tell the community a little about yourself as a writer...' : 'Tell the community a little about yourself as a writer...'}
+            placeholder="Tell the community a little about yourself as a writer..."
             maxLength={200}
             rows={3}
             style={{ ...inputStyle, resize: 'vertical' }}
