@@ -3,20 +3,6 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 
-const BADGE_COLORS = {
-  'First Spark': '#D4845A',
-  'Story Hoarder': '#2E6DA4',
-  'Dedicated Writer': '#E86A3A',
-  'Week Warrior': '#C8A060',
-  'Genre Explorer': '#6BAF72',
-  'Microfiction Master': '#B07AC0',
-  'Flash Fiction Fan': '#5B9EC9',
-  'Prolific Writer': '#F2C94C',
-  'First Draft': '#6BAF72',
-  'Storyteller': '#2E6DA4',
-  'Prolific Storyteller': '#B07AC0',
-};
-
 const FictiflyLogo = () => (
   <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '200px', height: '35px', display: 'block' }}>
     <text x="0" y="28" fontSize="28" fontWeight="600" letterSpacing="-1.5" fontFamily="system-ui, sans-serif">
@@ -54,72 +40,34 @@ const WriterCard = ({ writer }) => {
       style={{ textDecoration: 'none', display: 'block' }}
     >
       <div
-        style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', transition: 'transform 0.15s ease, box-shadow 0.15s ease', cursor: 'pointer' }}
+        style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1rem 1.25rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', transition: 'transform 0.15s ease, box-shadow 0.15s ease', cursor: 'pointer' }}
         onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(58,50,38,0.1)'; }}
         onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(58,50,38,0.05)'; }}
       >
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem', marginBottom: '0.85rem' }}>
+        {/* Header — avatar + name + stories written */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           {avatar}
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: '1rem', color: '#3A3226', marginBottom: '0.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#3A3226', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {writer.display_name || writer.username}
             </div>
-            <div style={{ fontSize: '0.78rem', color: '#9A8878' }}>@{writer.username}</div>
-            <div style={{ fontSize: '0.72rem', color: '#B8A898', marginTop: '0.1rem' }}>
-              {writer.account_type === 'teacher' ? '📚 Educator' : '✍️ Writer'}
-              {writer.region ? ` · ${writer.region}` : ''}
-            </div>
+            <div style={{ fontSize: '0.75rem', color: '#9A8878' }}>@{writer.username}</div>
+          </div>
+          {/* Stories written — top right */}
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#3A3226' }}>{writer.stories_written ?? 0}</div>
+            <div style={{ fontSize: '0.6rem', color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em' }}>stories</div>
           </div>
         </div>
 
-        {/* Bio */}
-        {writer.bio ? (
-          <p style={{ fontSize: '0.83rem', color: '#6B5D4E', lineHeight: 1.6, marginBottom: '0.85rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-            {writer.bio}
-          </p>
-        ) : (
-          <p style={{ fontSize: '0.83rem', color: '#B8A898', fontStyle: 'italic', marginBottom: '0.85rem' }}>No bio yet.</p>
-        )}
-
-        {/* Stats row */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: writer.favourite_genres?.length > 0 || writer.badges?.length > 0 ? '0.85rem' : 0 }}>
-          {[
-            { label: 'Stories', value: writer.stories_written ?? 0 },
-            { label: 'Streak', value: `${writer.streak ?? 0}d` },
-            { label: 'Joined', value: new Date(writer.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) },
-          ].map(stat => (
-            <div key={stat.label}>
-              <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#3A3226' }}>{stat.value}</div>
-              <div style={{ fontSize: '0.65rem', color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{stat.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Genres */}
+        {/* Genre chips — max 2, only if set */}
         {writer.favourite_genres?.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: writer.badges?.length > 0 ? '0.75rem' : 0 }}>
-            {writer.favourite_genres.slice(0, 4).map(g => (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.75rem' }}>
+            {writer.favourite_genres.slice(0, 2).map(g => (
               <span key={g} style={{ padding: '0.15rem 0.55rem', borderRadius: '20px', background: '#EDE3D4', color: '#6B5D4E', fontSize: '0.7rem' }}>{g}</span>
             ))}
-            {writer.favourite_genres.length > 4 && (
-              <span style={{ padding: '0.15rem 0.55rem', borderRadius: '20px', background: '#F5EFE6', color: '#9A8878', fontSize: '0.7rem' }}>+{writer.favourite_genres.length - 4} more</span>
-            )}
-          </div>
-        )}
-
-        {/* Badges — show up to 3 */}
-        {writer.badges?.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-            {writer.badges.slice(0, 3).map(b => (
-              <span key={b.id} title={b.description} style={{ background: '#F5EFE6', border: `1px solid ${BADGE_COLORS[b.name] || '#D9C9B0'}`, borderRadius: '8px', padding: '0.15rem 0.55rem', fontSize: '0.7rem', color: '#3A3226', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <span>{b.icon}</span>{b.name}
-              </span>
-            ))}
-            {writer.badges.length > 3 && (
-              <span style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.15rem 0.55rem', fontSize: '0.7rem', color: '#9A8878' }}>
-                +{writer.badges.length - 3}
-              </span>
+            {writer.favourite_genres.length > 2 && (
+              <span style={{ padding: '0.15rem 0.55rem', borderRadius: '20px', background: '#F5EFE6', color: '#9A8878', fontSize: '0.7rem' }}>+{writer.favourite_genres.length - 2}</span>
             )}
           </div>
         )}
@@ -336,7 +284,7 @@ export default function WriterDirectory() {
             <div style={{ fontStyle: 'italic' }}>No writers match your search.</div>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.85rem' }}>
             {filtered.map(writer => (
               <WriterCard key={writer.id} writer={writer} />
             ))}
