@@ -13,6 +13,7 @@ import FlashFiction from './pages/generators/FlashFiction';
 import PublicProfile from './pages/PublicProfile';
 import VerifyEmail from './pages/VerifyEmail';
 import AuthCallback from './pages/AuthCallback';
+import WriterDirectory from './pages/WriterDirectory';
 
 export default function App() {
   return (
@@ -23,14 +24,13 @@ export default function App() {
           <Route path="/age-gate" element={<AgeGate />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
-          {/* Email verification holding page â€” shown after standard/teacher signup */}
           <Route path="/verify-email" element={<VerifyEmail />} />
-          {/* Supabase redirects here after user clicks confirmation link */}
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/classroom" element={<ProtectedRoute><ClassroomDashboard /></ProtectedRoute>} />
+          <Route path="/writers" element={<ProtectedRoute><WriterDirectory /></ProtectedRoute>} />
           <Route path="/generators/microfiction" element={<ProtectedRoute><Microfiction /></ProtectedRoute>} />
           <Route path="/generators/flash-fiction" element={<ProtectedRoute><FlashFiction /></ProtectedRoute>} />
           <Route path="/writers/:username" element={<PublicProfile />} />

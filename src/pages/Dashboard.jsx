@@ -253,6 +253,9 @@ export default function Dashboard() {
           {profile && profile.account_type === 'teacher' && (
             <Link to="/classroom" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', textDecoration: 'none' }}>My Classes</Link>
           )}
+          {profile && (profile.is_premium || profile.account_type === 'teacher') && (
+            <Link to="/writers" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', textDecoration: 'none' }}>Writers</Link>
+          )}
           <Link to="/profile" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', textDecoration: 'none' }}>My Profile</Link>
           <button onClick={handleSignOut} style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer' }}>Sign out</button>
         </div>
