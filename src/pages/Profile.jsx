@@ -65,6 +65,7 @@ export default function Profile() {
   const [selectedGenres, setSelectedGenres] = useState(profile ? profile.favourite_genres || [] : []);
   const [customGenre, setCustomGenre] = useState('');
   const [profilePublic, setProfilePublic] = useState(profile ? profile.profile_public : false);
+  const [showInDirectory, setShowInDirectory] = useState(profile ? profile.show_in_directory || false : false);
   const [schoolName, setSchoolName] = useState(profile ? profile.school_name || '' : '');
   const [subject, setSubject] = useState(profile ? profile.subject || '' : '');
   const [region, setRegion] = useState(profile ? profile.region || '' : '');
@@ -172,6 +173,8 @@ export default function Profile() {
       school_name: isTeacher && schoolName ? schoolName.trim() : null,
       subject: isTeacher && subject ? subject : null,
       region: region || null,
+      // Teacher directory opt-in — only written for teacher accounts
+      ...(isTeacher && { show_in_directory: showInDirectory }),
     };
     const { error: updateError } = await supabase.from('users').update(updates).eq('id', user.id);
     if (updateError) { setError('Failed to save: ' + updateError.message); setLoading(false); return; }
@@ -253,6 +256,21 @@ export default function Profile() {
                 {profile.school_name && <div style={{ fontSize: '0.9rem', color: '#3A3226', marginBottom: '0.3rem' }}>{profile.school_name}</div>}
                 {profile.subject && <div style={{ fontSize: '0.85rem', color: '#6B5D4E', marginBottom: '0.3rem' }}>{profile.subject}</div>}
                 {profile.region && <div style={{ fontSize: '0.85rem', color: '#9A8878' }}>{profile.region}</div>}
+              </div>
+            )}
+
+            {/* Show directory status for teachers in view mode */}
+            {isTeacher && (
+              <div style={sectionStyle}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.5rem' }}>Writer Directory</div>
+                <div style={{ fontSize: '0.88rem', color: '#6B5D4E' }}>
+                  {profile.show_in_directory
+                    ? '✓ Your profile appears in the Writer Directory'
+                    : 'Your profile is not listed in the Writer Directory'}
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.25rem' }}>
+                  Edit your profile to change this.
+                </div>
               </div>
             )}
 
@@ -386,6 +404,32 @@ export default function Profile() {
                 ))}
               </div>
             </div>
+
+            {/* Teacher-only: Writer Directory opt-in */}
+            {isTeacher && (
+              <div style={sectionStyle}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', marginBottom: '0.3rem' }}>Appear in Writer Directory</div>
+                    <div style={{ fontSize: '0.82rem', color: '#9A8878', lineHeight: 1.5 }}>
+                      Allow your profile to appear in the Writer Directory so other premium members and educators can discover you. Off by default.
+                    </div>
+                  </div>
+                  {/* Toggle switch */}
+                  <div
+                    onClick={() => setShowInDirectory(prev => !prev)}
+                    style={{ flexShrink: 0, width: '44px', height: '24px', borderRadius: '12px', background: showInDirectory ? '#2E6DA4' : '#D9C9B0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s ease' }}
+                  >
+                    <div style={{ position: 'absolute', top: '3px', left: showInDirectory ? '23px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#FFFCF8', transition: 'left 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                  </div>
+                </div>
+                {showInDirectory && !profilePublic && (
+                  <div style={{ marginTop: '0.75rem', background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '8px', padding: '0.6rem 0.85rem', fontSize: '0.8rem', color: '#9A6830' }}>
+                    ⚠️ Your profile visibility is set to Private. Set it to Public above for directory listing to take effect.
+                  </div>
+                )}
+              </div>
+            )}
 
             {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginBottom: '1rem' }}>{error}</div>}
 
