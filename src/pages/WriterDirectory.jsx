@@ -127,17 +127,28 @@ export default function WriterDirectory() {
     const fetchWriters = async () => {
       setLoading(true);
 
+      // Fetch all public, complete, non-minor accounts then filter
+      // eligibility client-side. The Supabase JS .or() with nested and()
+      // conditions is unreliable when combined with .eq() chain filters,
+      // causing only the current user's row to be returned.
       const { data: writersData, error } = await supabase
         .from('users')
-        .select('id, username, display_name, avatar_url, bio, favourite_genres, account_type, region, created_at, show_in_directory')
+        .select('id, username, display_name, avatar_url, bio, favourite_genres, account_type, region, created_at, show_in_directory, is_premium')
         .eq('profile_public', true)
         .eq('profile_complete', true)
-        .not('account_type', 'in', '("minor","student")')
-        .or('is_premium.eq.true,and(account_type.eq.teacher,show_in_directory.eq.true)');
+        .not('account_type', 'in', '("minor","student")');
 
       if (error || !writersData) { setLoading(false); return; }
 
-      const writerIds = writersData.map(w => w.id);
+      // Apply directory eligibility: premium writers OR teachers who opted in
+      const eligibleWriters = writersData.filter(w =>
+        w.is_premium === true ||
+        (w.account_type === 'teacher' && w.show_in_directory === true)
+      );
+
+      if (eligibleWriters.length === 0) { setWriters([]); setLoading(false); return; }
+
+      const writerIds = eligibleWriters.map(w => w.id);
 
       const [submissionsRes, streaksRes, badgesRes, userBadgesRes] = await Promise.all([
         supabase.from('submissions').select('user_id').in('user_id', writerIds),
@@ -162,12 +173,38 @@ export default function WriterDirectory() {
         if (badge) userBadgeMap[ub.user_id].push(badge);
       });
 
-      const enriched = writersData.map(w => ({
-        ...w,
-        stories_written: storyCounts[w.id] || 0,
-        streak: streakMap[w.id] || 0,
-        badges: userBadgeMap[w.id] || [],
-      }));
+      // Find most recent submission per writer for inactivity filter
+      const { data: recentSubmissions } = await supabase
+        .from('submissions')
+        .select('user_id, created_at')
+        .in('user_id', writerIds)
+        .order('created_at', { ascending: false });
+
+      const lastSubmissionMap = {};
+      (recentSubmissions || []).forEach(s => {
+        if (!lastSubmissionMap[s.user_id]) {
+          lastSubmissionMap[s.user_id] = new Date(s.created_at);
+        }
+      });
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const enriched = eligibleWriters
+        .map(w => ({
+          ...w,
+          stories_written: storyCounts[w.id] || 0,
+          streak: streakMap[w.id] || 0,
+          badges: userBadgeMap[w.id] || [],
+          last_submission: lastSubmissionMap[w.id] || null,
+          account_age_days: Math.floor((new Date() - new Date(w.created_at)) / (1000 * 60 * 60 * 24)),
+        }))
+        .filter(w => {
+          // New accounts (under 30 days) always shown — give them a chance
+          if (w.account_age_days < 30) return true;
+          // Must have submitted within the last 30 days
+          return w.last_submission && w.last_submission >= thirtyDaysAgo;
+        });
 
       const sorted = [...enriched].sort((a, b) => {
         if (sort === 'written') return b.stories_written - a.stories_written;
