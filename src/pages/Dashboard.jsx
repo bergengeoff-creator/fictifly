@@ -243,6 +243,30 @@ export default function Dashboard() {
       ? 'Student account'
       : 'Writer account';
 
+  // Premium trial state — standard accounts only
+  const now = new Date();
+  const trialExpiry = profile && profile.premium_expires_at
+    ? new Date(profile.premium_expires_at)
+    : null;
+  const trialActive = trialExpiry && trialExpiry > now;
+  const trialExpired = trialExpiry && trialExpiry <= now && !profile.is_premium;
+  const daysLeft = trialActive
+    ? Math.ceil((trialExpiry - now) / (1000 * 60 * 60 * 24))
+    : 0;
+  const showTrialWelcome = trialActive && daysLeft === 14;
+  const showTrialWarning = trialActive && daysLeft <= 7;
+  const isOnTrial = trialActive && !profile.is_premium;
+  const isPremium = profile && (profile.is_premium || trialActive);
+
+  const TRIAL_BENEFITS = [
+    { text: 'Unlimited prompt generation', sub: 'Free accounts get 6/day' },
+    { text: 'Submit and share your full story text', sub: null },
+    { text: 'Access to the Writer Directory', sub: null },
+    { text: 'Appear in the Writer Directory', sub: null },
+    { text: 'Community upvotes on your stories', sub: 'Coming soon', soon: true },
+    { text: 'Early access to new generators', sub: 'Coming soon', soon: true },
+  ];
+
   return (
     <div style={{ minHeight: '100vh', background: '#F5EFE6', fontFamily: 'sans-serif', color: '#3A3226', padding: '0 1.25rem 5rem' }}>
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #D9C9B0', marginBottom: '2.5rem' }}>
@@ -253,7 +277,7 @@ export default function Dashboard() {
           {profile && profile.account_type === 'teacher' && (
             <Link to="/classroom" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', textDecoration: 'none' }}>My Classes</Link>
           )}
-          {profile && (profile.is_premium || profile.account_type === 'teacher') && (
+          {profile && (isPremium || profile.account_type === 'teacher') && (
             <Link to="/writers" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', textDecoration: 'none' }}>Writers</Link>
           )}
           <Link to="/profile" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', textDecoration: 'none' }}>My Profile</Link>
@@ -280,6 +304,73 @@ export default function Dashboard() {
               <div style={{ fontSize: '0.85rem', color: '#6B5D4E' }}>Add a bio, avatar, and favourite genres to personalise your experience.</div>
             </div>
             <Link to="/profile" style={{ background: '#2E6DA4', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}>Complete profile</Link>
+          </div>
+        )}
+
+        {/* Premium trial — welcome banner (day 1 only) */}
+        {profile && profile.account_type === 'standard' && showTrialWelcome && (
+          <div style={{ background: '#FFFCF8', border: '1px solid #D4845A', borderRadius: '14px', padding: '1.5rem', marginBottom: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', borderLeft: '4px solid #D4845A' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.6rem' }}>
+              <span style={{ fontSize: '1.4rem' }}>🎉</span>
+              <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A' }}>Welcome to Fictifly</div>
+            </div>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#3A3226', marginBottom: '0.4rem' }}>
+              Thanks for joining, {profile.display_name || profile.username}!
+            </h2>
+            <p style={{ fontSize: '0.88rem', color: '#6B5D4E', lineHeight: 1.65, marginBottom: '1rem' }}>
+              We're so glad you're here. To give you the best possible start, we're gifting you a free 14-day Premium trial — no card required, no strings attached. Dive in and make it your own.
+            </p>
+            <div style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.5rem' }}>Your trial includes</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+              {TRIAL_BENEFITS.map(b => (
+                <div key={b.text} style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', fontSize: '0.85rem' }}>
+                  <span style={{ color: '#6BAF72', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                  <span style={{ color: b.soon ? '#9A8878' : '#3A3226' }}>
+                    {b.text}
+                    {b.sub && <span style={{ fontSize: '0.75rem', color: '#9A8878', marginLeft: '0.4rem' }}>— {b.sub}</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#9A8878', fontStyle: 'italic' }}>
+              Your trial runs for 14 days. Happy writing — we can't wait to read what you create. ✍️
+            </div>
+          </div>
+        )}
+
+        {/* Premium trial — countdown warning (7 days or less) */}
+        {profile && profile.account_type === 'standard' && showTrialWarning && (
+          <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <div style={{ fontWeight: 600, color: '#9A6830', marginBottom: '0.2rem', fontSize: '0.95rem' }}>
+                ⏳ {daysLeft === 1 ? 'Last day' : `${daysLeft} days`} left on your Premium trial
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#9A6830', lineHeight: 1.5 }}>
+                After your trial you'll revert to 6 prompts/day and lose story submission and directory access.
+              </div>
+            </div>
+            <a href="mailto:fictifly@gmail.com?subject=Premium Upgrade&body=Hi! I'd like to keep my Premium access after my trial ends."
+              style={{ background: '#D4845A', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              Keep my Premium access
+            </a>
+          </div>
+        )}
+
+        {/* Premium trial — expired */}
+        {profile && profile.account_type === 'standard' && trialExpired && (
+          <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <div style={{ fontWeight: 600, color: '#B56840', marginBottom: '0.2rem', fontSize: '0.95rem' }}>
+                Your Premium trial has ended
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#B56840', lineHeight: 1.5 }}>
+                You're back on the free plan — 6 prompts/day, no story submission or directory access.
+              </div>
+            </div>
+            <a href="mailto:fictifly@gmail.com?subject=Premium Upgrade&body=Hi! I'd like to upgrade to Premium."
+              style={{ background: '#D4845A', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              Keep my Premium access
+            </a>
           </div>
         )}
 

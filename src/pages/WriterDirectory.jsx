@@ -115,9 +115,13 @@ export default function WriterDirectory() {
   const [genreFilter, setGenreFilter] = useState('');
   const [allGenres, setAllGenres] = useState([]);
 
-  // Gate: only premium or teacher can access
+  // Gate: only premium (or active trial) or teacher can access
+  const trialActive = profile && profile.premium_expires_at
+    ? new Date(profile.premium_expires_at) > new Date()
+    : false;
   const canAccess = profile && (
     profile.is_premium ||
+    trialActive ||
     profile.account_type === 'teacher'
   );
 
@@ -133,16 +137,19 @@ export default function WriterDirectory() {
       // causing only the current user's row to be returned.
       const { data: writersData, error } = await supabase
         .from('users')
-        .select('id, username, display_name, avatar_url, bio, favourite_genres, account_type, region, created_at, show_in_directory, is_premium')
+        .select('id, username, display_name, avatar_url, bio, favourite_genres, account_type, region, created_at, show_in_directory, is_premium, premium_expires_at')
         .eq('profile_public', true)
         .eq('profile_complete', true)
         .not('account_type', 'in', '("minor","student")');
 
       if (error || !writersData) { setLoading(false); return; }
 
-      // Apply directory eligibility: premium writers OR teachers who opted in
+      // Apply directory eligibility: premium writers (including active trial)
+      // OR teachers who opted in
+      const now = new Date();
       const eligibleWriters = writersData.filter(w =>
         w.is_premium === true ||
+        (w.premium_expires_at && new Date(w.premium_expires_at) > now) ||
         (w.account_type === 'teacher' && w.show_in_directory === true)
       );
 

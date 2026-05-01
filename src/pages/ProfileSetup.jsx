@@ -147,6 +147,15 @@ export default function ProfileSetup() {
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
       avatarUrl = urlData.publicUrl;
     }
+    // Start 14-day premium trial for standard accounts completing profile
+    // for the first time. Teachers are already effectively premium.
+    // Minors and students are excluded.
+    const isStandardAccount = profile && profile.account_type === 'standard';
+    const trialNotYetStarted = !profile.premium_expires_at;
+    const trialExpiry = isStandardAccount && trialNotYetStarted
+      ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+      : undefined;
+
     const updates = {
       ...((!profile || !profile.username) && { username: username.trim() }),
       display_name: displayName.trim(),
@@ -159,6 +168,7 @@ export default function ProfileSetup() {
       school_name: isTeacher && schoolName ? schoolName.trim() : null,
       subject: isTeacher && subject ? subject : null,
       region: region || null,
+      ...(trialExpiry && { premium_expires_at: trialExpiry }),
     };
     const { error: updateError } = await supabase.from('users').update(updates).eq('id', user.id);
     if (updateError) { setError('Failed to save profile: ' + updateError.message); setLoading(false); return; }
