@@ -175,80 +175,70 @@ export default function WriterDirectory() {
 
   useEffect(() => {
     if (!canAccess) return;
+
+    const fetchWriters = async () => {
+      setLoading(true);
+
+      const { data: writersData, error } = await supabase
+        .from('users')
+        .select('id, username, display_name, avatar_url, bio, favourite_genres, account_type, region, created_at, show_in_directory')
+        .eq('profile_public', true)
+        .eq('profile_complete', true)
+        .not('account_type', 'in', '("minor","student")')
+        .or('is_premium.eq.true,and(account_type.eq.teacher,show_in_directory.eq.true)');
+
+      if (error || !writersData) { setLoading(false); return; }
+
+      const writerIds = writersData.map(w => w.id);
+
+      const [submissionsRes, streaksRes, badgesRes, userBadgesRes] = await Promise.all([
+        supabase.from('submissions').select('user_id').in('user_id', writerIds),
+        supabase.from('streaks').select('user_id, current_streak').in('user_id', writerIds),
+        supabase.from('badges').select('*'),
+        supabase.from('user_badges').select('user_id, badge_id').in('user_id', writerIds),
+      ]);
+
+      const storyCounts = {};
+      (submissionsRes.data || []).forEach(s => {
+        storyCounts[s.user_id] = (storyCounts[s.user_id] || 0) + 1;
+      });
+
+      const streakMap = {};
+      (streaksRes.data || []).forEach(s => { streakMap[s.user_id] = s.current_streak; });
+
+      const badgeDetails = badgesRes.data || [];
+      const userBadgeMap = {};
+      (userBadgesRes.data || []).forEach(ub => {
+        if (!userBadgeMap[ub.user_id]) userBadgeMap[ub.user_id] = [];
+        const badge = badgeDetails.find(b => b.id === ub.badge_id);
+        if (badge) userBadgeMap[ub.user_id].push(badge);
+      });
+
+      const enriched = writersData.map(w => ({
+        ...w,
+        stories_written: storyCounts[w.id] || 0,
+        streak: streakMap[w.id] || 0,
+        badges: userBadgeMap[w.id] || [],
+      }));
+
+      const sorted = [...enriched].sort((a, b) => {
+        if (sort === 'written') return b.stories_written - a.stories_written;
+        if (sort === 'streak') return b.streak - a.streak;
+        if (sort === 'joined') return new Date(b.created_at) - new Date(a.created_at);
+        return 0;
+      });
+
+      const genres = new Set();
+      sorted.forEach(w => (w.favourite_genres || []).forEach(g => genres.add(g)));
+      setAllGenres([...genres].sort());
+
+      setWriters(sorted);
+      setLoading(false);
+    };
+
     fetchWriters();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAccess, sort]);
-
-  const fetchWriters = async () => {
-    setLoading(true);
-
-    // Fetch eligible writers:
-    // - profile_public = true
-    // - profile_complete = true
-    // - is_premium = true OR account_type = 'teacher' with show_in_directory = true
-    // - NOT minor or student
-    const { data: writersData, error } = await supabase
-      .from('users')
-      .select('id, username, display_name, avatar_url, bio, favourite_genres, account_type, region, created_at, show_in_directory')
-      .eq('profile_public', true)
-      .eq('profile_complete', true)
-      .not('account_type', 'in', '("minor","student")')
-      .or('is_premium.eq.true,and(account_type.eq.teacher,show_in_directory.eq.true)');
-
-    if (error || !writersData) { setLoading(false); return; }
-
-    // Fetch stats for all writers in parallel
-    const writerIds = writersData.map(w => w.id);
-
-    const [submissionsRes, streaksRes, badgesRes, userBadgesRes] = await Promise.all([
-      supabase.from('submissions').select('user_id').in('user_id', writerIds),
-      supabase.from('streaks').select('user_id, current_streak').in('user_id', writerIds),
-      supabase.from('badges').select('*'),
-      supabase.from('user_badges').select('user_id, badge_id').in('user_id', writerIds),
-    ]);
-
-    // Count stories per writer
-    const storyCounts = {};
-    (submissionsRes.data || []).forEach(s => {
-      storyCounts[s.user_id] = (storyCounts[s.user_id] || 0) + 1;
-    });
-
-    // Map streaks
-    const streakMap = {};
-    (streaksRes.data || []).forEach(s => { streakMap[s.user_id] = s.current_streak; });
-
-    // Map badges
-    const badgeDetails = badgesRes.data || [];
-    const userBadgeMap = {};
-    (userBadgesRes.data || []).forEach(ub => {
-      if (!userBadgeMap[ub.user_id]) userBadgeMap[ub.user_id] = [];
-      const badge = badgeDetails.find(b => b.id === ub.badge_id);
-      if (badge) userBadgeMap[ub.user_id].push(badge);
-    });
-
-    // Assemble enriched writers
-    const enriched = writersData.map(w => ({
-      ...w,
-      stories_written: storyCounts[w.id] || 0,
-      streak: streakMap[w.id] || 0,
-      badges: userBadgeMap[w.id] || [],
-    }));
-
-    // Sort
-    const sorted = [...enriched].sort((a, b) => {
-      if (sort === 'written') return b.stories_written - a.stories_written;
-      if (sort === 'streak') return b.streak - a.streak;
-      if (sort === 'joined') return new Date(b.created_at) - new Date(a.created_at);
-      return 0;
-    });
-
-    // Collect all unique genres for filter
-    const genres = new Set();
-    sorted.forEach(w => (w.favourite_genres || []).forEach(g => genres.add(g)));
-    setAllGenres([...genres].sort());
-
-    setWriters(sorted);
-    setLoading(false);
-  };
 
   // Client-side filter by search + genre
   const filtered = writers.filter(w => {
