@@ -285,7 +285,7 @@ function TeenPanel({ onBack, navigate }) {
     const { data: classData, error: classErr } = await supabase
       .from('classes')
       .select('id, name, teacher_id, require_approval')
-      .eq('join_code', code)
+      .eq('class_code', code)
       .eq('is_active', true)
       .single();
 
