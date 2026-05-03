@@ -208,25 +208,89 @@ export default function CharacterGenerator() {
   // Fields available to this user
   const availableFields = ALL_FIELDS.filter(f => !f.adultOnly || !isMinor);
 
+  // Randomisation seeds to break model anchoring
+  const AGE_RANGES = [
+    'Early 20s', 'Mid 20s', 'Late 20s', 'Early 30s', 'Mid 30s', 'Late 30s',
+    'Early 40s', 'Mid 40s', 'Late 40s', 'Early 50s', 'Late 50s', 'Early 60s',
+    'Late 60s', '70s', 'Elderly', 'Teenage', 'College-age',
+  ];
+  const ADULT_WORLDS = [
+    'medicine', 'law', 'agriculture', 'journalism', 'academia', 'the military',
+    'construction', 'the arts', 'finance', 'retail', 'transport', 'hospitality',
+    'science', 'politics', 'religion', 'sport', 'technology', 'the sea',
+    'education', 'crime', 'social work', 'food', 'fashion', 'engineering',
+  ];
+  const MINOR_WORLDS = [
+    'sport', 'art', 'music', 'coding', 'animals', 'cooking', 'gaming',
+    'science', 'drama', 'writing', 'nature', 'history', 'languages', 'fashion',
+    'volunteering', 'photography', 'robotics', 'dance', 'film',
+  ];
+  const TONES = [
+    'funny', 'melancholic', 'optimistic', 'anxious', 'eccentric', 'stoic',
+    'impulsive', 'cautious', 'idealistic', 'cynical', 'warm', 'prickly',
+    'distracted', 'determined', 'conflicted', 'serene',
+  ];
+  const ORIGINS = [
+    'a small town', 'a big city', 'a coastal village', 'the countryside',
+    'abroad', 'a close-knit community', 'an isolated place', 'a busy suburb',
+    'a military base', 'a farming region', 'a university town',
+  ];
+
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
   // Build the generation prompt
   const buildPrompt = (fieldKeys) => {
-    const fieldDescriptions = fieldKeys.map(key => {
+    const seed = Math.floor(Math.random() * 99999);
+    const ageHint = pick(AGE_RANGES);
+    const worldHint = isMinor ? pick(MINOR_WORLDS) : pick(ADULT_WORLDS);
+    const toneHint = pick(TONES);
+    const originHint = pick(ORIGINS);
+
+    const fieldList = fieldKeys.map(key => {
       const f = ALL_FIELDS.find(f => f.key === key);
-      const example = isMinor ? f.minorExample : f.adultExample;
-      return `- "${key}": ${f.label} (e.g. "${example}")`;
+      return `- "${key}": ${f.label}`;
     }).join('\n');
 
-    const tone = isMinor
-      ? `Generate a fun, imaginative character for a young writer. Keep each detail short, clear, and age-appropriate — one sentence or a short phrase per field. Make the character feel real and interesting without being dark or adult.`
-      : `Generate a compelling, specific character. Keep each detail concise — one sentence or a short phrase per field. Make details feel specific and real. Avoid clichés.`;
+    if (isMinor) {
+      return `You are generating a random fictional character for a young writer. Randomisation seed: ${seed}.
 
-    return `${tone}
+Constraints for this character:
+- Age: around ${ageHint}
+- Their world involves: ${worldHint}
+- Emotional tone: ${toneHint}
+- Comes from: ${originHint}
+
+Rules:
+- Each field should be one short sentence or phrase — punchy, not rambling
+- Be imaginative and specific — avoid generic or obvious choices
+- Keep everything age-appropriate and positive in spirit
+- Make this character feel completely different from a "default" character
 
 Fields to generate:
-${fieldDescriptions}
+${fieldList}
 
-Respond ONLY with a JSON object with exactly these keys. No markdown, no preamble.
-Example format: {"ageRange":"Late 30s","profession":"Disgraced architect",...}`;
+Respond ONLY with a valid JSON object using exactly these keys. No markdown, no explanation.`;
+    }
+
+    return `You are generating a random fictional character. Randomisation seed: ${seed}.
+
+Constraints for this character:
+- Age: around ${ageHint}
+- Their world: ${worldHint}
+- Emotional register: ${toneHint}
+- Comes from: ${originHint}
+
+Rules:
+- Each field should be one punchy sentence or short phrase — no rambling
+- Be specific and surprising — avoid the obvious, the generic, the first thing that comes to mind
+- The character should feel like a real, specific person, not a type
+- Do NOT default to writer/artist/journalist/architect unless the world hint demands it
+- Make this character feel completely different from a "default" character
+
+Fields to generate:
+${fieldList}
+
+Respond ONLY with a valid JSON object using exactly these keys. No markdown, no explanation.`;
   };
 
   const buildSummaryPrompt = (charValues) => {
