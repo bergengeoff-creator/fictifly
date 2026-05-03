@@ -261,10 +261,11 @@ Constraints for this character:
 - Comes from: ${originHint}
 
 Rules:
-- Each field should be one short sentence or phrase — punchy, not rambling
-- Be imaginative and specific — avoid generic or obvious choices
+- Keep every field to the shortest possible phrase — a label, not an explanation
+- Profession or role: just a simple title (e.g. "Hockey player", "Baker", "Coder")
+- All other fields: one short phrase or sentence — no elaboration
+- Be imaginative — avoid the obvious or the first thing that comes to mind
 - Keep everything age-appropriate and positive in spirit
-- Make this character feel completely different from a "default" character
 
 Fields to generate:
 ${fieldList}
@@ -281,11 +282,12 @@ Constraints for this character:
 - Comes from: ${originHint}
 
 Rules:
-- Each field should be one punchy sentence or short phrase — no rambling
-- Be specific and surprising — avoid the obvious, the generic, the first thing that comes to mind
-- The character should feel like a real, specific person, not a type
+- Keep every field to the shortest possible phrase — a label, not an explanation
+- Profession: just the job title, nothing more (e.g. "Attorney", "Nurse", "Electrician")
+- Background: one sentence maximum, no sub-clauses
+- All other fields: a short phrase or single sentence — no elaboration
+- Be surprising and specific — avoid the obvious or the first thing that comes to mind
 - Do NOT default to writer/artist/journalist/architect unless the world hint demands it
-- Make this character feel completely different from a "default" character
 
 Fields to generate:
 ${fieldList}
