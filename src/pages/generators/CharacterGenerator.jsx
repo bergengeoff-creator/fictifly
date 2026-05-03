@@ -11,18 +11,18 @@ const B = {
 };
 
 const ALL_FIELDS = [
-  { key: 'ageRange',       label: 'Age Range',      example: 'Late 30s' },
-  { key: 'profession',     label: 'Profession',     example: 'Disgraced architect' },
-  { key: 'background',     label: 'Background',     example: 'Grew up in a fishing village, moved to the city at 16' },
-  { key: 'motivation',     label: 'Motivation',     example: 'Wants to reconnect with an estranged daughter' },
-  { key: 'hobbies',        label: 'Hobbies',        example: 'Collects vintage maps, plays chess badly' },
-  { key: 'personality',    label: 'Personality',    example: 'Quietly stubborn, disarmingly warm with strangers' },
-  { key: 'talents',        label: 'Talents',        example: 'Exceptional memory, can mimic any accent' },
-  { key: 'flaw',           label: 'Flaw',           example: 'Cannot accept help from anyone' },
-  { key: 'secret',         label: 'Secret',         example: 'Changed their name 12 years ago and never told anyone why' },
-  { key: 'voice',          label: 'Voice',          example: 'Speaks in understatements, rarely finishes sentences' },
-  { key: 'physicalDetail', label: 'Physical Detail', example: 'Always wears the same worn leather bracelet' },
-  { key: 'name',           label: 'Name',           example: 'Optional — leave off for mystery' },
+  { key: 'ageRange',       label: 'Age Range',       adultExample: 'Late 30s',                                          minorExample: 'Teenager' },
+  { key: 'profession',     label: 'Profession',      adultExample: 'Disgraced architect',                               minorExample: 'Amateur inventor' },
+  { key: 'background',     label: 'Background',      adultExample: 'Grew up in a fishing village, moved to the city at 16', minorExample: 'Moved schools three times, never stayed long enough to make real friends' },
+  { key: 'motivation',     label: 'Motivation',      adultExample: 'Wants to reconnect with an estranged daughter',     minorExample: 'Trying to prove they belong on the team' },
+  { key: 'hobbies',        label: 'Hobbies',         adultExample: 'Collects vintage maps, plays chess badly',          minorExample: 'Builds model rockets, terrible at sitting still' },
+  { key: 'personality',    label: 'Personality',     adultExample: 'Quietly stubborn, disarmingly warm with strangers', minorExample: 'Loud around friends, completely silent around adults' },
+  { key: 'talents',        label: 'Talents',         adultExample: 'Exceptional memory, can mimic any accent',          minorExample: 'Can fix almost anything with the wrong tools' },
+  { key: 'flaw',           label: 'Flaw',            adultExample: 'Cannot accept help from anyone',                   minorExample: 'Gives up too easily when things get hard', adultOnly: false },
+  { key: 'secret',         label: 'Secret',          adultExample: 'Changed their name 12 years ago',                  minorExample: 'Secretly entered a competition without telling anyone', adultOnly: true },
+  { key: 'voice',          label: 'Voice',           adultExample: 'Speaks in understatements, rarely finishes sentences', minorExample: 'Talks too fast when nervous, goes quiet when angry' },
+  { key: 'physicalDetail', label: 'Physical Detail', adultExample: 'Always wears the same worn leather bracelet',      minorExample: 'Always has paint on their hands' },
+  { key: 'name',           label: 'Name',            adultExample: 'Optional — leave off for mystery',                 minorExample: 'Optional — leave off for mystery' },
 ];
 
 const FictiflyLogo = () => (
@@ -123,9 +123,7 @@ export default function CharacterGenerator() {
   const { user, profile } = useAuth();
 
   // Which fields are active (shown in sheet)
-  const [activeFields, setActiveFields] = useState(
-    new Set(ALL_FIELDS.map(f => f.key))
-  );
+  const [activeFields, setActiveFields] = useState(new Set());
   // Which fields are locked
   const [lockedFields, setLockedFields] = useState(new Set());
   // Generated values per field key
@@ -165,6 +163,14 @@ export default function CharacterGenerator() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Seed active fields once profile is known (so minor users don't see adult-only fields)
+  useEffect(() => {
+    if (profile) {
+      setActiveFields(new Set(availableFields.map(f => f.key)));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
+
   const fetchUsage = async () => {
     const today = new Date().toISOString().split('T')[0];
     const { data } = await supabase
@@ -197,14 +203,24 @@ export default function CharacterGenerator() {
     setLoadingSaved(false);
   };
 
+  const isMinor = profile?.account_type === 'minor' || profile?.account_type === 'student';
+
+  // Fields available to this user
+  const availableFields = ALL_FIELDS.filter(f => !f.adultOnly || !isMinor);
+
   // Build the generation prompt
   const buildPrompt = (fieldKeys) => {
     const fieldDescriptions = fieldKeys.map(key => {
       const f = ALL_FIELDS.find(f => f.key === key);
-      return `- "${key}": ${f.label} (e.g. "${f.example}")`;
+      const example = isMinor ? f.minorExample : f.adultExample;
+      return `- "${key}": ${f.label} (e.g. "${example}")`;
     }).join('\n');
 
-    return `Generate a compelling, specific, literary character with the following fields. Make each detail feel like it comes from a real person — specific, surprising, and interconnected where possible. Avoid clichés.
+    const tone = isMinor
+      ? `Generate a fun, imaginative character for a young writer. Keep each detail short, clear, and age-appropriate — one sentence or a short phrase per field. Make the character feel real and interesting without being dark or adult.`
+      : `Generate a compelling, specific character. Keep each detail concise — one sentence or a short phrase per field. Make details feel specific and real. Avoid clichés.`;
+
+    return `${tone}
 
 Fields to generate:
 ${fieldDescriptions}
@@ -222,9 +238,14 @@ Example format: {"ageRange":"Late 30s","profession":"Disgraced architect",...}`;
 
     const hasName = charValues.name;
     const nameInstruction = !hasName
-      ? ' Do not invent or use a name for this character — refer to them only as "they" or "them".'
+      ? ' Do not invent or use a name — refer to them only as "they" or "them".'
       : '';
-    return `Given this character's details:\n\n${details}\n\nWrite a single, vivid paragraph (3–5 sentences) that captures who this person is — their essence, contradictions, and what makes them compelling as a fictional character. Write in third person. Be literary and specific. Do not list the traits — synthesise them into a portrait.${nameInstruction}`;
+
+    if (isMinor) {
+      return `Given this character:\n\n${details}\n\nWrite 2 sentences introducing this character — who they are and what makes them interesting. Write in third person. Keep it simple and vivid, like the opening of a story.${nameInstruction}`;
+    }
+
+    return `Given this character:\n\n${details}\n\nWrite a short paragraph (2–3 sentences) capturing who this person is and what makes them compelling. Write in third person. Be specific — synthesise the details into a portrait, don't list them.${nameInstruction}`;
   };
 
     const generate = useCallback(async () => {
@@ -378,7 +399,7 @@ Example format: {"ageRange":"Late 30s","profession":"Disgraced architect",...}`;
 
   const copySheet = () => {
     const lines = [...activeFields].map(key => {
-      const f = ALL_FIELDS.find(f => f.key === key);
+      const f = availableFields.find(f => f.key === key);
       return `${f.label.toUpperCase()}: ${values[key] || '—'}`;
     });
     const text = lines.join('\n') + (summary ? `\n\n---\n${summary}` : '');
@@ -490,7 +511,7 @@ Example format: {"ageRange":"Late 30s","profession":"Disgraced architect",...}`;
                 </div>
                 <div style={{ display: 'flex', gap: '0.4rem' }}>
                   <button
-                    onClick={() => setActiveFields(new Set(ALL_FIELDS.map(f => f.key)))}
+                    onClick={() => setActiveFields(new Set(availableFields.map(f => f.key)))}
                     style={{ fontSize: '0.72rem', fontFamily: "'DM Sans', sans-serif", color: B.inkMid, background: 'transparent', border: `1px solid ${B.sandDeep}`, borderRadius: '7px', padding: '0.3rem 0.7rem', cursor: 'pointer' }}
                   >All on</button>
                   <button
@@ -500,7 +521,7 @@ Example format: {"ageRange":"Late 30s","profession":"Disgraced architect",...}`;
                 </div>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
-                {ALL_FIELDS.map(f => {
+                {availableFields.map(f => {
                   const isActive = activeFields.has(f.key);
                   return (
                     <button
@@ -584,7 +605,7 @@ Example format: {"ageRange":"Late 30s","profession":"Disgraced architect",...}`;
 
                 {/* Field rows — active fields only */}
                 <div>
-                  {ALL_FIELDS.filter(f => activeFields.has(f.key)).map(f => (
+                  {availableFields.filter(f => activeFields.has(f.key)).map(f => (
                     <FieldRow
                       key={f.key}
                       field={f}
@@ -660,7 +681,7 @@ Example format: {"ageRange":"Late 30s","profession":"Disgraced architect",...}`;
                     </div>
                     {/* Quick summary of fields */}
                     <div>
-                      {ALL_FIELDS.filter(f => c.character_data?.[f.key]).map(f => (
+                      {availableFields.filter(f => c.character_data?.[f.key]).map(f => (
                         <div key={f.key} style={{ display: 'flex', gap: '0.75rem', padding: '0.5rem 0', borderBottom: `1px solid ${B.sandMid}` }}>
 
                           <div>
