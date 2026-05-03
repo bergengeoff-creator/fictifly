@@ -10,6 +10,7 @@ import Profile from './pages/Profile';
 import ClassroomDashboard from './pages/ClassroomDashboard';
 import Microfiction from './pages/generators/Microfiction';
 import FlashFiction from './pages/generators/FlashFiction';
+import CharacterGenerator from './pages/generators/CharacterGenerator';
 import PublicProfile from './pages/PublicProfile';
 import VerifyEmail from './pages/VerifyEmail';
 import AuthCallback from './pages/AuthCallback';
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/writers" element={<ProtectedRoute><WriterDirectory /></ProtectedRoute>} />
           <Route path="/generators/microfiction" element={<ProtectedRoute><Microfiction /></ProtectedRoute>} />
           <Route path="/generators/flash-fiction" element={<ProtectedRoute><FlashFiction /></ProtectedRoute>} />
+          <Route path="/generators/character" element={<ProtectedRoute><CharacterGenerator /></ProtectedRoute>} />
           <Route path="/writers/:username" element={<PublicProfile />} />
         </Routes>
       </AuthProvider>

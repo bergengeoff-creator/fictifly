@@ -425,6 +425,27 @@ export default function ClassroomDashboard() {
             {error && !showCreateClass && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', color: '#B56840', padding: '0.85rem 1.1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>{error}</div>}
             {success && <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', color: '#3A7040', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>{success}</div>}
 
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Writing tools</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.65rem' }}>
+                {[
+                  { title: 'Microfiction', desc: '100–300 words', color: '#D4845A', path: '/generators/microfiction' },
+                  { title: 'Flash Fiction', desc: '500–1,000 words', color: '#2E6DA4', path: '/generators/flash-fiction' },
+                  { title: 'Character Generator', desc: 'Build a character', color: '#6BAF72', path: '/generators/character', isNew: true },
+                ].map(g => (
+                  <Link key={g.title} to={g.path} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '3px solid ' + g.color, borderRadius: '10px', padding: '0.85rem 1.1rem', textDecoration: 'none', display: 'block', transition: 'box-shadow 0.18s, transform 0.18s' }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.09)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#3A3226' }}>{g.title}</span>
+                      {g.isNew && <span style={{ fontSize: '0.58rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#F0F7ED', color: '#3A7040', border: '1px solid #6BAF72', borderRadius: '20px', padding: '0.12rem 0.45rem' }}>New</span>}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#9A8878' }}>{g.desc}</div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
             {showCreateClass && (
               <div style={sectionStyle}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Create a new class</h3>

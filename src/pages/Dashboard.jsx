@@ -232,6 +232,16 @@ export default function Dashboard() {
     { title: 'Flash Fiction', desc: '500 or 1,000 words', color: '#2E6DA4', path: '/generators/flash-fiction' },
   ];
 
+  const BETA_FEATURES = [
+    {
+      key: 'character_generator',
+      title: 'Character Generator',
+      desc: 'Build rich, layered characters field by field — with an AI-written portrait at the end.',
+      color: '#6BAF72',
+      path: '/generators/character',
+    },
+  ];
+
   const pendingAssignments = assignments.filter(a => !submittedAssignmentIds.includes(a.id));
   const submittedAssignments = assignments.filter(a => submittedAssignmentIds.includes(a.id));
 
@@ -256,6 +266,29 @@ export default function Dashboard() {
   const showTrialWelcome = trialActive && daysLeft === 14;
   const showTrialWarning = trialActive && daysLeft <= 7;
   const isPremium = profile && (profile.is_premium || trialActive);
+  const isTeacher = profile && profile.account_type === 'teacher';
+  const canAccessBeta = isPremium || isTeacher;
+
+  const [betaFeatures, setBetaFeatures] = useState({});
+  const [joiningBeta, setJoiningBeta] = useState(null);
+
+  useEffect(() => {
+    if (profile && profile.beta_features) {
+      setBetaFeatures(profile.beta_features);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
+
+  const joinBeta = async (featureKey) => {
+    setJoiningBeta(featureKey);
+    const updated = { ...betaFeatures, [featureKey]: true };
+    const { error } = await supabase
+      .from('users')
+      .update({ beta_features: updated })
+      .eq('id', user.id);
+    if (!error) setBetaFeatures(updated);
+    setJoiningBeta(null);
+  };
 
   const TRIAL_BENEFITS = [
     { text: 'Unlimited prompt generation', sub: 'Free accounts get 6/day' },
@@ -533,11 +566,55 @@ export default function Dashboard() {
             <Link key={g.title} to={g.path} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '4px solid ' + g.color, borderRadius: '12px', padding: '1.25rem 1.5rem', cursor: 'pointer', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', textDecoration: 'none', display: 'block' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(58,50,38,0.1)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(58,50,38,0.05)'; }}>
-              <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#3A3226', marginBottom: '0.25rem' }}>{g.title}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#3A3226' }}>{g.title}</span>
+                {g.new && <span style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#F0F7ED', color: '#3A7040', border: '1px solid #6BAF72', borderRadius: '20px', padding: '0.15rem 0.5rem' }}>New</span>}
+              </div>
               <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>{g.desc}</div>
             </Link>
           ))}
         </div>
+
+        {canAccessBeta && (
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Beta features</h2>
+              <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: '#EAF4FB', color: '#2E6DA4', border: '1px solid #5B9EC9', borderRadius: '20px', padding: '0.2rem 0.6rem' }}>Premium</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {BETA_FEATURES.map(f => {
+                const isEnabled = betaFeatures[f.key];
+                const isJoining = joiningBeta === f.key;
+                return (
+                  <div key={f.key} style={{ background: '#FFFCF8', border: `1px solid ${isEnabled ? '#6BAF72' : '#D9C9B0'}`, borderLeft: `4px solid ${isEnabled ? '#6BAF72' : '#D9C9B0'}`, borderRadius: '12px', padding: '1.1rem 1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', boxShadow: '0 2px 12px rgba(58,50,38,0.04)', transition: 'border-color 0.2s' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 600, color: '#3A3226' }}>{f.title}</span>
+                        {isEnabled && <span style={{ fontSize: '0.58rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#F0F7ED', color: '#3A7040', border: '1px solid #6BAF72', borderRadius: '20px', padding: '0.12rem 0.45rem' }}>Active</span>}
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: '#9A8878', lineHeight: 1.5 }}>{f.desc}</div>
+                    </div>
+                    {isEnabled ? (
+                      <Link to={f.path} style={{ background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '9px', padding: '0.5rem 1.1rem', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.82rem', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        Open →
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => joinBeta(f.key)}
+                        disabled={isJoining}
+                        style={{ background: isJoining ? '#D9C9B0' : '#3A3226', color: '#FFFCF8', border: 'none', borderRadius: '9px', padding: '0.5rem 1.1rem', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.82rem', cursor: isJoining ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'background 0.18s' }}
+                        onMouseEnter={e => { if (!isJoining) e.currentTarget.style.background = '#6B5D4E'; }}
+                        onMouseLeave={e => { if (!isJoining) e.currentTarget.style.background = '#3A3226'; }}
+                      >
+                        {isJoining ? 'Enabling…' : 'Enable beta access'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
