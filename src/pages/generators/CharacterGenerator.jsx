@@ -25,6 +25,27 @@ const ALL_FIELDS = [
   { key: 'name',           label: 'Name',            adultExample: 'Optional — leave off for mystery',                 minorExample: 'Optional — leave off for mystery' },
 ];
 
+const PRESETS = [
+  {
+    key: 'sketch',
+    label: 'Sketch',
+    desc: 'Age, occupation, background, personality',
+    fields: ['ageRange', 'profession', 'background', 'personality'],
+  },
+  {
+    key: 'portrait',
+    label: 'Portrait',
+    desc: 'Adds motivation, hobbies, talents, and a flaw',
+    fields: ['ageRange', 'profession', 'background', 'personality', 'motivation', 'hobbies', 'talents', 'flaw'],
+  },
+  {
+    key: 'full',
+    label: 'Full',
+    desc: 'Every field',
+    fields: null,
+  },
+];
+
 const FictiflyLogo = () => (
   <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '200px', height: '35px', display: 'block' }}>
     <text x="0" y="28" fontSize="28" fontWeight="600" letterSpacing="-1.5" fontFamily="system-ui, sans-serif">
@@ -124,6 +145,8 @@ export default function CharacterGenerator() {
 
   // Which fields are active (shown in sheet)
   const [activeFields, setActiveFields] = useState(new Set());
+  // Which preset is selected
+  const [activePreset, setActivePreset] = useState('basic');
   // Which fields are locked
   const [lockedFields, setLockedFields] = useState(new Set());
   // Generated values per field key
@@ -166,7 +189,7 @@ export default function CharacterGenerator() {
   // Seed active fields once profile is known (so minor users don't see adult-only fields)
   useEffect(() => {
     if (profile) {
-      setActiveFields(new Set(availableFields.map(f => f.key)));
+      applyPreset('sketch', true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
@@ -314,7 +337,23 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
     return `Given this character:\n\n${details}\n\nWrite a short paragraph (2–3 sentences) capturing who this person is and what makes them compelling. Write in third person. Be specific — synthesise the details into a portrait, don't list them.${nameInstruction}`;
   };
 
-    const generate = useCallback(async () => {
+    const applyPreset = (presetKey, skipPresetState = false) => {
+    const preset = PRESETS.find(p => p.key === presetKey);
+    if (!preset) return;
+    if (!skipPresetState) setActivePreset(presetKey);
+    setLockedFields(new Set());
+    setValues({});
+    setSummary('');
+    if (preset.fields === null) {
+      setActiveFields(new Set(availableFields.map(f => f.key)));
+    } else {
+      // Filter preset fields to only those available to this user
+      const allowed = preset.fields.filter(k => availableFields.some(f => f.key === k));
+      setActiveFields(new Set(allowed));
+    }
+  };
+
+  const generate = useCallback(async () => {
     if (!isUnlimited && usageCount >= FREE_LIMIT) {
       setError(`Free accounts are limited to ${FREE_LIMIT} prompts per day. Upgrade to premium for unlimited generations.`);
       return;
@@ -447,6 +486,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
   };
 
   const deselect = (key) => {
+    setActivePreset('custom');
     setActiveFields(prev => {
       const next = new Set(prev);
       next.delete(key);
@@ -460,6 +500,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
   };
 
   const reselect = (key) => {
+    setActivePreset('custom');
     setActiveFields(prev => new Set([...prev, key]));
   };
 
@@ -570,21 +611,34 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
           <div>
             {/* Field selector panel */}
             <div style={{ background: B.white, border: `1px solid ${B.sandDeep}`, borderRadius: '16px', padding: '1.5rem 1.75rem', marginBottom: '1.25rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div>
-                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.88rem', color: B.ink }}>Active fields</div>
-                  <div style={{ fontSize: '0.75rem', color: B.inkLight, marginTop: '0.15rem' }}>Toggle to include or exclude from generation</div>
+              <div style={{ marginBottom: '1.1rem' }}>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.88rem', color: B.ink, marginBottom: '0.65rem' }}>Field set</div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {PRESETS.map(p => {
+                    const isActive = activePreset === p.key;
+                    return (
+                      <button
+                        key={p.key}
+                        onClick={() => applyPreset(p.key)}
+                        style={{
+                          padding: '0.4rem 1rem', borderRadius: '8px', cursor: 'pointer',
+                          border: `1.5px solid ${isActive ? B.seaDeep : B.sandDeep}`,
+                          background: isActive ? B.seaDeep : 'transparent',
+                          color: isActive ? B.white : B.inkMid,
+                          fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.8rem',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
                 </div>
-                <div style={{ display: 'flex', gap: '0.4rem' }}>
-                  <button
-                    onClick={() => setActiveFields(new Set(availableFields.map(f => f.key)))}
-                    style={{ fontSize: '0.72rem', fontFamily: "'DM Sans', sans-serif", color: B.inkMid, background: 'transparent', border: `1px solid ${B.sandDeep}`, borderRadius: '7px', padding: '0.3rem 0.7rem', cursor: 'pointer' }}
-                  >All on</button>
-                  <button
-                    onClick={() => { setActiveFields(new Set()); setLockedFields(new Set()); }}
-                    style={{ fontSize: '0.72rem', fontFamily: "'DM Sans', sans-serif", color: B.inkMid, background: 'transparent', border: `1px solid ${B.sandDeep}`, borderRadius: '7px', padding: '0.3rem 0.7rem', cursor: 'pointer' }}
-                  >All off</button>
-                </div>
+                {PRESETS.find(p => p.key === activePreset) && (
+                  <div style={{ fontSize: '0.73rem', color: B.inkLight, marginTop: '0.5rem' }}>
+                    {PRESETS.find(p => p.key === activePreset).desc} — toggle individual fields below
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
                 {availableFields.map(f => {
