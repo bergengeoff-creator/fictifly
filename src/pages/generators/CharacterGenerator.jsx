@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -155,6 +155,8 @@ export default function CharacterGenerator() {
   const [summary, setSummary] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const valuesRef = React.useRef(values);
+  useEffect(() => { valuesRef.current = values; }, [values]);
   const [refreshingField, setRefreshingField] = useState(null);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState('generate');
@@ -238,10 +240,11 @@ export default function CharacterGenerator() {
     'Late 60s', '70s', 'Elderly', 'Teenage', 'College-age',
   ];
   const ADULT_WORLDS = [
-    'medicine', 'law', 'agriculture', 'journalism', 'academia', 'the military',
-    'construction', 'the arts', 'finance', 'retail', 'transport', 'hospitality',
-    'science', 'politics', 'religion', 'sport', 'technology', 'the sea',
-    'education', 'crime', 'social work', 'food', 'fashion', 'engineering',
+    'medicine', 'law', 'farming', 'journalism', 'academia', 'the military',
+    'construction', 'music', 'finance', 'retail', 'trucking and logistics', 'hospitality',
+    'scientific research', 'local government', 'religion', 'teaching', 'software',
+    'commercial fishing', 'social work', 'restaurant work', 'manufacturing', 'civil engineering',
+    'dentistry', 'veterinary work', 'plumbing and trades', 'insurance', 'real estate',
   ];
   const MINOR_WORLDS = [
     'sport', 'art', 'music', 'coding', 'animals', 'cooking', 'gaming',
@@ -262,7 +265,9 @@ export default function CharacterGenerator() {
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
   // Build the generation prompt
-  const buildPrompt = (fieldKeys) => {
+  // lockedContext = object of already-established field values to inform new generations
+  // previousValues = object of values being replaced, so model avoids repeating them
+  const buildPrompt = (fieldKeys, lockedContext = {}, previousValues = {}) => {
     const seed = Math.floor(Math.random() * 99999);
     const ageHint = pick(AGE_RANGES);
     const worldHint = isMinor ? pick(MINOR_WORLDS) : pick(ADULT_WORLDS);
@@ -274,6 +279,26 @@ export default function CharacterGenerator() {
       return `- "${key}": ${f.label}`;
     }).join('\n');
 
+    const lockedLines = Object.entries(lockedContext).map(([key, val]) => {
+      const f = ALL_FIELDS.find(f => f.key === key);
+      return `- ${f?.label || key}: ${val}`;
+    }).join('\n');
+
+    const previousLines = Object.entries(previousValues)
+      .filter(([k]) => fieldKeys.includes(k))
+      .map(([key, val]) => {
+        const f = ALL_FIELDS.find(f => f.key === key);
+        return `- ${f?.label || key}: ${val}`;
+      }).join('\n');
+
+    const lockedSection = lockedLines
+      ? `\nEstablished character details (LOCKED — use these to inform your new values, keep everything consistent):\n${lockedLines}\n`
+      : '';
+
+    const previousSection = previousLines
+      ? `\nPrevious values for fields you are replacing (do NOT repeat these — generate meaningfully different content):\n${previousLines}\n`
+      : '';
+
     if (isMinor) {
       return `You are generating a random fictional character for a young writer. Randomisation seed: ${seed}.
 
@@ -282,13 +307,14 @@ Constraints for this character:
 - Their world involves: ${worldHint}
 - Emotional tone: ${toneHint}
 - Comes from: ${originHint}
-
+${lockedSection}${previousSection}
 Rules:
 - Keep every field to the shortest possible phrase — a label, not an explanation
 - Profession or role: just a simple title (e.g. "Hockey player", "Baker", "Coder")
 - All other fields: one short phrase or sentence — no elaboration
 - Be imaginative — avoid the obvious or the first thing that comes to mind
 - Keep everything age-appropriate and positive in spirit
+- If locked details are provided, make sure new fields feel like they belong to the same character
 
 Fields to generate:
 ${fieldList}
@@ -303,14 +329,15 @@ Constraints for this character:
 - Their world: ${worldHint}
 - Emotional register: ${toneHint}
 - Comes from: ${originHint}
-
+${lockedSection}${previousSection}
 Rules:
 - Keep every field to the shortest possible phrase — a label, not an explanation
-- Profession: just the job title, nothing more (e.g. "Attorney", "Nurse", "Electrician")
+- Profession: just the job title, nothing more (e.g. "Attorney", "Nurse", "Electrician") — common, grounded professions only
 - Background: one sentence maximum, no sub-clauses
 - All other fields: a short phrase or single sentence — no elaboration
 - Be surprising and specific — avoid the obvious or the first thing that comes to mind
-- Do NOT default to writer/artist/journalist/architect unless the world hint demands it
+- Do NOT use niche sports, competitive hobbies, or obscure professions as the profession field
+- If locked details are provided, make sure new fields feel like they belong to the same person
 
 Fields to generate:
 ${fieldList}
@@ -374,13 +401,20 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
 
     try {
       // Step 1: Generate field values
+      // Build locked context (established values to inform generation)
+      const lockedContext = {};
+      [...lockedFields].forEach(k => { if (valuesRef.current[k]) lockedContext[k] = valuesRef.current[k]; });
+      // Build previous values (for anti-repeat instruction)
+      const previousValues = {};
+      fieldsToGenerate.forEach(k => { if (valuesRef.current[k]) previousValues[k] = valuesRef.current[k]; });
+
       const fieldRes = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 1000,
-          messages: [{ role: 'user', content: buildPrompt(fieldsToGenerate) }],
+          messages: [{ role: 'user', content: buildPrompt(fieldsToGenerate, lockedContext, previousValues) }],
         }),
       });
       const fieldData = await fieldRes.json();
@@ -388,7 +422,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
       const clean = fieldText.replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(clean);
 
-      const newValues = { ...values, ...parsed };
+      const newValues = { ...valuesRef.current, ...parsed };
       setValues(newValues);
 
       // Step 2: Generate summary from all active fields
@@ -438,13 +472,20 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
     setRefreshingField(key);
     setError(null);
     try {
+      // Build locked context from all other active fields that have values
+      const lockedContext = {};
+      [...activeFields].forEach(k => {
+        if (k !== key && values[k]) lockedContext[k] = values[k];
+      });
+      const previousValues = values[key] ? { [key]: values[key] } : {};
+
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 200,
-          messages: [{ role: 'user', content: buildPrompt([key]) }],
+          messages: [{ role: 'user', content: buildPrompt([key], lockedContext, previousValues) }],
         }),
       });
       const data = await res.json();
