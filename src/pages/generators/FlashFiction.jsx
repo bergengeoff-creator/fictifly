@@ -5,6 +5,7 @@ import AssignModal from '../../components/AssignModal';
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../context/AuthContext';
+import { playAudioCue } from '../../utils/audioCue';
 
 const GENRES = [
   "Action/Adventure","Comedy","Crime Caper","Drama","Fairy Tale","Fantasy",
@@ -275,6 +276,7 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
       if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
         setNewBadges(badgeData.newlyEarned);
       }
+      playAudioCue(false);
     } catch {
       setError('Something went wrong generating prompts. Please try again.');
     }

@@ -4,6 +4,8 @@ import { supabase } from '../../supabase';
 import { useAuth } from '../../context/AuthContext';
 import BadgeToast from '../../components/BadgeToast';
 
+import { playAudioCue } from '../../utils/audioCue';
+
 const B = {
   sand: '#F5EFE6', sandMid: '#EDE3D4', sandDeep: '#D9C9B0',
   terra: '#D4845A', terraDark: '#B56840', seaMid: '#5B9EC9', seaDeep: '#2E6DA4',
@@ -443,6 +445,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
       const summaryData = await summaryRes.json();
       const summaryText = summaryData.content.map(b => b.text || '').join('').trim();
       setSummary(summaryText);
+      playAudioCue(false);
 
       await trackUsage();
 
@@ -512,6 +515,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
         const sData = await sRes.json();
         setSummary(sData.content.map(b => b.text || '').join('').trim());
       }
+      playAudioCue(true);
     } catch {
       setError('Something went wrong. Please try again.');
     }

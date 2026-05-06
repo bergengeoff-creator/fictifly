@@ -5,6 +5,7 @@ import { supabase } from '../../supabase';
 import { useAuth } from '../../context/AuthContext';
 import StoryModal from '../../components/StoryModal';
 import AssignModal from '../../components/AssignModal';
+import { playAudioCue } from '../../utils/audioCue';
 
 const GENRES = [
   "Action and/or Adventure","Comedy","Drama","Fairy Tale and/or Fantasy",
@@ -263,6 +264,7 @@ Respond ONLY with a JSON array, no markdown, no explanation:
       if (badgeData.newlyEarned && badgeData.newlyEarned.length > 0) {
         setNewBadges(badgeData.newlyEarned);
       }
+      playAudioCue(false);
     } catch {
       setError('Something went wrong generating prompts. Please try again.');
     }
