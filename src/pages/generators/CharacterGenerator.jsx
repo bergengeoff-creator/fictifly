@@ -4,7 +4,7 @@ import { supabase } from '../../supabase';
 import { useAuth } from '../../context/AuthContext';
 import BadgeToast from '../../components/BadgeToast';
 
-import { playAudioCue } from '../../utils/audioCue';
+import { playAudioCue, playBadgeCue } from '../../utils/audioCue';
 
 const B = {
   sand: '#F5EFE6', sandMid: '#EDE3D4', sandDeep: '#D9C9B0',
@@ -445,7 +445,6 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
       const summaryData = await summaryRes.json();
       const summaryText = summaryData.content.map(b => b.text || '').join('').trim();
       setSummary(summaryText);
-      playAudioCue(false);
 
       await trackUsage();
 
@@ -458,6 +457,9 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
       const badgeData = await badgeRes.json();
       if (badgeData.newlyEarned?.length > 0) {
         setNewBadges(badgeData.newlyEarned);
+        playBadgeCue();
+      } else {
+        playAudioCue(false);
       }
     } catch {
       setError('Something went wrong generating the character. Please try again.');
@@ -587,7 +589,12 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
         body: JSON.stringify({ userId: user.id }),
       });
       const badgeData = await badgeRes.json();
-      if (badgeData.newlyEarned?.length > 0) setNewBadges(badgeData.newlyEarned);
+      if (badgeData.newlyEarned?.length > 0) {
+        setNewBadges(badgeData.newlyEarned);
+        playBadgeCue();
+      } else {
+        playAudioCue(true);
+      }
     } else {
       setSavingId(null);
     }

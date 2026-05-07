@@ -101,3 +101,72 @@ export function playAudioCue(quiet = false) {
     // Audio unavailable — fail silently
   }
 }
+
+// ── Badge cue — Crescendo ──────────────────────────────────────────────────
+// Same ink/portal DNA as the gen cue, elevated.
+// Five notes that grow in amplitude as they climb, shimmer bloom at the end.
+// Clearly rewarding without being over the top.
+
+const BADGE_CUE = {
+  sound: 'crescendo',
+  pitch: 2,     // same pitch root as gen cue — same sonic world
+  decay: 0.75,  // longer than gen cue (0.45) but not overlong
+  reverb: 0.28, // more room than gen cue to feel elevated
+  volume: 0.70,
+};
+
+/**
+ * Play the Fictifly badge earned audio cue.
+ */
+export function playBadgeCue() {
+  try {
+    const ctx = getAudioCtx();
+    const { pitch, decay, reverb, volume } = BADGE_CUE;
+    const r = 2 ** (pitch / 12);
+    const t = ctx.currentTime;
+
+    const master = ctx.createGain();
+    master.gain.value = volume;
+    master.connect(ctx.destination);
+
+    // Crescendo ink plucks — five notes, growing in amplitude as they ascend
+    const freqs = [392 * r, 493.88 * r, 587.33 * r, 698.46 * r, 783.99 * r];
+    freqs.forEach((f, i) => {
+      const o = ctx.createOscillator();
+      const og = ctx.createGain();
+      o.connect(og);
+      og.connect(master);
+      o.type = 'sine';
+      o.frequency.value = f;
+      const s = t + i * 0.075;
+      const amp = 0.18 + i * 0.05; // grows with each note
+      og.gain.setValueAtTime(0, s);
+      og.gain.linearRampToValueAtTime(amp, s + 0.012);
+      og.gain.exponentialRampToValueAtTime(0.001, s + decay * 0.7);
+      o.start(s);
+      o.stop(s + decay + 0.05);
+    });
+
+    // Shimmer bloom — fuller than gen cue, four harmonics
+    const shimmerStart = t + 0.35;
+    [880 * r, 1100 * r, 1320 * r, 1540 * r].forEach((f, i) => {
+      const o = ctx.createOscillator();
+      const og = ctx.createGain();
+      o.connect(og);
+      og.connect(master);
+      o.type = 'sine';
+      const s = shimmerStart + i * 0.05;
+      o.frequency.setValueAtTime(f * 0.72, s);
+      o.frequency.exponentialRampToValueAtTime(f, s + decay * 0.55);
+      og.gain.setValueAtTime(0, s);
+      og.gain.linearRampToValueAtTime(0.28 * (1 - i * 0.18), s + 0.03);
+      og.gain.exponentialRampToValueAtTime(0.001, s + decay * 0.9);
+      o.start(s);
+      o.stop(s + decay + 0.1);
+    });
+
+    addReverb(ctx, master, reverb);
+  } catch {
+    // Audio unavailable — fail silently
+  }
+}
