@@ -56,9 +56,9 @@ const GENRES = [
 
 // Genre-specific world and profession hints to replace generic ones when a genre is selected
 const GENRE_WORLDS = {
-  'Fantasy':           ['a royal court', 'a hidden guild', 'a frontier settlement', 'an ancient monastery', 'a port city on a trade route'],
-  'Sci-Fi':            ['a research vessel', 'a orbital station', 'a colony on a new world', 'a megacity', 'a covert government program'],
-  'Horror':            ['an isolated town', 'a decaying institution', 'a rural community with secrets', 'an old estate', 'a hospital after dark'],
+  'Fantasy':           ['a hidden guild of craftspeople', 'a frontier settlement near wild lands', 'an ancient monastery', 'a port city on a trade route', 'a mining town beneath a mountain', 'a travelling merchant caravan', 'a remote farming village', 'a scholars archive'],
+  'Sci-Fi':            ['a research vessel', 'an orbital station', 'a colony on a new world', 'a megacity', 'a covert government program', 'a generation ship', 'an asteroid mining operation', 'a terraforming outpost'],
+  'Horror':            ['an isolated town', 'a decaying institution', 'a rural community with secrets', 'an old estate', 'a hospital after dark', 'a remote research station', 'a small island community'],
   'Ghost Story':       ['a boarding house', 'an old family home', 'a small coastal town', 'a historic inn', 'a recently sold property'],
   'Mystery':           ['a private detective agency', 'a small police department', 'a wealthy household', 'a tight-knit neighbourhood', 'a law firm'],
   'Thriller':          ['a government agency', 'a private security firm', 'a newsroom', 'a pharmaceutical company', 'an airport hub'],
@@ -68,11 +68,21 @@ const GENRE_WORLDS = {
   'Romance':           ['a small coastal town', 'a busy city neighbourhood', 'a family business', 'a destination wedding', 'a shared apartment building'],
   'Romantic Comedy':   ['an office', 'a neighbourhood bakery', 'a wedding planning business', 'a rival company', 'a shared house'],
   'Drama':             ['a family home under strain', 'a struggling business', 'a hospital ward', 'a university department', 'a theatre company'],
-  'Historical Fiction':['a merchant household', 'a military campaign', 'a noble estate', 'a port town during a war', 'a royal administration'],
+  'Historical Fiction':['a market town', 'a military campaign', 'a farming estate', 'a port town during wartime', 'a craftsmens district', 'a merchant ship', 'a rural parish', 'a working-class neighbourhood', 'a tradesmens guild', 'a city hospital'],
   'Action/Adventure':  ['a mercenary outfit', 'an archaeological expedition', 'a survival situation', 'a rebel organisation', 'a high-stakes competition'],
-  'Comedy':            ['an dysfunctional workplace', 'a chaotic family home', 'a struggling startup', 'a local community group', 'a small-town event'],
-  'Fairy Tale':        ['a kingdom at the edge of a forest', 'a village near enchanted lands', 'a travelling court', 'a hidden valley', 'a cursed castle'],
+  'Comedy':            ['a dysfunctional workplace', 'a chaotic family home', 'a struggling startup', 'a local community group', 'a small-town event'],
+  'Fairy Tale':        ['a village near enchanted lands', 'a hidden valley', 'a cursed castle', 'a forest settlement', 'a market town at the edge of the known world'],
   'Open Genre':        null,
+};
+
+// Genres where non-human characters are appropriate
+const NON_HUMAN_GENRES = new Set(['Fantasy', 'Sci-Fi', 'Fairy Tale', 'Horror', 'Ghost Story']);
+
+// Genre-specific age range overrides
+const GENRE_AGE_HINTS = {
+  'Fantasy':   ['Young adult', 'Middle-aged', 'Elder', 'Ancient — centuries old', 'Ageless', 'Early 30s', 'Late 40s', 'Young — barely of age'],
+  'Sci-Fi':    ['Young adult', 'Middle-aged', 'Elder', 'Indeterminate — longevity treatments', 'Early career', 'Late career'],
+  'Fairy Tale': ['Young', 'Ancient', 'Ageless', 'Middle years', 'Elder'],
 };
 
 const FictiflyLogo = () => (
@@ -299,15 +309,21 @@ export default function CharacterGenerator() {
   // previousValues = object of values being replaced, so model avoids repeating them
   const buildPrompt = (fieldKeys, lockedContext = {}, previousValues = {}) => {
     const seed = Math.floor(Math.random() * 99999);
-    const ageHint = pick(AGE_RANGES);
     const genre = selectedGenre === 'random' ? null : selectedGenre;
+    const genreAgeRanges = genre && GENRE_AGE_HINTS[genre];
+    const ageHint = pick(genreAgeRanges || AGE_RANGES);
     const genreWorlds = genre && GENRE_WORLDS[genre];
     const worldHint = genreWorlds
       ? pick(genreWorlds)
       : isMinor ? pick(MINOR_WORLDS) : pick(ADULT_WORLDS);
     const toneHint = pick(TONES);
     const originHint = pick(ORIGINS);
-    const genreLine = genre ? `- Genre: ${genre} — let this shape profession, backstory, quirks, and traits appropriately\n` : '';
+    const nonHumanLine = genre && NON_HUMAN_GENRES.has(genre)
+      ? `- Species: this character does not have to be human — consider elves, dwarves, creatures, spirits, androids, aliens, or entirely invented beings, but only occasionally (roughly 1 in 3 times)\n`
+      : '';
+    const genreLine = genre
+      ? `- Genre: ${genre} — let this shape profession, backstory, quirks, and traits appropriately\n${nonHumanLine}`
+      : '';
 
     const fieldList = fieldKeys.map(key => {
       const f = ALL_FIELDS.find(f => f.key === key);
@@ -368,6 +384,7 @@ ${genreLine}${lockedSection}${previousSection}
 Rules:
 - Keep every field to the shortest possible phrase — a label, not an explanation
 - Profession: just the job title or role, nothing more — make it appropriate for the genre and world context
+- For Historical Fiction: strongly favour ordinary working people (farmers, soldiers, merchants, midwives, sailors, servants, craftspeople) over royalty or nobility — avoid kings, queens, lords, ladies unless truly compelling
 - Background: one sentence maximum, no sub-clauses
 - All other fields: a short phrase or single sentence — no elaboration
 - Be surprising and specific — avoid the obvious or the first thing that comes to mind
