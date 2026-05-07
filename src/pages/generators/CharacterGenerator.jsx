@@ -521,7 +521,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
 
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFields, lockedFields, values, usageCount, isUnlimited]);
+  }, [activeFields, lockedFields, values, usageCount, isUnlimited, selectedGenre]);
 
   const refreshSingleField = async (key) => {
     if (!isUnlimited && usageCount >= FREE_LIMIT) {
