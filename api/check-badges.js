@@ -4,7 +4,8 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  const { userId } = req.body;
+  try {
+  const { userId, debug } = req.body;
   const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -52,6 +53,11 @@ export default async function handler(req, res) {
   const subsData = await subsRes.json();
   const totalWritten = subsData.length;
 
+  const charsRes = await fetch(`${supabaseUrl}/rest/v1/saved_characters?user_id=eq.${userId}&select=id,genre`, { headers });
+  const charsData = await charsRes.json();
+  const totalCharacters = charsData.length;
+  const uniqueCharGenres = new Set(charsData.map(c => c.genre).filter(Boolean)).size;
+
   // Check which badges should be earned
   const newlyEarned = [];
 
@@ -62,6 +68,7 @@ export default async function handler(req, res) {
     }
   };
 
+  // Writing generator badges
   shouldEarn('First Spark', totalGenerated >= 1);
   shouldEarn('Story Hoarder', totalSaved >= 10);
   shouldEarn('Dedicated Writer', currentStreak >= 3);
@@ -74,6 +81,12 @@ export default async function handler(req, res) {
   shouldEarn('Storyteller', totalWritten >= 10);
   shouldEarn('Prolific Storyteller', totalWritten >= 50);
 
+  // Character generator badges
+  shouldEarn('Character Study', totalCharacters >= 1);
+  shouldEarn('Character Keeper', totalCharacters >= 5);
+  shouldEarn('Cast of Characters', totalCharacters >= 25);
+  shouldEarn('Genre Chameleon', uniqueCharGenres >= 5);
+
   // Award new badges
   for (const badge of newlyEarned) {
     await fetch(`${supabaseUrl}/rest/v1/user_badges`, {
@@ -83,5 +96,30 @@ export default async function handler(req, res) {
     });
   }
 
-  res.status(200).json({ newlyEarned, totalEarned: earnedIds.length + newlyEarned.length });
+  const response = { newlyEarned, totalEarned: earnedIds.length + newlyEarned.length };
+
+  // Debug mode — returns all stats and badge lookup results for diagnosis
+  if (debug) {
+    response.debug = {
+      stats: {
+        totalGenerated, totalSaved, currentStreak, totalMicro, totalFlash,
+        uniqueGenres, totalWritten, totalCharacters, uniqueCharGenres,
+      },
+      allBadgesInDb: allBadges.map(b => ({ id: b.id, name: b.name, icon: b.icon })),
+      earnedBadgeIds: earnedIds,
+      badgesNotFoundInDb: [
+        'First Spark', 'Story Hoarder', 'Dedicated Writer', 'Week Warrior',
+        'Genre Explorer', 'Microfiction Master', 'Flash Fiction Fan', 'Prolific Writer',
+        'First Draft', 'Storyteller', 'Prolific Storyteller',
+        'Character Study', 'Character Keeper', 'Cast of Characters', 'Genre Chameleon',
+      ].filter(name => !allBadges.find(b => b.name === name)),
+    };
+  }
+
+  return res.status(200).json(response);
+
+  } catch (err) {
+    console.error('check-badges error:', err);
+    return res.status(500).json({ error: err.message, stack: err.stack });
+  }
 }

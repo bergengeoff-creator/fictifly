@@ -118,7 +118,6 @@ export default function Dashboard() {
         setEarnedBadges([]);
         setBadgeCount(0);
       }
-
       if (profile && isStudentAccount(profile)) {
         const { data: memberships } = await supabase
           .from('class_members')
@@ -183,6 +182,41 @@ export default function Dashboard() {
       setDailyPromptLoading(false);
     };
     if (user) fetchDailyPrompt();
+  }, [user]);
+
+  // Badge refresh — re-fetch when user returns to tab (catches badges earned in generators)
+  const fetchBadges = async () => {
+    if (!user) return;
+    const { data: userBadgeData } = await supabase
+      .from('user_badges')
+      .select('id, badge_id, earned_at')
+      .eq('user_id', user.id);
+    if (userBadgeData && userBadgeData.length > 0) {
+      const badgeIds = userBadgeData.map(ub => ub.badge_id);
+      const { data: badgeDetails } = await supabase
+        .from('badges')
+        .select('*')
+        .in('id', badgeIds);
+      const merged = userBadgeData.map(ub => ({
+        ...ub,
+        badges: badgeDetails ? badgeDetails.find(b => b.id === ub.badge_id) : null
+      })).filter(ub => ub.badges);
+      setEarnedBadges(merged);
+      setBadgeCount(merged.length);
+    } else {
+      setEarnedBadges([]);
+      setBadgeCount(0);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchBadges();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Fetch saved characters for premium users (character day swap)
