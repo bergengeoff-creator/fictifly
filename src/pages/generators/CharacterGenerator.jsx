@@ -85,6 +85,54 @@ const GENRE_AGE_HINTS = {
   'Fairy Tale': ['Young', 'Ancient', 'Ageless', 'Middle years', 'Elder'],
 };
 
+// Historical Fiction eras
+const HISTORICAL_ERAS = [
+  'Ancient Egypt (3000–300 BCE)',
+  'Classical Greece (500–300 BCE)',
+  'Roman Empire (27 BCE–476 CE)',
+  'Viking Age (793–1066 CE)',
+  'Medieval Europe (1000–1400)',
+  'The Black Death era (1340s–1350s)',
+  'The Renaissance (1400–1600)',
+  'Age of Exploration (1500s)',
+  'Elizabethan England (1558–1603)',
+  'The Thirty Years War (1618–1648)',
+  'Colonial America (1600s–1770s)',
+  'The French Revolution (1789–1799)',
+  'Napoleonic Era (1799–1815)',
+  'Regency England (1811–1820)',
+  'American Civil War (1861–1865)',
+  'Victorian England (1837–1901)',
+  'The Gilded Age USA (1870s–1900)',
+  'Meiji Japan (1868–1912)',
+  'World War I (1914–1918)',
+  'The Roaring Twenties (1920s)',
+  'The Great Depression (1930s)',
+  'World War II (1939–1945)',
+  'Post-war America (1945–1960s)',
+  'The Cold War (1947–1991)',
+];
+
+// Sci-Fi setting types
+const SCIFI_SETTINGS = [
+  'Near-future Earth (10–50 years ahead)',
+  'Post-apocalyptic Earth',
+  'Cyberpunk megacity',
+  'Space opera — galactic civilisations',
+  'Generation ship in deep space',
+  'First colony on Mars',
+  'Dystopian surveillance state',
+  'Post-scarcity utopia (with cracks)',
+  'Biopunk — genetic engineering era',
+  'AI takeover aftermath',
+  'Solarpunk — ecological future',
+  'Far-future humanity — barely recognisable',
+  'Alien contact — first encounter',
+  'Time travel adjacent — fractured timelines',
+  'Uploaded consciousness society',
+  'Asteroid belt mining frontier',
+];
+
 const FictiflyLogo = () => (
   <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '200px', height: '35px', display: 'block' }}>
     <text x="0" y="28" fontSize="28" fontWeight="600" letterSpacing="-1.5" fontFamily="system-ui, sans-serif">
@@ -207,6 +255,8 @@ export default function CharacterGenerator() {
   const [usageCount, setUsageCount] = useState(0);
   const [newBadges, setNewBadges] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState('random');
+  const [historicalEra, setHistoricalEra] = useState(() => HISTORICAL_ERAS[Math.floor(Math.random() * HISTORICAL_ERAS.length)]);
+  const [scifiSetting, setScifiSetting] = useState(() => SCIFI_SETTINGS[Math.floor(Math.random() * SCIFI_SETTINGS.length)]);
 
   const trialActive = profile?.premium_expires_at
     ? new Date(profile.premium_expires_at) > new Date()
@@ -321,8 +371,13 @@ export default function CharacterGenerator() {
     const nonHumanLine = genre && NON_HUMAN_GENRES.has(genre)
       ? `- Species: this character does not have to be human — consider elves, dwarves, creatures, spirits, androids, aliens, or entirely invented beings, but only occasionally (roughly 1 in 3 times)\n`
       : '';
+    const eraLine = genre === 'Historical Fiction'
+      ? `- Time period: ${historicalEra} — ground profession, background, and details firmly in this era\n`
+      : genre === 'Sci-Fi'
+      ? `- Setting: ${scifiSetting} — let this define the technology level, society, and character's world\n`
+      : '';
     const genreLine = genre
-      ? `- Genre: ${genre} — let this shape profession, backstory, quirks, and traits appropriately\n${nonHumanLine}`
+      ? `- Genre: ${genre} — let this shape profession, backstory, quirks, and traits appropriately\n${eraLine}${nonHumanLine}`
       : '';
 
     const fieldList = fieldKeys.map(key => {
@@ -409,8 +464,11 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
       ? ' Do not invent or use a name — refer to them only as "they" or "them".'
       : '';
     const genre = selectedGenre !== 'random' ? selectedGenre : null;
+    const eraContext = genre === 'Historical Fiction' ? ` Set in ${historicalEra}.`
+      : genre === 'Sci-Fi' ? ` Setting: ${scifiSetting}.`
+      : '';
     const genreInstruction = genre
-      ? ` Write with an awareness that this is a ${genre} character — let the genre inform tone and word choice without being heavy-handed about it.`
+      ? ` Write with an awareness that this is a ${genre} character.${eraContext} Let the genre inform tone and word choice without being heavy-handed about it.`
       : '';
 
     if (isMinor) {
@@ -521,7 +579,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
 
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFields, lockedFields, values, usageCount, isUnlimited, selectedGenre]);
+  }, [activeFields, lockedFields, values, usageCount, isUnlimited, selectedGenre, historicalEra, scifiSetting]);
 
   const refreshSingleField = async (key) => {
     if (!isUnlimited && usageCount >= FREE_LIMIT) {
@@ -815,6 +873,58 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
                   </div>
                 )}
               </div>
+
+              {/* Historical era chip */}
+              {selectedGenre === 'Historical Fiction' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.82rem', color: B.ink, minWidth: 44 }}>Era</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#EAF4FB', border: `1.5px solid ${B.seaMid}`, borderRadius: '8px', padding: '0.35rem 0.75rem', fontFamily: "'DM Sans', sans-serif", fontSize: '0.8rem', fontWeight: 500, color: B.seaDeep }}>
+                    {historicalEra}
+                  </div>
+                  <button
+                    onClick={() => setHistoricalEra(HISTORICAL_ERAS[Math.floor(Math.random() * HISTORICAL_ERAS.length)])}
+                    title="Pick a different era randomly"
+                    style={{ width: 28, height: 28, borderRadius: '7px', border: `1px solid ${B.sandDeep}`, background: 'transparent', color: B.inkLight, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.78rem' }}
+                  >↻</button>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value=""
+                      onChange={e => { if (e.target.value) setHistoricalEra(e.target.value); }}
+                      style={{ height: 28, padding: '0 1.6rem 0 0.7rem', borderRadius: '7px', border: `1px solid ${B.sandDeep}`, background: 'transparent', color: B.inkMid, fontFamily: "'DM Sans', sans-serif", fontSize: '0.75rem', cursor: 'pointer', outline: 'none', appearance: 'none' }}
+                    >
+                      <option value="">Choose era…</option>
+                      {HISTORICAL_ERAS.map(e => <option key={e} value={e}>{e}</option>)}
+                    </select>
+                    <span style={{ position: 'absolute', right: '0.45rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '0.5rem', color: B.inkLight }}>▼</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Sci-Fi setting chip */}
+              {selectedGenre === 'Sci-Fi' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.82rem', color: B.ink, minWidth: 44 }}>Setting</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#EAF4FB', border: `1.5px solid ${B.seaMid}`, borderRadius: '8px', padding: '0.35rem 0.75rem', fontFamily: "'DM Sans', sans-serif", fontSize: '0.8rem', fontWeight: 500, color: B.seaDeep }}>
+                    {scifiSetting}
+                  </div>
+                  <button
+                    onClick={() => setScifiSetting(SCIFI_SETTINGS[Math.floor(Math.random() * SCIFI_SETTINGS.length)])}
+                    title="Pick a different setting randomly"
+                    style={{ width: 28, height: 28, borderRadius: '7px', border: `1px solid ${B.sandDeep}`, background: 'transparent', color: B.inkLight, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.78rem' }}
+                  >↻</button>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value=""
+                      onChange={e => { if (e.target.value) setScifiSetting(e.target.value); }}
+                      style={{ height: 28, padding: '0 1.6rem 0 0.7rem', borderRadius: '7px', border: `1px solid ${B.sandDeep}`, background: 'transparent', color: B.inkMid, fontFamily: "'DM Sans', sans-serif", fontSize: '0.75rem', cursor: 'pointer', outline: 'none', appearance: 'none' }}
+                    >
+                      <option value="">Choose setting…</option>
+                      {SCIFI_SETTINGS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <span style={{ position: 'absolute', right: '0.45rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '0.5rem', color: B.inkLight }}>▼</span>
+                  </div>
+                </div>
+              )}
               {/* Bottom row — lock count, usage, generate button */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div style={{ fontSize: '0.82rem', color: B.inkMid }}>
