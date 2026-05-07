@@ -391,12 +391,16 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
     const nameInstruction = !hasName
       ? ' Do not invent or use a name — refer to them only as "they" or "them".'
       : '';
+    const genre = selectedGenre !== 'random' ? selectedGenre : null;
+    const genreInstruction = genre
+      ? ` Write with an awareness that this is a ${genre} character — let the genre inform tone and word choice without being heavy-handed about it.`
+      : '';
 
     if (isMinor) {
-      return `Given this character:\n\n${details}\n\nWrite 2 sentences introducing this character — who they are and what makes them interesting. Write in third person. Keep it simple and vivid, like the opening of a story.${nameInstruction}`;
+      return `Given this character:\n\n${details}\n\nWrite 2 sentences introducing this character — who they are and what makes them interesting. Write in third person. Keep it simple and vivid, like the opening of a story.${genreInstruction}${nameInstruction}`;
     }
 
-    return `Given this character:\n\n${details}\n\nWrite a short paragraph (2–3 sentences) capturing who this person is and what makes them compelling. Write in third person. Be specific — synthesise the details into a portrait, don't list them.${nameInstruction}`;
+    return `Given this character:\n\n${details}\n\nWrite a short paragraph (2–3 sentences) capturing who this person is and what makes them compelling. Write in third person. Be specific — synthesise the details into a portrait, don't list them.${genreInstruction}${nameInstruction}`;
   };
 
     const applyPreset = (presetKey, skipPresetState = false) => {
@@ -608,28 +612,34 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
     [...activeFields].forEach(k => {
       if (values[k]) characterData[k] = values[k];
     });
-    const { error: saveError } = await supabase.from('saved_characters').insert({
+    const insertPayload = {
       user_id: user.id,
       character_data: characterData,
-      summary,
-    });
-    if (!saveError) {
-      setSavingId('saved');
-      if (canSave) fetchSavedCharacters();
-      const badgeRes = await fetch('/api/check-badges', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
-      });
-      const badgeData = await badgeRes.json();
-      if (badgeData.newlyEarned?.length > 0) {
-        setNewBadges(badgeData.newlyEarned);
-        playBadgeCue();
-      } else {
-        playAudioCue(true);
-      }
-    } else {
+      genre: selectedGenre !== 'random' ? selectedGenre : null,
+    };
+    // Only include summary if it exists — avoids column errors if summary col is missing
+    if (summary) insertPayload.summary = summary;
+
+    const { error: saveError } = await supabase.from('saved_characters').insert(insertPayload);
+    if (saveError) {
+      console.error('Save error:', saveError);
+      setError(`Couldn't save character: ${saveError.message}`);
       setSavingId(null);
+      return;
+    }
+    setSavingId('saved');
+    if (canSave) fetchSavedCharacters();
+    const badgeRes = await fetch('/api/check-badges', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id }),
+    });
+    const badgeData = await badgeRes.json();
+    if (badgeData.newlyEarned?.length > 0) {
+      setNewBadges(badgeData.newlyEarned);
+      playBadgeCue();
+    } else {
+      playAudioCue(true);
     }
     setTimeout(() => setSavingId(null), 2000);
   };
