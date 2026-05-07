@@ -48,6 +48,33 @@ const PRESETS = [
   },
 ];
 
+const GENRES = [
+  'Action/Adventure', 'Comedy', 'Crime', 'Drama', 'Fairy Tale', 'Fantasy',
+  'Ghost Story', 'Historical Fiction', 'Horror', 'Mystery', 'Romance',
+  'Romantic Comedy', 'Sci-Fi', 'Spy', 'Suspense', 'Thriller', 'Open Genre',
+];
+
+// Genre-specific world and profession hints to replace generic ones when a genre is selected
+const GENRE_WORLDS = {
+  'Fantasy':           ['a royal court', 'a hidden guild', 'a frontier settlement', 'an ancient monastery', 'a port city on a trade route'],
+  'Sci-Fi':            ['a research vessel', 'a orbital station', 'a colony on a new world', 'a megacity', 'a covert government program'],
+  'Horror':            ['an isolated town', 'a decaying institution', 'a rural community with secrets', 'an old estate', 'a hospital after dark'],
+  'Ghost Story':       ['a boarding house', 'an old family home', 'a small coastal town', 'a historic inn', 'a recently sold property'],
+  'Mystery':           ['a private detective agency', 'a small police department', 'a wealthy household', 'a tight-knit neighbourhood', 'a law firm'],
+  'Thriller':          ['a government agency', 'a private security firm', 'a newsroom', 'a pharmaceutical company', 'an airport hub'],
+  'Suspense':          ['an ordinary suburb', 'a remote workplace', 'a gated community', 'a cross-country journey', 'a high-rise apartment building'],
+  'Crime':             ['a city precinct', 'an organised crime network', 'a public defenders office', 'a pawn shop', 'a prison'],
+  'Spy':               ['an intelligence agency', 'a diplomatic posting', 'a cover business', 'an international airport', 'an embassy'],
+  'Romance':           ['a small coastal town', 'a busy city neighbourhood', 'a family business', 'a destination wedding', 'a shared apartment building'],
+  'Romantic Comedy':   ['an office', 'a neighbourhood bakery', 'a wedding planning business', 'a rival company', 'a shared house'],
+  'Drama':             ['a family home under strain', 'a struggling business', 'a hospital ward', 'a university department', 'a theatre company'],
+  'Historical Fiction':['a merchant household', 'a military campaign', 'a noble estate', 'a port town during a war', 'a royal administration'],
+  'Action/Adventure':  ['a mercenary outfit', 'an archaeological expedition', 'a survival situation', 'a rebel organisation', 'a high-stakes competition'],
+  'Comedy':            ['an dysfunctional workplace', 'a chaotic family home', 'a struggling startup', 'a local community group', 'a small-town event'],
+  'Fairy Tale':        ['a kingdom at the edge of a forest', 'a village near enchanted lands', 'a travelling court', 'a hidden valley', 'a cursed castle'],
+  'Open Genre':        null,
+};
+
 const FictiflyLogo = () => (
   <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '200px', height: '35px', display: 'block' }}>
     <text x="0" y="28" fontSize="28" fontWeight="600" letterSpacing="-1.5" fontFamily="system-ui, sans-serif">
@@ -169,6 +196,7 @@ export default function CharacterGenerator() {
   const [copiedSummary, setCopiedSummary] = useState(false);
   const [usageCount, setUsageCount] = useState(0);
   const [newBadges, setNewBadges] = useState([]);
+  const [selectedGenre, setSelectedGenre] = useState('random');
 
   const trialActive = profile?.premium_expires_at
     ? new Date(profile.premium_expires_at) > new Date()
@@ -272,9 +300,14 @@ export default function CharacterGenerator() {
   const buildPrompt = (fieldKeys, lockedContext = {}, previousValues = {}) => {
     const seed = Math.floor(Math.random() * 99999);
     const ageHint = pick(AGE_RANGES);
-    const worldHint = isMinor ? pick(MINOR_WORLDS) : pick(ADULT_WORLDS);
+    const genre = selectedGenre === 'random' ? null : selectedGenre;
+    const genreWorlds = genre && GENRE_WORLDS[genre];
+    const worldHint = genreWorlds
+      ? pick(genreWorlds)
+      : isMinor ? pick(MINOR_WORLDS) : pick(ADULT_WORLDS);
     const toneHint = pick(TONES);
     const originHint = pick(ORIGINS);
+    const genreLine = genre ? `- Genre: ${genre} — let this shape profession, backstory, quirks, and traits appropriately\n` : '';
 
     const fieldList = fieldKeys.map(key => {
       const f = ALL_FIELDS.find(f => f.key === key);
@@ -309,7 +342,7 @@ Constraints for this character:
 - Their world involves: ${worldHint}
 - Emotional tone: ${toneHint}
 - Comes from: ${originHint}
-${lockedSection}${previousSection}
+${genreLine}${lockedSection}${previousSection}
 Rules:
 - Keep every field to the shortest possible phrase — a label, not an explanation
 - Profession or role: just a simple title (e.g. "Hockey player", "Baker", "Coder")
@@ -331,10 +364,10 @@ Constraints for this character:
 - Their world: ${worldHint}
 - Emotional register: ${toneHint}
 - Comes from: ${originHint}
-${lockedSection}${previousSection}
+${genreLine}${lockedSection}${previousSection}
 Rules:
 - Keep every field to the shortest possible phrase — a label, not an explanation
-- Profession: just the job title, nothing more (e.g. "Attorney", "Nurse", "Electrician") — common, grounded professions only
+- Profession: just the job title or role, nothing more — make it appropriate for the genre and world context
 - Background: one sentence maximum, no sub-clauses
 - All other fields: a short phrase or single sentence — no elaboration
 - Be surprising and specific — avoid the obvious or the first thing that comes to mind
@@ -717,30 +750,70 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
             </div>
 
             {/* Controls */}
-            <div style={{ background: B.white, border: `1px solid ${B.sandDeep}`, borderRadius: '16px', padding: '1.25rem 1.75rem', marginBottom: '1.25rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <div style={{ fontSize: '0.82rem', color: B.inkMid }}>
-                {lockedFields.size > 0
-                  ? <span><strong>{lockedFields.size}</strong> field{lockedFields.size !== 1 ? 's' : ''} locked — will stay on regenerate</span>
-                  : <span style={{ color: B.inkLight }}>Lock fields you want to keep before regenerating</span>
-                }
-              </div>
-              {!isUnlimited && (
-                <div style={{ fontSize: '0.78rem', color: usageCount >= FREE_LIMIT ? B.terraDark : B.inkLight, background: usageCount >= FREE_LIMIT ? '#FDF0E8' : B.sandMid, borderRadius: '8px', padding: '0.35rem 0.8rem' }}>
-                  {usageCount >= FREE_LIMIT ? 'Daily limit reached. Come back tomorrow!' : `${FREE_LIMIT - usageCount} of ${FREE_LIMIT} remaining today`}
+            <div style={{ background: B.white, border: `1px solid ${B.sandDeep}`, borderRadius: '16px', padding: '1.25rem 1.75rem', marginBottom: '1.25rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
+              {/* Genre row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.82rem', color: B.ink, minWidth: 44 }}>Genre</div>
+                <button
+                  onClick={() => setSelectedGenre('random')}
+                  style={{
+                    padding: '0.4rem 1rem', borderRadius: '8px', cursor: 'pointer',
+                    border: `1.5px solid ${selectedGenre === 'random' ? B.seaDeep : B.sandDeep}`,
+                    background: selectedGenre === 'random' ? B.seaDeep : 'transparent',
+                    color: selectedGenre === 'random' ? B.white : B.inkMid,
+                    fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.8rem', transition: 'all 0.15s',
+                  }}
+                >Random</button>
+                <div style={{ position: 'relative' }}>
+                  <select
+                    value={selectedGenre !== 'random' ? selectedGenre : ''}
+                    onChange={e => { if (e.target.value) setSelectedGenre(e.target.value); }}
+                    style={{
+                      height: 36, padding: '0 1.8rem 0 0.8rem', borderRadius: '8px',
+                      border: `1.5px solid ${selectedGenre !== 'random' ? B.terra : B.sandDeep}`,
+                      background: selectedGenre !== 'random' ? B.terra : 'transparent',
+                      color: selectedGenre !== 'random' ? B.white : B.inkMid,
+                      fontFamily: "'DM Sans', sans-serif", fontSize: '0.8rem', fontWeight: 500,
+                      cursor: 'pointer', outline: 'none', appearance: 'none',
+                    }}
+                  >
+                    <option value="">Pick a genre…</option>
+                    {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                  <span style={{ position: 'absolute', right: '0.55rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '0.55rem', color: selectedGenre !== 'random' ? B.white : B.inkLight }}>▼</span>
                 </div>
-              )}
-              <button
-                onClick={generate}
-                disabled={loading || activeFields.size === 0}
-                style={{ background: loading || activeFields.size === 0 ? B.sandDeep : B.seaDeep, color: B.white, border: 'none', borderRadius: '10px', padding: '0.65rem 1.75rem', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.88rem', cursor: loading || activeFields.size === 0 ? 'not-allowed' : 'pointer', transition: 'background 0.18s', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
-                onMouseEnter={e => { if (!loading) e.currentTarget.style.background = B.seaMid; }}
-                onMouseLeave={e => { if (!loading) e.currentTarget.style.background = B.seaDeep; }}
-              >
-                {loading
-                  ? <><div style={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', animation: 'spin 0.8s linear infinite' }} />Generating…</>
-                  : hasValues ? 'Regenerate →' : 'Generate character →'
-                }
-              </button>
+                {selectedGenre !== 'random' && (
+                  <div style={{ fontSize: '0.73rem', color: B.inkLight }}>
+                    Characters will be shaped by <strong style={{ color: B.ink }}>{selectedGenre}</strong> conventions
+                  </div>
+                )}
+              </div>
+              {/* Bottom row — lock count, usage, generate button */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ fontSize: '0.82rem', color: B.inkMid }}>
+                  {lockedFields.size > 0
+                    ? <span><strong>{lockedFields.size}</strong> field{lockedFields.size !== 1 ? 's' : ''} locked — will stay on regenerate</span>
+                    : <span style={{ color: B.inkLight }}>Lock fields you want to keep before regenerating</span>
+                  }
+                </div>
+                {!isUnlimited && (
+                  <div style={{ fontSize: '0.78rem', color: usageCount >= FREE_LIMIT ? B.terraDark : B.inkLight, background: usageCount >= FREE_LIMIT ? '#FDF0E8' : B.sandMid, borderRadius: '8px', padding: '0.35rem 0.8rem' }}>
+                    {usageCount >= FREE_LIMIT ? 'Daily limit reached. Come back tomorrow!' : `${FREE_LIMIT - usageCount} of ${FREE_LIMIT} remaining today`}
+                  </div>
+                )}
+                <button
+                  onClick={generate}
+                  disabled={loading || activeFields.size === 0}
+                  style={{ background: loading || activeFields.size === 0 ? B.sandDeep : B.seaDeep, color: B.white, border: 'none', borderRadius: '10px', padding: '0.65rem 1.75rem', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.88rem', cursor: loading || activeFields.size === 0 ? 'not-allowed' : 'pointer', transition: 'background 0.18s', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+                  onMouseEnter={e => { if (!loading) e.currentTarget.style.background = B.seaMid; }}
+                  onMouseLeave={e => { if (!loading) e.currentTarget.style.background = B.seaDeep; }}
+                >
+                  {loading
+                    ? <><div style={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', animation: 'spin 0.8s linear infinite' }} />Generating…</>
+                    : hasValues ? 'Regenerate →' : 'Generate character →'
+                  }
+                </button>
+              </div>
             </div>
 
             {error && (
