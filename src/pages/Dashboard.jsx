@@ -37,6 +37,9 @@ export default function Dashboard() {
   const [dailyPrompt, setDailyPrompt] = useState(null);
   const [dailyPromptLoading, setDailyPromptLoading] = useState(true);
   const [dailyWritten, setDailyWritten] = useState(false);
+  const [savedCharacters, setSavedCharacters] = useState([]);
+  const [activeCharacter, setActiveCharacter] = useState(null); // null = use daily generated char
+  const [showCharacterSwap, setShowCharacterSwap] = useState(false);
 
   // Assignments (students only)
   const [assignments, setAssignments] = useState([]);
@@ -182,6 +185,25 @@ export default function Dashboard() {
     if (user) fetchDailyPrompt();
   }, [user]);
 
+  // Fetch saved characters for premium users (character day swap)
+  useEffect(() => {
+    const fetchSavedChars = async () => {
+      if (!user || !profile) return;
+      const trialActive = profile.premium_expires_at
+        ? new Date(profile.premium_expires_at) > new Date()
+        : false;
+      if (!profile.is_premium && !trialActive && profile.account_type !== 'teacher') return;
+      const { data } = await supabase
+        .from('saved_characters')
+        .select('id, character_data, summary, genre')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      setSavedCharacters(data || []);
+    };
+    fetchSavedChars();
+  }, [user, profile]);
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
@@ -205,6 +227,8 @@ export default function Dashboard() {
 
   const handleOpenDailyPrompt = () => {
     if (!dailyPrompt) return;
+    const isCharacterDay = dailyPrompt.challenge_type === 'character';
+    const characterToUse = activeCharacter || (isCharacterDay ? dailyPrompt.character_data : null);
     const prompt = {
       id: null,
       dbId: null,
@@ -214,6 +238,7 @@ export default function Dashboard() {
       genre: dailyPrompt.genre,
       action: dailyPrompt.action,
       word: dailyPrompt.word,
+      characterContext: characterToUse || null,
     };
     setStoryModalData({ prompt, dailyPromptId: dailyPrompt.id });
   };
@@ -230,17 +255,10 @@ export default function Dashboard() {
   const generators = [
     { title: 'Microfiction', desc: '100, 200, or 300 words', color: '#D4845A', path: '/generators/microfiction' },
     { title: 'Flash Fiction', desc: '500 or 1,000 words', color: '#2E6DA4', path: '/generators/flash-fiction' },
+    { title: 'Character Generator', desc: 'Build a character, field by field', color: '#6BAF72', path: '/generators/character', new: true },
   ];
 
-  const BETA_FEATURES = [
-    {
-      key: 'character_generator',
-      title: 'Character Generator',
-      desc: 'Build rich, layered characters field by field — with an AI-written portrait at the end.',
-      color: '#6BAF72',
-      path: '/generators/character',
-    },
-  ];
+  const BETA_FEATURES = [];
 
   const pendingAssignments = assignments.filter(a => !submittedAssignmentIds.includes(a.id));
   const submittedAssignments = assignments.filter(a => submittedAssignmentIds.includes(a.id));
@@ -410,8 +428,12 @@ export default function Dashboard() {
         <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginBottom: '2rem', borderLeft: '4px solid #D4845A' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div>
-              <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.25rem' }}>Today's Challenge</div>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0 }}>Daily Prompt</h2>
+              <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.25rem' }}>
+                {dailyPrompt?.challenge_type === 'character' ? "Today's Character Challenge" : "Today's Challenge"}
+              </div>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0 }}>
+                {dailyPrompt?.challenge_type === 'character' ? 'Character Day' : 'Daily Prompt'}
+              </h2>
             </div>
             {dailyPrompt && (
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -421,6 +443,11 @@ export default function Dashboard() {
                 <span style={{ background: '#EDE3D4', color: '#3A3226', fontSize: '0.82rem', fontWeight: 600, padding: '0.3rem 0.85rem', borderRadius: '20px' }}>
                   {dailyPrompt.genre}
                 </span>
+                {dailyPrompt.challenge_type === 'character' && (
+                  <span style={{ background: '#F5EDF5', color: '#7A4A90', border: '1px solid #B07AC0', fontSize: '0.82rem', fontWeight: 600, padding: '0.3rem 0.85rem', borderRadius: '20px' }}>
+                    ✦ Character day
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -429,31 +456,129 @@ export default function Dashboard() {
             <div style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>Loading today's prompt...</div>
           ) : dailyPrompt ? (
             <div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', minWidth: 52 }}>Action</span>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 500, color: '#3A3226', fontStyle: 'italic' }}>{dailyPrompt.action}</span>
-                </div>
-                <div style={{ height: '1px', background: '#EDE3D4' }} />
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', minWidth: 52 }}>Word</span>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 500, color: '#2E6DA4', fontStyle: 'italic' }}>{dailyPrompt.word}</span>
-                </div>
-              </div>
+              {dailyPrompt.challenge_type === 'character' ? (
+                // ── Character day card ────────────────────────────────────────
+                <div>
+                  {/* Active character display */}
+                  {(() => {
+                    const char = activeCharacter || dailyPrompt.character_data;
+                    return char ? (
+                      <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '1rem 1.1rem', marginBottom: '1rem' }}>
+                        {char.name && (
+                          <div style={{ fontFamily: "'Fraunces', serif", fontSize: '1.05rem', fontWeight: 600, color: '#3A3226', marginBottom: '0.5rem' }}>{char.name}</div>
+                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                          {[
+                            { label: 'Profession', val: char.profession },
+                            { label: 'Background', val: char.background },
+                            { label: 'Personality', val: char.personality },
+                            { label: 'Flaw', val: char.flaw },
+                            { label: 'Motivation', val: char.motivation },
+                          ].filter(r => r.val).map(r => (
+                            <div key={r.label} style={{ display: 'flex', gap: '0.6rem', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9A8878', minWidth: 72, flexShrink: 0 }}>{r.label}</span>
+                              <span style={{ fontFamily: "'Fraunces', serif", fontSize: '0.92rem', color: '#3A3226', lineHeight: 1.5 }}>{r.val}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {char.writing_prompt && (
+                          <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid #D9C9B0', fontFamily: "'Fraunces', serif", fontSize: '0.95rem', fontStyle: 'italic', color: '#6B5D4E', lineHeight: 1.6 }}>
+                            {char.writing_prompt}
+                          </div>
+                        )}
+                      </div>
+                    ) : null;
+                  })()}
 
-              {dailyWritten ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ background: '#F0F7ED', border: '1px solid #6BAF72', color: '#3A7040', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
-                  <button onClick={handleOpenDailyPrompt}
-                    style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer' }}>
-                    Edit story
-                  </button>
+                  {/* Premium swap — saved character */}
+                  {isPremium && savedCharacters.length > 0 && (
+                    <div style={{ marginBottom: '1rem' }}>
+                      <button
+                        onClick={() => setShowCharacterSwap(s => !s)}
+                        style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.78rem', fontWeight: 500, color: '#6B5D4E', cursor: 'pointer' }}
+                      >
+                        {activeCharacter ? '↺ Change character' : '☆ Use a saved character'}
+                      </button>
+                      {activeCharacter && (
+                        <button
+                          onClick={() => { setActiveCharacter(null); setShowCharacterSwap(false); }}
+                          style={{ background: 'transparent', border: 'none', fontSize: '0.78rem', color: '#9A8878', cursor: 'pointer', marginLeft: '0.5rem' }}
+                        >
+                          Reset to today's character
+                        </button>
+                      )}
+                      {showCharacterSwap && (
+                        <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: 200, overflowY: 'auto' }}>
+                          {savedCharacters.map(c => {
+                            const name = c.character_data?.name;
+                            const profession = c.character_data?.profession;
+                            const label = [name, profession].filter(Boolean).join(' — ') || 'Unnamed character';
+                            return (
+                              <button
+                                key={c.id}
+                                onClick={() => { setActiveCharacter(c.character_data); setShowCharacterSwap(false); }}
+                                style={{ textAlign: 'left', background: activeCharacter === c.character_data ? '#EAF4FB' : '#F5EFE6', border: `1px solid ${activeCharacter === c.character_data ? '#5B9EC9' : '#D9C9B0'}`, borderRadius: '8px', padding: '0.5rem 0.85rem', fontSize: '0.82rem', color: '#3A3226', cursor: 'pointer' }}
+                              >
+                                {label}
+                                {c.genre && <span style={{ color: '#9A8878', marginLeft: '0.5rem', fontSize: '0.75rem' }}>{c.genre}</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Non-premium upsell banner */}
+                  {!isPremium && (
+                    <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '8px', padding: '0.65rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.82rem', color: '#9A6830' }}>
+                        ✦ <strong>Premium</strong> — use your own saved characters on character days
+                      </span>
+                      <a href="mailto:fictifly@gmail.com?subject=Premium Upgrade"
+                        style={{ fontSize: '0.78rem', fontWeight: 600, color: '#B56840', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                        Upgrade →
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Write button */}
+                  {dailyWritten ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ background: '#F0F7ED', border: '1px solid #6BAF72', color: '#3A7040', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
+                      <button onClick={handleOpenDailyPrompt} style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer' }}>Edit story</button>
+                    </div>
+                  ) : (
+                    <button onClick={handleOpenDailyPrompt} style={{ background: '#D4845A', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+                      Write this character's story →
+                    </button>
+                  )}
                 </div>
               ) : (
-                <button onClick={handleOpenDailyPrompt}
-                  style={{ background: '#D4845A', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
-                  Write today's story →
-                </button>
+                // ── Standard day card ─────────────────────────────────────────
+                <div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', minWidth: 52 }}>Action</span>
+                      <span style={{ fontSize: '1.15rem', fontWeight: 500, color: '#3A3226', fontStyle: 'italic' }}>{dailyPrompt.action}</span>
+                    </div>
+                    <div style={{ height: '1px', background: '#EDE3D4' }} />
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', minWidth: 52 }}>Word</span>
+                      <span style={{ fontSize: '1.15rem', fontWeight: 500, color: '#2E6DA4', fontStyle: 'italic' }}>{dailyPrompt.word}</span>
+                    </div>
+                  </div>
+                  {dailyWritten ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ background: '#F0F7ED', border: '1px solid #6BAF72', color: '#3A7040', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
+                      <button onClick={handleOpenDailyPrompt} style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer' }}>Edit story</button>
+                    </div>
+                  ) : (
+                    <button onClick={handleOpenDailyPrompt} style={{ background: '#D4845A', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+                      Write today's story →
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           ) : (
@@ -575,7 +700,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {canAccessBeta && (
+        {canAccessBeta && BETA_FEATURES.length > 0 && (
           <div style={{ marginBottom: '2rem' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginBottom: '1rem' }}>
               <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Beta features</h2>

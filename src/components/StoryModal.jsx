@@ -182,6 +182,33 @@ export default function StoryModal({ prompt, onClose, onSaved, assignmentId, dai
           </div>
         )}
 
+        {prompt.characterContext && (
+          <div style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.85rem 1rem', marginBottom: '1.25rem' }}>
+            <div style={{ fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.5rem' }}>Your character</div>
+            {prompt.characterContext.name && (
+              <div style={{ fontFamily: "'Fraunces', serif", fontSize: '1rem', fontWeight: 600, color: '#3A3226', marginBottom: '0.4rem' }}>{prompt.characterContext.name}</div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              {[
+                { label: 'Profession', val: prompt.characterContext.profession },
+                { label: 'Personality', val: prompt.characterContext.personality },
+                { label: 'Flaw', val: prompt.characterContext.flaw },
+                { label: 'Motivation', val: prompt.characterContext.motivation },
+              ].filter(r => r.val).map(r => (
+                <div key={r.label} style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9A8878', minWidth: 66, flexShrink: 0 }}>{r.label}</span>
+                  <span style={{ fontFamily: "'Fraunces', serif", fontSize: '0.88rem', color: '#3A3226', lineHeight: 1.5 }}>{r.val}</span>
+                </div>
+              ))}
+            </div>
+            {prompt.characterContext.writing_prompt && (
+              <div style={{ marginTop: '0.65rem', paddingTop: '0.65rem', borderTop: '1px solid #D9C9B0', fontFamily: "'Fraunces', serif", fontSize: '0.9rem', fontStyle: 'italic', color: '#6B5D4E', lineHeight: 1.6 }}>
+                {prompt.characterContext.writing_prompt}
+              </div>
+            )}
+          </div>
+        )}
+
         {isStudent && assignmentId && (
           <div style={{ background: '#EAF4FB', border: '1px solid #5B9EC9', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.82rem', color: '#2E6DA4' }}>
             📋 This story will be submitted to your teacher.
