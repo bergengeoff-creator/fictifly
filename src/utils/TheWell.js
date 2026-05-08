@@ -101,32 +101,6 @@ export default function TheWell({
     );
   }
 
-  // Gear teeth helper — renders N teeth around origin
-  const teeth = (n, r, len, sw, color) => {
-    return Array.from({length:n}, (_,i) => {
-      const a = (i / n) * Math.PI * 2;
-      const x1 = Math.cos(a) * r, y1 = Math.sin(a) * r;
-      const x2 = Math.cos(a) * (r+len), y2 = Math.sin(a) * (r+len);
-      return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={sw}/>;
-    });
-  };
-
-  // Gear component
-  const Gear = ({cx, cy, r, n, fill, stroke, spoke, cls}) => (
-    <g transform={`translate(${cx},${cy})`} className={cls}>
-      <circle r={r+4} fill="none" stroke={stroke} strokeWidth="1.5"/>
-      <circle r={r} fill={fill} stroke={stroke} strokeWidth="1"/>
-      <circle r={r*0.28} fill={stroke} stroke={fill} strokeWidth="0.8"/>
-      {teeth(n, r, 5, 2.5, stroke)}
-      {spoke && <>
-        <line x1={-r*0.8} y1="0" x2={r*0.8} y2="0" stroke={spoke} strokeWidth="1.2"/>
-        <line x1="0" y1={-r*0.8} x2="0" y2={r*0.8} stroke={spoke} strokeWidth="1.2"/>
-        <line x1={-r*0.56} y1={-r*0.56} x2={r*0.56} y2={r*0.56} stroke={spoke} strokeWidth="0.8"/>
-        <line x1={r*0.56} y1={-r*0.56} x2={-r*0.56} y2={r*0.56} stroke={spoke} strokeWidth="0.8"/>
-      </>}
-    </g>
-  );
-
   // ── Medium ─────────────────────────────────────────────────────────────
   if (size === 'medium') {
     return (
