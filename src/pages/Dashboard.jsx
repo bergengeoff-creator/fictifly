@@ -382,7 +382,7 @@ export default function Dashboard() {
           {accountLabel}
         </p>
 
-        {isNewUser && (
+        {(isNewUser || showTrialWelcome) && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
             <TheWell size="medium" darkBg={false} style={{ marginBottom: '1rem' }} />
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
