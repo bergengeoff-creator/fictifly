@@ -15,6 +15,7 @@ import PublicProfile from './pages/PublicProfile';
 import VerifyEmail from './pages/VerifyEmail';
 import AuthCallback from './pages/AuthCallback';
 import WriterDirectory from './pages/WriterDirectory';
+import Onboarding from './pages/Onboarding';
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/profile-setup" element={<ProtectedRoute><ProfileSetup /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

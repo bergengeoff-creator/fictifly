@@ -101,7 +101,7 @@ function RecoveryPhraseScreen({ recoveryPhrase, createdUserId, onError, error })
       });
       const data = await response.json();
       if (!data.success) throw new Error(data.error);
-      navigate('/profile-setup');
+      navigate('/onboarding');
     } catch {
       onError('Failed to save recovery phrase. Please try again.');
     }
@@ -307,7 +307,7 @@ export default function Signup() {
     if (requireApproval) {
       setShowPendingApproval(true);
     } else {
-      navigate('/profile-setup');
+      navigate('/onboarding');
     }
   };
 

@@ -71,7 +71,7 @@ export default function AuthCallback() {
       if (profile?.profile_complete) {
         navigate('/dashboard', { replace: true });
       } else {
-        navigate('/profile-setup', { replace: true });
+        navigate('/onboarding', { replace: true });
       }
     };
 
