@@ -129,7 +129,6 @@ export default function TheWell({
 
   // ── Medium ─────────────────────────────────────────────────────────────
   if (size === 'medium') {
-    // Tighter composition — gears hug the inkwell
     return (
       <span className={className} style={{ display:'inline-block', width:px, height:px, ...style }}>
         <style>{css}</style>
@@ -145,70 +144,107 @@ export default function TheWell({
               <feGaussianBlur stdDeviation="3" result="blur"/>
               <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
-            <clipPath id={`wc-${uid}`}><ellipse cx="120" cy="125" rx="38" ry="40"/></clipPath>
+            <clipPath id={`wc-${uid}`}><ellipse cx="120" cy="120" rx="38" ry="40"/></clipPath>
           </defs>
           {darkBg && <rect width="240" height="240" fill="#1A1610"/>}
 
-          {/* Gears mounted on the body */}
-          <Gear cx={54}  cy={108} r={22} n={12} fill="#2A1808" stroke="#B8903A" spoke="#6A4010" cls={`c${uid}-gs`}/>
-          <Gear cx={186} cy={108} r={18} n={10} fill="#2A1808" stroke="#C8A060" spoke="#6A4010" cls={`c${uid}-gsr`}/>
-          <Gear cx={120} cy={48}  r={14} n={8}  fill="#2A1808" stroke="#E8C888" spoke={null}     cls={`c${uid}-gs2`}/>
-          <Gear cx={120} cy={195} r={13} n={8}  fill="#2A1808" stroke="#D4845A" spoke={null}     cls={`c${uid}-gsr2`}/>
+          {/* Large gear LEFT */}
+          <g transform="translate(46,112)" className={`c${uid}-gs`}>
+            <circle r="28" fill="none" stroke="#B8903A" strokeWidth="1.8"/>
+            <circle r="23" fill="#2A1808" stroke="#7A5A18" strokeWidth="1"/>
+            <circle r="6.5" fill="#B8903A" stroke="#7A5A18" strokeWidth="1"/>
+            {Array.from({length:12},(_,i) => {
+              const a=(i/12)*Math.PI*2;
+              return <line key={i} x1={Math.cos(a)*23} y1={Math.sin(a)*23} x2={Math.cos(a)*30} y2={Math.sin(a)*30} stroke="#B8903A" strokeWidth="2.2"/>;
+            })}
+            <line x1="-18" y1="0" x2="18" y2="0" stroke="#7A5A18" strokeWidth="1.2"/>
+            <line x1="0" y1="-18" x2="0" y2="18" stroke="#7A5A18" strokeWidth="1.2"/>
+            <line x1="-13" y1="-13" x2="13" y2="13" stroke="#7A5A18" strokeWidth="0.8"/>
+            <line x1="13" y1="-13" x2="-13" y2="13" stroke="#7A5A18" strokeWidth="0.8"/>
+          </g>
+
+          {/* Glass letter gear RIGHT */}
+          <g transform="translate(194,112)" className={`c${uid}-gsr`}>
+            <circle r="24" fill="none" stroke="#C8A060" strokeWidth="1.8"/>
+            <circle r="19" fill="#1A2A3A" opacity="0.95"/>
+            <circle r="19" fill="none" stroke="#C8A060" strokeWidth="1.2"/>
+            <ellipse cx="-5" cy="-7" rx="6" ry="3.5" fill="white" opacity="0.04" transform="rotate(-20,-5,-7)"/>
+            {[0,90,180,270].map((deg,i) => {
+              const a=deg*Math.PI/180;
+              return <circle key={i} cx={Math.cos(a)*19} cy={Math.sin(a)*19} r="1.5" fill="#E8C888" stroke="#7A5A18" strokeWidth="0.4"/>;
+            })}
+            {Array.from({length:10},(_,i) => {
+              const a=(i/10)*Math.PI*2;
+              return <line key={i} x1={Math.cos(a)*19} y1={Math.sin(a)*19} x2={Math.cos(a)*26} y2={Math.sin(a)*26} stroke="#C8A060" strokeWidth="2"/>;
+            })}
+          </g>
+
+          {/* Letter — fixed over glass porthole */}
+          <text
+            x="194" y="117"
+            textAnchor="middle"
+            fontFamily="'Fraunces',Georgia,serif"
+            fontSize="18"
+            fontStyle="italic"
+            fill="#C8A060"
+            opacity={letterVisible ? 0.75 : 0}
+            className={`c${uid}-letter`}
+          >{LETTERS[letterIdx]}</text>
 
           {/* Connector pipes */}
-          <line x1="76"  y1="108" x2="84"  y2="108" stroke="#6A4010" strokeWidth="3"/>
-          <line x1="156" y1="108" x2="164" y2="108" stroke="#6A4010" strokeWidth="3"/>
-          <line x1="120" y1="62"  x2="120" y2="80"  stroke="#6A4010" strokeWidth="3"/>
-          <line x1="120" y1="182" x2="120" y2="168" stroke="#6A4010" strokeWidth="3"/>
+          <line x1="74"  y1="112" x2="82"  y2="112" stroke="#7A5A18" strokeWidth="2.5"/>
+          <line x1="158" y1="112" x2="168" y2="112" stroke="#7A5A18" strokeWidth="2.5"/>
 
           {/* Inkwell body */}
-          <ellipse cx="120" cy="122" rx="58" ry="62" fill="#2A1808" stroke="#B8903A" strokeWidth="2.5"/>
-          <ellipse cx="120" cy="122" rx="53" ry="57" fill="#1E1208" stroke="#7A5A18" strokeWidth="1"/>
-          <ellipse cx="120" cy="122" rx="48" ry="52" fill="none" stroke="#7A5A18" strokeWidth="0.6" strokeDasharray="3,3"/>
+          <ellipse cx="120" cy="120" rx="58" ry="60" fill="#2A1808" stroke="#B8903A" strokeWidth="2.5"/>
+          <ellipse cx="120" cy="120" rx="52" ry="54" fill="#1E1208" stroke="#7A5A18" strokeWidth="1"/>
+          <ellipse cx="120" cy="120" rx="46" ry="48" fill="none" stroke="#7A5A18" strokeWidth="0.6" strokeDasharray="3,3"/>
 
-          {/* Brass collar */}
-          <path d="M70 100 Q120 93 170 100 Q170 110 120 114 Q70 110 70 100Z" fill={`url(#br-${uid})`} stroke="#7A5A18" strokeWidth="0.8"/>
-          {[78,96,114,132,150,162].map(x => <circle key={x} cx={x} cy="106" r="2" fill="#E8C888" stroke="#7A5A18" strokeWidth="0.5"/>)}
-          <path d="M73 138 Q120 146 167 138 Q167 148 120 152 Q73 148 73 138Z" fill="#B8903A" stroke="#7A5A18" strokeWidth="0.8"/>
+          {/* Brass collar top */}
+          <path d="M70 98 Q120 91 170 98 Q170 108 120 112 Q70 108 70 98Z" fill={`url(#br-${uid})`} stroke="#7A5A18" strokeWidth="0.8"/>
+          {[80,96,112,128,144,158].map(x => <circle key={x} cx={x} cy="104" r="1.8" fill="#E8C888" stroke="#7A5A18" strokeWidth="0.4"/>)}
+
+          {/* Brass collar bottom */}
+          <path d="M73 136 Q120 144 167 136 Q167 146 120 150 Q73 146 73 136Z" fill="#B8903A" stroke="#7A5A18" strokeWidth="0.8"/>
 
           {/* Ink pool */}
-          <ellipse cx="120" cy="122" rx="40" ry="42" fill="#0A0A18"/>
-          <ellipse cx="120" cy="122" rx="36" ry="38" fill={`url(#ip-${uid})`} className={`c${uid}-gw1`} filter={`url(#igf-${uid})`}/>
-          <ellipse cx="120" cy="122" rx="25" ry="27" fill="#0A1A38" opacity="0.6"/>
+          <ellipse cx="120" cy="120" rx="40" ry="42" fill="#0A0A18"/>
+          <ellipse cx="120" cy="120" rx="36" ry="38" fill={`url(#ip-${uid})`} className={`c${uid}-gw1`} filter={`url(#igf-${uid})`}/>
+          <ellipse cx="120" cy="120" rx="25" ry="27" fill="#0A1A38" opacity="0.6"/>
           <g clipPath={`url(#wc-${uid})`}>
-            <text x="120" y="125" textAnchor="middle" fontFamily="'Fraunces',Georgia,serif" fontSize="5.5" fontStyle="italic" letterSpacing="1.5" fill="#A8D4F0" opacity="0.13" className={`c${uid}-gt`}>de la tinta, tot</text>
+            <text x="120" y="123" textAnchor="middle" fontFamily="'Fraunces',Georgia,serif" fontSize="5.5" fontStyle="italic" letterSpacing="1.5" fill="#A8D4F0" opacity="0.13" className={`c${uid}-gt`}>de la tinta, tot</text>
           </g>
-          <ellipse cx="119" cy="118" rx="16" ry="17" fill="#2E6DA4" opacity="0.35" className={`c${uid}-gw2`}/>
-          <ellipse cx="118" cy="116" rx="8"  ry="8.5" fill="#5B9EC9" opacity="0.3" className={`c${uid}-gw3`}/>
-          <ellipse cx="117" cy="115" rx="3.5" ry="4" fill="#A8D4F0" opacity="0.5"/>
-          <ellipse cx="116" cy="114" rx="1.8" ry="2" fill="white" opacity="0.75"/>
-          <ellipse cx="120" cy="122" rx="36" ry="38" fill="none" stroke="#5B9EC9" strokeWidth="0.8" opacity="0.4"/>
+          <ellipse cx="118" cy="116" rx="16" ry="17" fill="#2E6DA4" opacity="0.35" className={`c${uid}-gw2`}/>
+          <ellipse cx="116" cy="113" rx="8" ry="8.5" fill="#5B9EC9" opacity="0.3" className={`c${uid}-gw3`}/>
+          <ellipse cx="114" cy="111" rx="3.5" ry="4" fill="#A8D4F0" opacity="0.5"/>
+          <ellipse cx="112" cy="109" rx="1.8" ry="2" fill="white" opacity="0.75"/>
+          <ellipse cx="120" cy="120" rx="36" ry="38" fill="none" stroke="#5B9EC9" strokeWidth="0.8" opacity="0.4"/>
 
           {/* Magnifying glass */}
-          <circle cx="120" cy="115" r="28" fill="none" stroke="#C8A060" strokeWidth="4"/>
-          <circle cx="120" cy="115" r="25" fill="none" stroke="#E8C888" strokeWidth="1"/>
-          <ellipse cx="112" cy="107" rx="11" ry="6" fill="white" opacity="0.05" transform="rotate(-20,112,107)"/>
-          <rect x="138" y="130" width="6" height="26" rx="3" fill={`url(#br-${uid})`} stroke="#7A5A18" strokeWidth="0.8" transform="rotate(35,141,143)"/>
+          <circle cx="120" cy="113" r="28" fill="none" stroke="#C8A060" strokeWidth="4"/>
+          <circle cx="120" cy="113" r="25" fill="none" stroke="#E8C888" strokeWidth="1"/>
+          <ellipse cx="111" cy="105" rx="11" ry="6" fill="white" opacity="0.04" transform="rotate(-20,111,105)"/>
+          <rect x="138" y="128" width="6" height="24" rx="3" fill={`url(#br-${uid})`} stroke="#7A5A18" strokeWidth="0.8" transform="rotate(35,141,140)"/>
 
           {/* Smoke */}
-          <g className={`c${uid}-sm1`} opacity="0.4"><path d="M114 86 Q111 79 114 72" stroke="#5B9EC9" strokeWidth="1.5" fill="none" strokeLinecap="round"/></g>
-          <g className={`c${uid}-sm2`} opacity="0.35"><path d="M120 84 Q123 77 120 70" stroke="#5B9EC9" strokeWidth="1.5" fill="none" strokeLinecap="round"/></g>
-          <g className={`c${uid}-sm3`} opacity="0.3"><path d="M126 86 Q129 78 126 71" stroke="#5B9EC9" strokeWidth="1.5" fill="none" strokeLinecap="round"/></g>
+          <g className={`c${uid}-sm1`} opacity="0.4"><path d="M114 84 Q111 77 114 70" stroke="#5B9EC9" strokeWidth="1.5" fill="none" strokeLinecap="round"/></g>
+          <g className={`c${uid}-sm2`} opacity="0.35"><path d="M120 82 Q123 75 120 68" stroke="#5B9EC9" strokeWidth="1.5" fill="none" strokeLinecap="round"/></g>
+          <g className={`c${uid}-sm3`} opacity="0.3"><path d="M126 84 Q129 77 126 70" stroke="#5B9EC9" strokeWidth="1.5" fill="none" strokeLinecap="round"/></g>
 
           {/* Gauges */}
-          <circle cx="78"  cy="148" r="10" fill="#0A0808" stroke="#C8A060" strokeWidth="1.5"/>
-          <circle cx="78"  cy="148" r="7"  fill="#0A0808" stroke="#7A5A18" strokeWidth="0.8"/>
-          <line x1="78" y1="148" x2="82" y2="143" stroke="#D4845A" strokeWidth="1.5" strokeLinecap="round"/>
-          <circle cx="78" cy="148" r="1.5" fill="#C8A060"/>
-          <circle cx="162" cy="148" r="8"  fill="#0A0808" stroke="#C8A060" strokeWidth="1.2"/>
-          <circle cx="162" cy="148" r="5"  fill="#0A0808" stroke="#7A5A18" strokeWidth="0.8"/>
-          <line x1="162" y1="148" x2="159" y2="144" stroke="#5B9EC9" strokeWidth="1.2" strokeLinecap="round"/>
-          <circle cx="162" cy="148" r="1.2" fill="#C8A060"/>
+          <circle cx="76" cy="144" r="10" fill="#0A0808" stroke="#C8A060" strokeWidth="1.5"/>
+          <circle cx="76" cy="144" r="7" fill="#0A0808" stroke="#7A5A18" strokeWidth="0.8"/>
+          <line x1="76" y1="144" x2="80" y2="138" stroke="#D4845A" strokeWidth="1.5" strokeLinecap="round"/>
+          <circle cx="76" cy="144" r="2" fill="#C8A060"/>
+          <circle cx="164" cy="144" r="8" fill="#0A0808" stroke="#C8A060" strokeWidth="1.2"/>
+          <circle cx="164" cy="144" r="5" fill="#0A0808" stroke="#7A5A18" strokeWidth="0.8"/>
+          <line x1="164" y1="144" x2="161" y2="139" stroke="#5B9EC9" strokeWidth="1.2" strokeLinecap="round"/>
+          <circle cx="164" cy="144" r="1.5" fill="#C8A060"/>
 
           {/* Sparkles */}
-          <g className={`c${uid}-sp1`}><path d="M52 62 L54 57 L56 62 L54 67Z" fill="#E8C888" opacity="0.8"/></g>
-          <g className={`c${uid}-sp2`}><path d="M188 62 L190 57 L192 62 L190 67Z" fill="#D4845A" opacity="0.7"/></g>
-          <g className={`c${uid}-sp3`}><path d="M120 22 L122 17 L124 22 L122 27Z" fill="#5B9EC9" opacity="0.6"/></g>
+          <g className={`c${uid}-sp1`}><path d="M50 65 L52 60 L54 65 L52 70Z" fill="#E8C888" opacity="0.7"/></g>
+          <g className={`c${uid}-sp2`}><path d="M186 65 L188 60 L190 65 L188 70Z" fill="#D4845A" opacity="0.6"/></g>
+          <g className={`c${uid}-sp3`}><path d="M120 28 L122 23 L124 28 L122 33Z" fill="#5B9EC9" opacity="0.5"/></g>
         </svg>
       </span>
     );
