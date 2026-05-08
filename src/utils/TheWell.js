@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useState, useEffect } from 'react';
 
 /**
  * TheWell — Fictifly's visual identity mark.
@@ -21,6 +21,30 @@ export default function TheWell({
   const px = { full: 480, medium: 240, icon: 48 }[size] || 480;
   const an = animate ? '' : 'animation:none!important;';
 
+  // Letter cycling for the glass gear porthole — "fictifly" one letter at a time
+  const LETTERS = ['f','i','c','t','i','f','l','y'];
+  const GEAR_DURATION_MS = 7000; // matches gsr animation duration
+  const PER_LETTER_MS = GEAR_DURATION_MS / LETTERS.length;
+  const [letterIdx, setLetterIdx] = useState(0);
+  const [letterVisible, setLetterVisible] = useState(true);
+
+  useEffect(() => {
+    if (!animate || size === 'icon') return;
+    const cycle = () => {
+      setLetterVisible(false);
+      setTimeout(() => {
+        setLetterIdx(i => (i + 1) % LETTERS.length);
+        setLetterVisible(true);
+        setTimeout(() => setLetterVisible(false), PER_LETTER_MS * 0.55);
+      }, PER_LETTER_MS * 0.2);
+    };
+    setLetterVisible(true);
+    setTimeout(() => setLetterVisible(false), PER_LETTER_MS * 0.55);
+    const interval = setInterval(cycle, PER_LETTER_MS);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [animate, size]);
+
   const css = `
     @keyframes cab-gs-${uid}  { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
     @keyframes cab-gsr-${uid} { from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
@@ -35,6 +59,7 @@ export default function TheWell({
     .c${uid}-gs2 { animation:cab-gs-${uid}   5s linear infinite; transform-box:fill-box; transform-origin:center; ${an} }
     .c${uid}-gsr2{ animation:cab-gsr-${uid}  6s linear infinite; transform-box:fill-box; transform-origin:center; ${an} }
     .c${uid}-gs3 { animation:cab-gs-${uid}   4s linear infinite; transform-box:fill-box; transform-origin:center; ${an} }
+    .c${uid}-letter { transition: opacity ${Math.round(PER_LETTER_MS * 0.2)}ms ease; }
     .c${uid}-fl1 { animation:cab-fl-${uid} 4.5s ease-in-out infinite 0.2s; ${an} }
     .c${uid}-fl2 { animation:cab-fl-${uid} 5.5s ease-in-out infinite 1s; ${an} }
     .c${uid}-fl3 { animation:cab-fl-${uid} 4s ease-in-out infinite 2s; ${an} }
@@ -232,18 +257,39 @@ export default function TheWell({
           <line x1="24" y1="-24" x2="-24" y2="24" stroke="#7A5A18" strokeWidth="1"/>
         </g>
 
-        {/* ── Medium gear — right, hugging the body ── */}
+        {/* ── Medium gear RIGHT — glass porthole with fictifly letters ── */}
         <g transform="translate(378,240)" className={`c${uid}-gsr`}>
           <circle r="40" fill="none" stroke="#C8A060" strokeWidth="2"/>
-          <circle r="34" fill="#2A1808" stroke="#7A5A18" strokeWidth="1.5"/>
-          <circle r="10" fill="#C8A060" stroke="#7A5A18" strokeWidth="1.5"/>
+          {/* Glass interior — dark translucent */}
+          <circle r="34" fill="#1A2A3A" opacity="0.95"/>
+          <circle r="34" fill="none" stroke="#C8A060" strokeWidth="1.5"/>
+          {/* Glass sheen */}
+          <ellipse cx="-8" cy="-12" rx="10" ry="6" fill="white" opacity="0.04" transform="rotate(-20,-8,-12)"/>
+          {/* Rivets around glass frame */}
+          {[0,45,90,135,180,225,270,315].map((deg,i) => {
+            const a = deg * Math.PI / 180;
+            return <circle key={i} cx={Math.round(Math.cos(a)*34*10)/10} cy={Math.round(Math.sin(a)*34*10)/10} r="2" fill="#E8C888" stroke="#7A5A18" strokeWidth="0.5"/>;
+          })}
+          {/* Gear teeth */}
           {Array.from({length:12},(_,i) => {
             const a=(i/12)*Math.PI*2, x1=Math.cos(a)*34, y1=Math.sin(a)*34, x2=Math.cos(a)*42, y2=Math.sin(a)*42;
             return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#C8A060" strokeWidth="2.5"/>;
           })}
-          <line x1="-26" y1="0" x2="26" y2="0" stroke="#7A5A18" strokeWidth="1.5"/>
-          <line x1="0" y1="-26" x2="0" y2="26" stroke="#7A5A18" strokeWidth="1.5"/>
         </g>
+
+        {/* ── Letter porthole — fixed position, letter fades in/out ── */}
+        <text
+          x="378" y="247"
+          textAnchor="middle"
+          fontFamily="'Fraunces',Georgia,serif"
+          fontSize="26"
+          fontStyle="italic"
+          fill="#C8A060"
+          opacity={letterVisible ? 0.78 : 0}
+          className={`c${uid}-letter`}
+        >{LETTERS[letterIdx]}</text>
+
+
 
         {/* ── Small gear — top ── */}
         <g transform="translate(240,122)" className={`c${uid}-gs2`}>
