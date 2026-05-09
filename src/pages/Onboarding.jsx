@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 
+import FictiflyLogo from '../components/FictiflyLogo';
+
 // ── Brand tokens ────────────────────────────────────────────────────────────
 const B = {
   sand: '#F5EFE6', sandMid: '#EDE3D4', sandDeep: '#D9C9B0',
@@ -770,9 +772,7 @@ export default function Onboarding() {
       <div style={{ maxWidth:640, margin:'0 auto' }}>
         {/* Logo */}
         <div style={{ marginBottom:'2.5rem' }}>
-          <span style={{ fontFamily:"'Fraunces',serif", fontSize:'1.5rem', fontWeight:600, color: B.ink }}>
-            ficti<span style={{ color: B.terra }}>fly</span>
-          </span>
+          <FictiflyLogo width={200} />
         </div>
 
         {isTeacher

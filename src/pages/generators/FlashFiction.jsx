@@ -6,6 +6,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../context/AuthContext';
 import { playAudioCue, playBadgeCue } from '../../utils/audioCue';
+import FictiflyLogo from '../../components/FictiflyLogo';
 
 const GENRES = [
   "Action/Adventure","Comedy","Crime Caper","Drama","Fairy Tale","Fantasy",
@@ -34,21 +35,6 @@ const INSTRUCTIONS = {
   500: <>Three ingredients, one story. The <strong style={{ color:"#3A3226", fontWeight:600 }}>action</strong> is your spark — it must happen somewhere in your narrative, whether your character lives it in the moment, revisits it in a flashback, or stumbles through it in a dream. The <strong style={{ color:"#3A3226", fontWeight:600 }}>object</strong> must make a physical appearance somewhere in your story — it's not just a metaphor, it has to show up. The <strong style={{ color:"#3A3226", fontWeight:600 }}>genre</strong> is your playground.</>,
   1000: <>Three ingredients, one story. The <strong style={{ color:"#3A3226", fontWeight:600 }}>location</strong> is your world — it must be the predominant setting of your story. Other places may appear, but your assigned location takes center stage. The <strong style={{ color:"#3A3226", fontWeight:600 }}>object</strong> must make a physical appearance somewhere in your narrative — it's not just a metaphor, it has to show up. The <strong style={{ color:"#3A3226", fontWeight:600 }}>genre</strong> is your playground.</>,
 };
-
-const FictiflyLogo = () => (
-  <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '200px', height: '35px', display: 'block' }}>
-    <text x="0" y="28" fontSize="28" fontWeight="600" letterSpacing="-1.5" fontFamily="system-ui, sans-serif">
-      <tspan fill="#3A3226">ficti</tspan><tspan fill="#D4845A">fly</tspan>
-    </text>
-    <rect x="0" y="34" width="16" height="3" rx="1.5" fill="#5B9EC9" opacity="0.35"/>
-    <rect x="20" y="33" width="19" height="4" rx="2" fill="#5B9EC9" opacity="0.55"/>
-    <rect x="43" y="32" width="21" height="5" rx="2.5" fill="#5B9EC9" opacity="0.75"/>
-    <rect x="68" y="31" width="24" height="6" rx="3" fill="#5B9EC9"/>
-    <rect x="96" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
-    <rect x="124" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
-    <rect x="152" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
-  </svg>
-);
 
 const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritten, isPremium, onAddStory, onAssign, isTeacher }) => {
   const [copied, setCopied] = useState(false);

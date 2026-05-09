@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import BadgeToast from '../../components/BadgeToast';
 
 import { playAudioCue, playBadgeCue } from '../../utils/audioCue';
+import FictiflyLogo from '../../components/FictiflyLogo';
 
 const B = {
   sand: '#F5EFE6', sandMid: '#EDE3D4', sandDeep: '#D9C9B0',
@@ -132,21 +133,6 @@ const SCIFI_SETTINGS = [
   'Uploaded consciousness society',
   'Asteroid belt mining frontier',
 ];
-
-const FictiflyLogo = () => (
-  <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '200px', height: '35px', display: 'block' }}>
-    <text x="0" y="28" fontSize="28" fontWeight="600" letterSpacing="-1.5" fontFamily="system-ui, sans-serif">
-      <tspan fill="#3A3226">ficti</tspan><tspan fill="#D4845A">fly</tspan>
-    </text>
-    <rect x="0" y="34" width="16" height="3" rx="1.5" fill="#5B9EC9" opacity="0.35"/>
-    <rect x="20" y="33" width="19" height="4" rx="2" fill="#5B9EC9" opacity="0.55"/>
-    <rect x="43" y="32" width="21" height="5" rx="2.5" fill="#5B9EC9" opacity="0.75"/>
-    <rect x="68" y="31" width="24" height="6" rx="3" fill="#5B9EC9"/>
-    <rect x="96" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
-    <rect x="124" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
-    <rect x="152" y="31" width="24" height="6" rx="3" fill="none" stroke="#D9C9B0" strokeWidth="1"/>
-  </svg>
-);
 
 const Label = ({ children }) => (
   <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: B.inkLight }}>
