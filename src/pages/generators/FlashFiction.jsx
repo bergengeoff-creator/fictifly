@@ -349,7 +349,9 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
 
         <div style={{ textAlign:'center', marginBottom:'2rem' }}>
           <svg width="52" height="24" viewBox="0 0 52 24" fill="none" style={{ marginBottom:'1.2rem' }}>
-            <path d="M4 16 C10 7, 18 7, 26 16 C34 25, 42 25, 48 16" stroke={B.seaMid} strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+            <path d="M26 4 C20 4, 8 6, 4 8 L4 22 C8 20, 20 18, 26 20Z" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            <path d="M26 4 C32 4, 44 6, 48 8 L48 22 C44 20, 32 18, 26 20Z" stroke={B.terra} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
+            <line x1="26" y1="4" x2="26" y2="20" stroke="#3A3226" strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
           </svg>
           <div style={{ fontSize:'0.68rem', fontWeight:600, letterSpacing:'0.2em', textTransform:'uppercase', color:B.terra, marginBottom:'0.8rem' }}>Flash Fiction Challenge</div>
           <h1 style={{ fontFamily:"'Fraunces', serif", fontSize:'clamp(2.2rem, 6.5vw, 3.6rem)', fontWeight:700, color:B.ink, lineHeight:1.08, letterSpacing:'-0.02em', marginBottom:'1rem' }}>

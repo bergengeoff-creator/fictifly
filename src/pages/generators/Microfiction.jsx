@@ -332,7 +332,9 @@ Respond ONLY with a JSON array, no markdown, no explanation:
 
         <div style={{ textAlign:'center', marginBottom:'2rem' }}>
           <svg width="52" height="24" viewBox="0 0 52 24" fill="none" style={{ marginBottom:'1.2rem' }}>
-            <path d="M4 16 C10 7, 18 7, 26 16 C34 25, 42 25, 48 16" stroke={B.seaMid} strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+            <path d="M26 3 C26 3, 20 10, 20 14 C20 17.3, 22.7 20, 26 20 C29.3 20, 32 17.3, 32 14 C32 10, 26 3, 26 3Z" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            <path d="M8 17 C11 13, 15 13, 18 17" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
+            <path d="M34 17 C37 13, 41 13, 44 17" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
           </svg>
           <div style={{ fontSize:'0.68rem', fontWeight:600, letterSpacing:'0.2em', textTransform:'uppercase', color:B.terra, marginBottom:'0.8rem' }}>Microfiction Challenge</div>
           <h1 style={{ fontFamily:"'Fraunces', serif", fontSize:'clamp(2.2rem, 6.5vw, 3.6rem)', fontWeight:700, color:B.ink, lineHeight:1.08, letterSpacing:'-0.02em', marginBottom:'1rem' }}>
