@@ -753,10 +753,6 @@ export default function Onboarding() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user]);
 
-  useEffect(() => {
-    if (!authLoading && profile?.profile_complete) navigate('/dashboard');
-  }, [authLoading, profile, navigate]);
-
   if (authLoading || !profile) {
     return (
       <div style={{ minHeight:'100vh', background: B.sand, display:'flex', alignItems:'center', justifyContent:'center' }}>
