@@ -29,6 +29,17 @@ export default function TheWell({
   const ORBIT_MS = 16000;
   const SPIN_MS  = 10000;
 
+  const ORBIT_LETTERS = [
+    { angle: -89.5  }, // f top
+    { angle: -43.6  }, // t upper right
+    { angle:   0.1  }, // c right
+    { angle:  44.4  }, // i lower right
+    { angle:  90.0  }, // i bottom
+    { angle: 135.0  }, // f lower left
+    { angle: 178.4  }, // l left
+    { angle: -136.2 }, // y upper left
+  ];
+
   const [florX, setFlorX] = useState(FLOR_CX);
   const [florY, setFlorY] = useState(FLOR_CY);
   const [spinDeg, setSpinDeg] = useState(0);
