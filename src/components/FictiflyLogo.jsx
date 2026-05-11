@@ -23,21 +23,19 @@ export default function FictiflyLogo({ width = 260, style = {} }) {
       {/* Flor de Barcelona — first i dot */}
       <g>
         <circle cx="79.05" cy="33.44" r="3.54" style={{fill:'#d4845b',stroke:'#5a9eca',strokeMiterlimit:10}}/>
-        <path d="M75.63,34.27c-1.33-.41-2.3-1.66-2.3-3.13,0-1.81,1.47-3.27,3.27-3.27,1.39,0,2.58.87,3.05,2.09" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
-        <path d="M78.32,29.98c.47-1.23,1.66-2.11,3.06-2.11,1.81,0,3.27,1.47,3.27,3.27,0,1.42-.9,2.63-2.16,3.08" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
-        <path d="M79.74,36.9c-.4,1.35-1.66,2.34-3.14,2.34-1.81,0-3.27-1.47-3.27-3.27,0-1.45.94-2.67,2.24-3.11" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
-        <path d="M82.55,32.9c1.23.47,2.11,1.66,2.11,3.06,0,1.81-1.47,3.27-3.27,3.27-.94,0-1.79-.4-2.39-1.04" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
-        <path d="M78.99,38.2c-.34-.37-.6-.81-.75-1.3" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
+        <path d="M82.64,33.52c1.28.3,2.24,1.46,2.24,2.84,0,1.61-1.31,2.91-2.91,2.91-1.35,0-2.48-.92-2.82-2.16" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
+        <path d="M75.55,33.38c-1.33-.27-2.33-1.45-2.33-2.86,0-1.61,1.31-2.91,2.91-2.91,1.4,0,2.57.99,2.85,2.3" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
+        <path d="M78.88,37.34c-.4,1.13-1.48,1.94-2.75,1.94-1.61,0-2.91-1.31-2.91-2.91,0-1.29.84-2.38,2-2.77" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
+        <path d="M79.13,29.86c.3-1.29,1.46-2.24,2.84-2.24,1.61,0,2.91,1.31,2.91,2.91,0,1.4-.99,2.57-2.3,2.85" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
       </g>
 
       {/* Flor de Barcelona — second i dot */}
       <g>
         <circle cx="168.17" cy="33.33" r="3.54" style={{fill:'#d4845b',stroke:'#5a9eca',strokeMiterlimit:10}}/>
-        <path d="M164.75,34.16c-1.33-.41-2.3-1.66-2.3-3.13,0-1.81,1.47-3.27,3.27-3.27,1.39,0,2.58.87,3.05,2.09" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
-        <path d="M167.44,29.87c.47-1.23,1.66-2.11,3.06-2.11,1.81,0,3.27,1.47,3.27,3.27,0,1.42-.9,2.63-2.16,3.08" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
-        <path d="M168.86,36.79c-.4,1.35-1.66,2.34-3.14,2.34-1.81,0-3.27-1.47-3.27-3.27,0-1.45.94-2.67,2.24-3.11" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
-        <path d="M171.67,32.79c1.23.47,2.11,1.66,2.11,3.06,0,1.81-1.47,3.27-3.27,3.27-.94,0-1.79-.4-2.39-1.04" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
-        <path d="M168.11,38.09c-.34-.37-.6-.81-.75-1.3" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
+        <path d="M171.76,33.41c1.28.3,2.24,1.46,2.24,2.84,0,1.61-1.31,2.91-2.91,2.91-1.35,0-2.48-.92-2.82-2.16" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
+        <path d="M164.67,33.28c-1.33-.27-2.33-1.45-2.33-2.86,0-1.61,1.31-2.91,2.91-2.91,1.4,0,2.57.99,2.85,2.3" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
+        <path d="M168.01,37.23c-.4,1.13-1.48,1.94-2.75,1.94-1.61,0-2.91-1.31-2.91-2.91,0-1.29.84-2.38,2-2.77" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
+        <path d="M168.25,29.75c.3-1.29,1.46-2.24,2.84-2.24,1.61,0,2.91,1.31,2.91,2.91,0,1.4-.99,2.57-2.3,2.85" style={{fill:'none',stroke:'#5a9eca',strokeMiterlimit:10}}/>
       </g>
 
       {/* Cascading underline system */}
