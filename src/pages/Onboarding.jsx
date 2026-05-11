@@ -748,9 +748,14 @@ export default function Onboarding() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authLoading && !user) navigate('/login');
+    if (!authLoading && !user) { navigate('/login'); return; }
+    if (!authLoading && user) fetchProfile(user.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user]);
+
+  useEffect(() => {
     if (!authLoading && profile?.profile_complete) navigate('/dashboard');
-  }, [authLoading, user, profile, navigate]);
+  }, [authLoading, profile, navigate]);
 
   if (authLoading || !profile) {
     return (
