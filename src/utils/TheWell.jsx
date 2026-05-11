@@ -116,7 +116,7 @@ export default function TheWell({
     return (
       <span className={className} style={{ display:'inline-block', width:px, height:px, ...style }}>
         <style>{css}</style>
-        <svg width={px} height={px} viewBox="196 171 133 133" xmlns="http://www.w3.org/2000/svg">
+        <svg width={px} height={px} viewBox="185 162 158 158" xmlns="http://www.w3.org/2000/svg">
           {darkBg && <circle cx="264" cy="241" r="67" fill="#231f20"/>}
           <circle  cx="264"    cy="241.05" r="66.8"  fill="#20466d" className={`tw-p-${uid}`}/>
           <ellipse cx="262.7"  cy="236.12" rx="28.24" ry="30.49" fill="#2d6ea4" className={`tw-g1-${uid}`}/>

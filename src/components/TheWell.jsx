@@ -29,6 +29,17 @@ export default function TheWell({
   const ORBIT_MS = 16000;
   const SPIN_MS  = 10000;
 
+  const ORBIT_LETTERS = [
+    { angle: -89.5  }, // f top
+    { angle: -43.6  }, // t upper right
+    { angle:   0.1  }, // c right
+    { angle:  44.4  }, // i lower right
+    { angle:  90.0  }, // i bottom
+    { angle: 135.0  }, // f lower left
+    { angle: 178.4  }, // l left
+    { angle: -136.2 }, // y upper left
+  ];
+
   const [florX, setFlorX] = useState(FLOR_CX);
   const [florY, setFlorY] = useState(FLOR_CY);
   const [spinDeg, setSpinDeg] = useState(0);
@@ -55,11 +66,6 @@ export default function TheWell({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animate, size]);
 
-  const [florX, setFlorX] = useState(FLOR_CX);
-  const [florY, setFlorY] = useState(FLOR_CY);
-  const [spinDeg, setSpinDeg] = useState(0);
-  const rafRef   = useRef(null);
-  const startRef = useRef(null);
 
   useEffect(() => {
     if (!animate || size === 'icon') return;
@@ -110,7 +116,7 @@ export default function TheWell({
     return (
       <span className={className} style={{ display:'inline-block', width:px, height:px, ...style }}>
         <style>{css}</style>
-        <svg width={px} height={px} viewBox="196 171 133 133" xmlns="http://www.w3.org/2000/svg">
+        <svg width={px} height={px} viewBox="185 162 158 158" xmlns="http://www.w3.org/2000/svg">
           {darkBg && <circle cx="264" cy="241" r="67" fill="#231f20"/>}
           <circle  cx="264"    cy="241.05" r="66.8"  fill="#20466d" className={`tw-p-${uid}`}/>
           <ellipse cx="262.7"  cy="236.12" rx="28.24" ry="30.49" fill="#2d6ea4" className={`tw-g1-${uid}`}/>
