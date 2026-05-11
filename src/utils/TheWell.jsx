@@ -55,11 +55,6 @@ export default function TheWell({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animate, size]);
 
-  const [florX, setFlorX] = useState(FLOR_CX);
-  const [florY, setFlorY] = useState(FLOR_CY);
-  const [spinDeg, setSpinDeg] = useState(0);
-  const rafRef   = useRef(null);
-  const startRef = useRef(null);
 
   useEffect(() => {
     if (!animate || size === 'icon') return;
