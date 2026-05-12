@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import StoryModal from '../components/StoryModal';
 import TheWell from '../utils/TheWell';
+import WellModal from '../components/WellModal';
 import FictiflyLogo from '../components/FictiflyLogo';
 
 const isStudentAccount = (profile) =>
@@ -41,6 +42,7 @@ export default function Dashboard() {
   const [submittedAssignmentIds, setSubmittedAssignmentIds] = useState([]);
   const [assignmentFeedback, setAssignmentFeedback] = useState({});
   const [storyModalData, setStoryModalData] = useState(null);
+  const [showWellModal, setShowWellModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -367,7 +369,13 @@ export default function Dashboard() {
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.6rem' }}>Dashboard</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <TheWell size="icon" darkBg={true} />
+          <div
+            onClick={() => setShowWellModal(true)}
+            style={{ cursor: 'pointer' }}
+            title="What is The Well?"
+          >
+            <TheWell size="icon" darkBg={true} />
+          </div>
           <h1 style={{ fontSize: '2.2rem', fontWeight: 700, margin: 0 }}>
             {isNewUser ? 'Welcome, ' : 'Welcome back, '}
             <span style={{ color: '#2E6DA4', fontStyle: 'italic', fontWeight: 500 }}>
@@ -375,6 +383,8 @@ export default function Dashboard() {
             </span>
           </h1>
         </div>
+
+        {showWellModal && <WellModal onClose={() => setShowWellModal(false)}/>}
         <p style={{ color: '#6B5D4E', fontSize: '0.95rem', marginBottom: '2rem' }}>
           {accountLabel}
         </p>

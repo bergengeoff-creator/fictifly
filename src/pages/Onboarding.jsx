@@ -459,21 +459,19 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
               },
               {
                 icon: (
-                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
-                    <circle cx="26" cy="12" r="3" stroke={B.seaMid} strokeWidth="2" fill="none"/>
-                    <circle cx="26" cy="7"  r="4" stroke={B.terra} strokeWidth="1.5" fill="none" opacity="0.75"/>
-                    <circle cx="26" cy="17" r="4" stroke={B.terra} strokeWidth="1.5" fill="none" opacity="0.75"/>
-                    <circle cx="21" cy="12" r="4" stroke={B.seaMid} strokeWidth="1.5" fill="none" opacity="0.75"/>
-                    <circle cx="31" cy="12" r="4" stroke={B.seaMid} strokeWidth="1.5" fill="none" opacity="0.75"/>
-                  </svg>
+                  <TheWell size="icon" darkBg={true} style={{ width:48, height:48 }}/>
                 ),
-                title:'More coming', desc:"New generators, community features, and writing tools are on the way. You're in early."
+                title:'The Well', desc:'Your creative source — always there when you arrive. Watch it as you write. There\'s more to it than meets the eye.',
+                highlight: true,
               },
             ].map(f => (
-              <div key={f.title} style={{ ...card, marginBottom:0 }}>
+              <div key={f.title} style={{
+                ...card, marginBottom:0,
+                ...(f.highlight ? { background: '#1A1610', border:`1.5px solid ${B.terra}` } : {})
+              }}>
                 <div style={{ marginBottom:'0.6rem' }}>{f.icon}</div>
-                <div style={{ fontWeight:600, color: B.ink, fontSize:'0.88rem', marginBottom:'0.3rem' }}>{f.title}</div>
-                <div style={{ fontSize:'0.78rem', color: B.inkLight, lineHeight:1.6 }}>{f.desc}</div>
+                <div style={{ fontWeight:600, fontSize:'0.88rem', marginBottom:'0.3rem', color: f.highlight ? B.sandDeep : B.ink }}>{f.title}</div>
+                <div style={{ fontSize:'0.78rem', lineHeight:1.6, color: f.highlight ? B.inkLight : B.inkLight }}>{f.desc}</div>
               </div>
             ))}
           </div>
