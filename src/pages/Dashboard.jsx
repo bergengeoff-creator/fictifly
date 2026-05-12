@@ -11,6 +11,13 @@ const isStudentAccount = (profile) =>
 
 export default function Dashboard() {
   const { user, profile, signOut } = useAuth();
+
+  // Redirect to onboarding if profile not complete
+  useEffect(() => {
+    if (user && profile && !profile.profile_complete) {
+      navigate('/onboarding', { replace: true });
+    }
+  }, [user, profile, navigate]);
   const navigate = useNavigate();
   const [savedPrompts, setSavedPrompts] = useState([]);
   const [totalPromptsGenerated, setTotalPromptsGenerated] = useState(0);
@@ -371,7 +378,7 @@ export default function Dashboard() {
         {(isNewUser || showTrialWelcome) && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
             {/* Static simplified Well for dashboard — no animation */}
-            <svg width="120" height="120" viewBox="135 110 230 230" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '0.75rem' }}>
+            <svg width="120" height="120" viewBox="145 137 238 224" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '0.75rem' }}>
               <circle cx="264.45" cy="241.23" r="129.02" fill="#231f20"/>
               <circle cx="264.34" cy="240.27" r="91.38" fill="none" stroke="#b49041" strokeDasharray="3.99 2.99" strokeWidth=".75" strokeMiterlimit="10" opacity=".5"/>
               <circle cx="264.21" cy="241.62" r="119.08" transform="translate(-93.47 257.6) rotate(-45)" fill="none" stroke="#b49041" strokeWidth="3" strokeMiterlimit="10"/>
