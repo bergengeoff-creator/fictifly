@@ -13,12 +13,13 @@ export default function Dashboard() {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect to onboarding if profile not complete
+  // Redirect to onboarding if profile not complete — only on initial load
   useEffect(() => {
-    if (user && profile && !profile.profile_complete) {
+    if (user && profile && profile.profile_complete === false) {
       navigate('/onboarding', { replace: true });
     }
-  }, [user, profile, navigate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [savedPrompts, setSavedPrompts] = useState([]);
   const [totalPromptsGenerated, setTotalPromptsGenerated] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
