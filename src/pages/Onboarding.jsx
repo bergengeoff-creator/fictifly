@@ -395,11 +395,30 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
           <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'1.7rem', fontWeight:600, color: B.ink, marginBottom:'0.4rem' }}>
             Here's what awaits you
           </h2>
-          <p style={{ color: B.inkLight, fontSize:'0.9rem', marginBottom:'2rem' }}>
+          <p style={{ color: B.inkLight, fontSize:'0.9rem', marginBottom:'1.5rem' }}>
             Everything you need to build a writing practice.
           </p>
 
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginBottom:'1rem', textAlign:'left' }}>
+          {/* The Well — full width hero card */}
+          <div style={{
+            background: '#1A1610', border: `1.5px solid ${B.terra}`,
+            borderRadius: 16, padding: '1.75rem 1.5rem',
+            marginBottom: '1rem', display: 'flex',
+            alignItems: 'center', gap: '1.5rem', textAlign: 'left',
+          }}>
+            <div style={{ flexShrink: 0 }}>
+              <TheWell size="icon" darkBg={false} animate={true}/>
+            </div>
+            <div>
+              <div style={{ fontWeight:600, fontSize:'1rem', color: B.sandDeep, marginBottom:'0.35rem' }}>The Well</div>
+              <div style={{ fontSize:'0.82rem', color: B.inkLight, lineHeight:1.7 }}>
+                Your creative source — always there when you arrive. The Flor de Barcelona orbits the inkwell, revealing the letters of <em style={{ fontFamily:"'Fraunces',serif", color: B.sandDeep }}>fictifly</em> one by one. There's more hidden inside than meets the eye. Click it anytime to learn the story.
+              </div>
+            </div>
+          </div>
+
+          {/* 6 feature cards — 2 columns */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem', marginBottom:'1.5rem', textAlign:'left' }}>
             {[
               {
                 icon: (
@@ -413,7 +432,7 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
                     <line x1="12" y1="12" x2="14" y2="13" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" opacity="0.5"/>
                   </svg>
                 ),
-                title:'Daily challenge', desc:'A fresh prompt every day to keep your creativity sharp. Write, submit, and track your streak.'
+                title:'Daily challenge', desc:'A fresh prompt every day. Write, submit, and track your streak.'
               },
               {
                 icon: (
@@ -424,7 +443,7 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
                     <path d="M24 22 C24 17, 46 17, 46 22" stroke={B.terra} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.7"/>
                   </svg>
                 ),
-                title:'Character Generator', desc:'Build vivid, detailed characters to anchor your stories. Save them and bring them back anytime.'
+                title:'Character Generator', desc:'Build vivid characters to anchor your stories. Save and reuse them anytime.'
               },
               {
                 icon: (
@@ -434,7 +453,7 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
                     <path d="M34 17 C37 13, 41 13, 44 17" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
                   </svg>
                 ),
-                title:'Microfiction', desc:'100–300 word stories. Small in size, big in craft. Perfect for sharpening your voice.'
+                title:'Microfiction', desc:'100–300 words. Small in size, big in craft.'
               },
               {
                 icon: (
@@ -444,7 +463,7 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
                     <line x1="26" y1="4" x2="26" y2="20" stroke={B.ink} strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
                   </svg>
                 ),
-                title:'Flash Fiction', desc:'Up to 1,000 words. Room to breathe, room to build — your first full story starts here.'
+                title:'Flash Fiction', desc:'Up to 1,000 words. Room to breathe, room to build.'
               },
               {
                 icon: (
@@ -455,28 +474,56 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
                     <path d="M30 10 L33 2 L29 4" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
                   </svg>
                 ),
-                title:'Badges', desc:'Earn recognition as you write. From your first spark to prolific storyteller — every word counts.'
+                title:'Badges', desc:'Earn recognition as you write. Every word counts.'
               },
               {
                 icon: (
-                  <TheWell size="icon" darkBg={true} style={{ width:48, height:48 }}/>
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <circle cx="26" cy="12" r="3" stroke={B.seaMid} strokeWidth="2" fill="none"/>
+                    <circle cx="26" cy="7"  r="4" stroke={B.terra} strokeWidth="1.5" fill="none" opacity="0.75"/>
+                    <circle cx="26" cy="17" r="4" stroke={B.terra} strokeWidth="1.5" fill="none" opacity="0.75"/>
+                    <circle cx="21" cy="12" r="4" stroke={B.seaMid} strokeWidth="1.5" fill="none" opacity="0.75"/>
+                    <circle cx="31" cy="12" r="4" stroke={B.seaMid} strokeWidth="1.5" fill="none" opacity="0.75"/>
+                  </svg>
                 ),
-                title:'The Well', desc:'Your creative source — always there when you arrive. Watch it as you write. There\'s more to it than meets the eye.',
-                highlight: true,
+                title:'More coming', desc:"New generators, tools, and community features are on the way."
               },
             ].map(f => (
-              <div key={f.title} style={{
-                ...card, marginBottom:0,
-                ...(f.highlight ? { background: '#1A1610', border:`1.5px solid ${B.terra}` } : {})
-              }}>
+              <div key={f.title} style={{ ...card, marginBottom:0 }}>
                 <div style={{ marginBottom:'0.6rem' }}>{f.icon}</div>
-                <div style={{ fontWeight:600, fontSize:'0.88rem', marginBottom:'0.3rem', color: f.highlight ? B.sandDeep : B.ink }}>{f.title}</div>
-                <div style={{ fontSize:'0.78rem', lineHeight:1.6, color: f.highlight ? B.inkLight : B.inkLight }}>{f.desc}</div>
+                <div style={{ fontWeight:600, color: B.ink, fontSize:'0.85rem', marginBottom:'0.25rem' }}>{f.title}</div>
+                <div style={{ fontSize:'0.76rem', color: B.inkLight, lineHeight:1.6 }}>{f.desc}</div>
               </div>
             ))}
           </div>
 
-          <div style={{ marginTop:'2rem' }}>
+          {/* Shape the future section */}
+          <div style={{
+            background: B.greenLight, border: `1px solid #B8D8C0`,
+            borderRadius: 14, padding: '1.25rem 1.5rem',
+            marginBottom: '1.5rem', textAlign: 'left',
+          }}>
+            <div style={{ fontWeight:600, color: B.green, fontSize:'0.9rem', marginBottom:'0.4rem' }}>
+              Help shape what comes next
+            </div>
+            <p style={{ fontSize:'0.82rem', color: B.inkMid, lineHeight:1.7, marginBottom:'0.75rem' }}>
+              Fictifly is being built in the open, and your voice matters. Tell us what generators you want, what's missing, what could be better. Early writers shape the platform for everyone who comes after.
+            </p>
+            <a
+              href="mailto:hello@fictifly.app?subject=Feature idea"
+              style={{
+                display:'inline-block',
+                background: B.green, color: B.white,
+                borderRadius: 8, padding: '0.45rem 1rem',
+                fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:'0.82rem',
+                textDecoration: 'none',
+              }}
+            >
+              Share your ideas →
+            </a>
+          </div>
+
+          <div style={{ marginTop:'1rem' }}>
             <PrimaryBtn onClick={() => navigate('/dashboard')}>Start writing →</PrimaryBtn>
             <div style={{ marginTop:'0.75rem' }}>
               <button onClick={() => navigate('/dashboard')} style={{ background:'transparent', border:'none', color: B.inkLight, fontSize:'0.82rem', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", textDecoration:'underline' }}>
