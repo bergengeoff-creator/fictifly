@@ -365,7 +365,13 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
       {/* Step 3 — Profile complete */}
       {step === 3 && (
         <div style={{ textAlign:'center' }}>
-          <div style={{ fontSize:'3rem', marginBottom:'1rem' }}>✍️</div>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:'1rem' }}>
+            <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+              <path d="M26 3 C26 3, 20 10, 20 14 C20 17.3, 22.7 20, 26 20 C29.3 20, 32 17.3, 32 14 C32 10, 26 3, 26 3Z" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              <path d="M8 17 C11 13, 15 13, 18 17" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
+              <path d="M34 17 C37 13, 41 13, 44 17" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
+            </svg>
+          </div>
           <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'1.8rem', fontWeight:600, color: B.ink, marginBottom:'0.5rem' }}>
             You're all set, {displayName || profile?.username}!
           </h2>
@@ -395,15 +401,77 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginBottom:'1rem', textAlign:'left' }}>
             {[
-              { icon:'⚡', title:'Daily challenge', desc:'A fresh prompt every day to keep your creativity sharp. Write, submit, and track your streak.' },
-              { icon:'🎭', title:'Character Generator', desc:'Build vivid, detailed characters to anchor your stories. Save them and bring them back anytime.' },
-              { icon:'📖', title:'Microfiction', desc:'100–300 word stories. Small in size, big in craft. Perfect for sharpening your voice.' },
-              { icon:'📚', title:'Flash Fiction', desc:'Up to 1,000 words. Room to breathe, room to build — your first full story starts here.' },
-              { icon:'🏆', title:'Badges', desc:'Earn recognition as you write. From your first spark to prolific storyteller — every word counts.' },
-              { icon:'✨', title:'More coming', desc:'New generators, community features, and writing tools are on the way. You\'re in early.' },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <line x1="4" y1="18" x2="48" y2="18" stroke={B.seaMid} strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M16 18 C16 10, 36 10, 36 18" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+                    <line x1="26" y1="4" x2="26" y2="7" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" opacity="0.85"/>
+                    <line x1="36" y1="7" x2="34" y2="9" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" opacity="0.7"/>
+                    <line x1="16" y1="7" x2="18" y2="9" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" opacity="0.7"/>
+                    <line x1="40" y1="12" x2="38" y2="13" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" opacity="0.5"/>
+                    <line x1="12" y1="12" x2="14" y2="13" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" opacity="0.5"/>
+                  </svg>
+                ),
+                title:'Daily challenge', desc:'A fresh prompt every day to keep your creativity sharp. Write, submit, and track your streak.'
+              },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <circle cx="14" cy="10" r="6" stroke={B.seaMid} strokeWidth="2.2" fill="none"/>
+                    <path d="M2 22 C2 16, 26 16, 26 22" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+                    <circle cx="36" cy="10" r="5" stroke={B.terra} strokeWidth="2" fill="none" opacity="0.7"/>
+                    <path d="M24 22 C24 17, 46 17, 46 22" stroke={B.terra} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.7"/>
+                  </svg>
+                ),
+                title:'Character Generator', desc:'Build vivid, detailed characters to anchor your stories. Save them and bring them back anytime.'
+              },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <path d="M26 3 C26 3, 20 10, 20 14 C20 17.3, 22.7 20, 26 20 C29.3 20, 32 17.3, 32 14 C32 10, 26 3, 26 3Z" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    <path d="M8 17 C11 13, 15 13, 18 17" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
+                    <path d="M34 17 C37 13, 41 13, 44 17" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
+                  </svg>
+                ),
+                title:'Microfiction', desc:'100–300 word stories. Small in size, big in craft. Perfect for sharpening your voice.'
+              },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <path d="M26 4 C20 4, 8 6, 4 8 L4 22 C8 20, 20 18, 26 20Z" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    <path d="M26 4 C32 4, 44 6, 48 8 L48 22 C44 20, 32 18, 26 20Z" stroke={B.terra} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
+                    <line x1="26" y1="4" x2="26" y2="20" stroke={B.ink} strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
+                  </svg>
+                ),
+                title:'Flash Fiction', desc:'Up to 1,000 words. Room to breathe, room to build — your first full story starts here.'
+              },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <circle cx="26" cy="16" r="7" stroke={B.seaMid} strokeWidth="2.2" fill="none"/>
+                    <path d="M26 11 L27.2 14.4 L30.8 14.4 L28 16.6 L29 20 L26 17.8 L23 20 L24 16.6 L21.2 14.4 L24.8 14.4 Z" stroke={B.terra} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
+                    <path d="M22 10 L19 2 L23 4" stroke={B.seaMid} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    <path d="M30 10 L33 2 L29 4" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
+                  </svg>
+                ),
+                title:'Badges', desc:'Earn recognition as you write. From your first spark to prolific storyteller — every word counts.'
+              },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <circle cx="26" cy="12" r="3" stroke={B.seaMid} strokeWidth="2" fill="none"/>
+                    <circle cx="26" cy="7"  r="4" stroke={B.terra} strokeWidth="1.5" fill="none" opacity="0.75"/>
+                    <circle cx="26" cy="17" r="4" stroke={B.terra} strokeWidth="1.5" fill="none" opacity="0.75"/>
+                    <circle cx="21" cy="12" r="4" stroke={B.seaMid} strokeWidth="1.5" fill="none" opacity="0.75"/>
+                    <circle cx="31" cy="12" r="4" stroke={B.seaMid} strokeWidth="1.5" fill="none" opacity="0.75"/>
+                  </svg>
+                ),
+                title:'More coming', desc:"New generators, community features, and writing tools are on the way. You're in early."
+              },
             ].map(f => (
-              <div key={f.title} style={{ ...card, marginBottom:0, textAlign:'left' }}>
-                <div style={{ fontSize:'1.4rem', marginBottom:'0.4rem' }}>{f.icon}</div>
+              <div key={f.title} style={{ ...card, marginBottom:0 }}>
+                <div style={{ marginBottom:'0.6rem' }}>{f.icon}</div>
                 <div style={{ fontWeight:600, color: B.ink, fontSize:'0.88rem', marginBottom:'0.3rem' }}>{f.title}</div>
                 <div style={{ fontSize:'0.78rem', color: B.inkLight, lineHeight:1.6 }}>{f.desc}</div>
               </div>
