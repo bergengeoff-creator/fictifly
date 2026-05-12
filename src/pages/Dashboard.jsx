@@ -365,12 +365,15 @@ export default function Dashboard() {
 
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.6rem' }}>Dashboard</div>
-        <h1 style={{ fontSize: '2.2rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-          {isNewUser ? 'Welcome, ' : 'Welcome back, '}
-          <span style={{ color: '#2E6DA4', fontStyle: 'italic', fontWeight: 500 }}>
-            {profile ? (profile.display_name || profile.username) : 'Writer'}
-          </span>
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+          <TheWell size="icon" darkBg={true} />
+          <h1 style={{ fontSize: '2.2rem', fontWeight: 700, margin: 0 }}>
+            {isNewUser ? 'Welcome, ' : 'Welcome back, '}
+            <span style={{ color: '#2E6DA4', fontStyle: 'italic', fontWeight: 500 }}>
+              {profile ? (profile.display_name || profile.username) : 'Writer'}
+            </span>
+          </h1>
+        </div>
         <p style={{ color: '#6B5D4E', fontSize: '0.95rem', marginBottom: '2rem' }}>
           {accountLabel}
         </p>
@@ -746,10 +749,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
-          <TheWell size="icon" darkBg={true} />
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Start writing</h2>
-        </div>
+        <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '1rem' }}>Start writing</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
           {generators.map((g) => (
             <Link key={g.title} to={g.path} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '4px solid ' + g.color, borderRadius: '12px', padding: '1.25rem 1.5rem', cursor: 'pointer', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', textDecoration: 'none', display: 'block' }}
