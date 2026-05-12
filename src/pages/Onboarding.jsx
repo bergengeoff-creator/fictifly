@@ -499,11 +499,11 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
 
           {/* Shape the future section */}
           <div style={{
-            background: B.greenLight, border: `1px solid #B8D8C0`,
+            background: B.sandMid || '#EDE3D4', border: `1px solid ${B.sandDeep}`,
             borderRadius: 14, padding: '1.25rem 1.5rem',
             marginBottom: '1.5rem', textAlign: 'left',
           }}>
-            <div style={{ fontWeight:600, color: B.green, fontSize:'0.9rem', marginBottom:'0.4rem' }}>
+            <div style={{ fontWeight:600, color: B.terra, fontSize:'0.9rem', marginBottom:'0.4rem' }}>
               Help shape what comes next
             </div>
             <p style={{ fontSize:'0.82rem', color: B.inkMid, lineHeight:1.7, marginBottom:'0.75rem' }}>
@@ -513,7 +513,7 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
               href="mailto:hello@fictifly.app?subject=Feature idea"
               style={{
                 display:'inline-block',
-                background: B.green, color: B.white,
+                background: B.terra, color: B.white,
                 borderRadius: 8, padding: '0.45rem 1rem',
                 fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:'0.82rem',
                 textDecoration: 'none',
@@ -676,16 +676,19 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
       {/* Step 0 — Welcome */}
       {step === 0 && (
         <div style={{ textAlign:'center', padding:'1rem 0 2rem' }}>
-          <div style={{ display:'flex', justifyContent:'center', marginBottom:'2rem' }}>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:'1.5rem' }}>
             <TheWell size="medium" darkBg={true} animate={true} style={{ borderRadius:16, overflow:'hidden' }}/>
           </div>
-          <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'2rem', fontWeight:600, color:B.ink, marginBottom:'0.75rem' }}>
-            Welcome to Fictifly
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:'1.5rem' }}>
+            <FictiflyLogo width={180}/>
+          </div>
+          <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'1.8rem', fontWeight:600, color:B.ink, marginBottom:'0.75rem' }}>
+            Welcome, educator
           </h2>
-          <p style={{ fontSize:'1rem', color:B.inkMid, lineHeight:1.75, maxWidth:420, margin:'0 auto 0.75rem' }}>
-            You're setting up a classroom writing space — a place for your students to explore, create, and find their voices.
+          <p style={{ fontSize:'0.95rem', color:B.inkMid, lineHeight:1.8, maxWidth:420, margin:'0 auto 0.75rem' }}>
+            You're setting up a classroom writing space — a place for your students to explore ideas, develop their voices, and discover what they have to say.
           </p>
-          <p style={{ fontFamily:"'Fraunces',serif", fontStyle:'italic', fontSize:'0.82rem', color:B.inkLight, opacity:0.7, marginBottom:'2.5rem', letterSpacing:'0.05em' }}>
+          <p style={{ fontFamily:"'Fraunces',serif", fontStyle:'italic', fontSize:'0.8rem', color:B.inkLight, opacity:0.6, marginBottom:'2.5rem', letterSpacing:'0.06em' }}>
             de la tinta, tot
           </p>
           <PrimaryBtn onClick={() => setStep(1)}>Let's begin →</PrimaryBtn>
@@ -695,6 +698,9 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
       {/* Steps 1–5 — Setup */}
       {step >= 1 && step <= 5 && (
         <div>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:'2rem' }}>
+            <FictiflyLogo width={150}/>
+          </div>
           <ProgressBar step={step} total={5} label={STEPS[step-1]}/>
 
       {/* Step 1 — Profile */}
@@ -779,7 +785,7 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
               {ATTESTATION_TEXT}
             </p>
             <label style={label}>Type <strong>"I confirm"</strong> to continue</label>
-            <input style={{ ...input, borderColor: attestation.toLowerCase().trim()==='i confirm' ? B.green : B.sandDeep }}
+            <input style={{ ...input, borderColor: attestation.toLowerCase().trim()==='i confirm' ? B.sea : B.sandDeep }}
               value={attestation} placeholder="I confirm"
               onChange={e => setAttestation(e.target.value)}/>
           </div>
@@ -906,7 +912,13 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
       {/* Step 5 — Ready */}
       {step === 5 && (
         <div style={{ textAlign:'center' }}>
-          <div style={{ fontSize:'3rem', marginBottom:'1rem' }}>🏫</div>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:'1rem' }}>
+            <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+              <path d="M26 4 C20 4, 8 6, 4 8 L4 22 C8 20, 20 18, 26 20Z" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              <path d="M26 4 C32 4, 44 6, 48 8 L48 22 C44 20, 32 18, 26 20Z" stroke={B.terra} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
+              <line x1="26" y1="4" x2="26" y2="20" stroke={B.ink} strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
+            </svg>
+          </div>
           <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'1.8rem', fontWeight:600, color: B.ink, marginBottom:'0.5rem' }}>
             Your classroom is ready, {displayName || profile?.username}!
           </h2>
@@ -916,13 +928,57 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem', marginBottom:'2rem', textAlign:'left' }}>
             {[
-              { icon:'📚', title: className || 'Classes', desc: className ? `${gradeLevel} · ${generatedCodes.length} student accounts` : 'Create classes from your dashboard' },
-              { icon:'✍️', title:'Writing generators', desc:'Assign microfiction, flash fiction, and character prompts' },
-              { icon:'📝', title:'Assignments', desc:'Set prompts, due dates, and word counts for your class' },
-              { icon:'🏆', title:'Badges & feedback', desc:'Students earn badges and receive your written feedback' },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <path d="M26 4 C20 4, 8 6, 4 8 L4 22 C8 20, 20 18, 26 20Z" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    <path d="M26 4 C32 4, 44 6, 48 8 L48 22 C44 20, 32 18, 26 20Z" stroke={B.terra} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
+                    <line x1="26" y1="4" x2="26" y2="20" stroke={B.ink} strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
+                  </svg>
+                ),
+                title: className || 'Classes',
+                desc: className ? `${gradeLevel} · ${generatedCodes.length} student accounts` : 'Create classes from your dashboard'
+              },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <path d="M26 3 C26 3, 20 10, 20 14 C20 17.3, 22.7 20, 26 20 C29.3 20, 32 17.3, 32 14 C32 10, 26 3, 26 3Z" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    <path d="M8 17 C11 13, 15 13, 18 17" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
+                    <path d="M34 17 C37 13, 41 13, 44 17" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
+                  </svg>
+                ),
+                title:'Writing generators',
+                desc:'Assign microfiction, flash fiction, and character prompts'
+              },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <rect x="14" y="4" width="24" height="18" rx="2" stroke={B.seaMid} strokeWidth="2.2" fill="none"/>
+                    <line x1="14" y1="10" x2="38" y2="10" stroke={B.seaMid} strokeWidth="1.5" strokeLinecap="round"/>
+                    <line x1="20" y1="4" x2="20" y2="7" stroke={B.seaMid} strokeWidth="2" strokeLinecap="round"/>
+                    <line x1="32" y1="4" x2="32" y2="7" stroke={B.seaMid} strokeWidth="2" strokeLinecap="round"/>
+                    <line x1="18" y1="15" x2="34" y2="15" stroke={B.terra} strokeWidth="2" strokeLinecap="round" opacity="0.85"/>
+                    <line x1="18" y1="19" x2="28" y2="19" stroke={B.terra} strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
+                  </svg>
+                ),
+                title:'Assignments',
+                desc:'Set prompts, due dates, and word counts for your class'
+              },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <circle cx="26" cy="16" r="7" stroke={B.seaMid} strokeWidth="2.2" fill="none"/>
+                    <path d="M26 11 L27.2 14.4 L30.8 14.4 L28 16.6 L29 20 L26 17.8 L23 20 L24 16.6 L21.2 14.4 L24.8 14.4 Z" stroke={B.terra} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
+                    <path d="M22 10 L19 2 L23 4" stroke={B.seaMid} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    <path d="M30 10 L33 2 L29 4" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
+                  </svg>
+                ),
+                title:'Badges & feedback',
+                desc:'Students earn badges and receive your written feedback'
+              },
             ].map(f => (
               <div key={f.title} style={{ ...card, marginBottom:0, textAlign:'left' }}>
-                <div style={{ fontSize:'1.3rem', marginBottom:'0.35rem' }}>{f.icon}</div>
+                <div style={{ marginBottom:'0.5rem' }}>{f.icon}</div>
                 <div style={{ fontWeight:600, color: B.ink, fontSize:'0.85rem', marginBottom:'0.2rem' }}>{f.title}</div>
                 <div style={{ fontSize:'0.75rem', color: B.inkLight, lineHeight:1.5 }}>{f.desc}</div>
               </div>
@@ -946,28 +1002,136 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
           <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'1.7rem', fontWeight:600, color: B.ink, marginBottom:'0.4rem' }}>
             Your classroom is ready
           </h2>
-          <p style={{ color: B.inkLight, fontSize:'0.9rem', marginBottom:'2rem' }}>
+          <p style={{ color: B.inkLight, fontSize:'0.9rem', marginBottom:'1.5rem' }}>
             Here's everything your students can look forward to.
           </p>
 
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginBottom:'1rem', textAlign:'left' }}>
+          {/* The Well — full width hero card */}
+          <div style={{
+            background: '#1A1610', border: `1.5px solid ${B.terra}`,
+            borderRadius: 16, padding: '1.75rem 1.5rem',
+            marginBottom: '1rem', display: 'flex',
+            alignItems: 'center', gap: '1.5rem', textAlign: 'left',
+          }}>
+            <div style={{ flexShrink: 0 }}>
+              <TheWell size="icon" darkBg={false} animate={true}/>
+            </div>
+            <div>
+              <div style={{ fontWeight:600, fontSize:'1rem', color: B.sandDeep, marginBottom:'0.35rem' }}>The Well</div>
+              <div style={{ fontSize:'0.82rem', color: B.inkLight, lineHeight:1.7 }}>
+                Fictifly's visual heart — present on every dashboard your students see. The Flor de Barcelona orbits the inkwell, revealing letters one by one. A quiet, discoverable piece of the platform's story.
+              </div>
+            </div>
+          </div>
+
+          {/* 6 feature cards */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem', marginBottom:'1.5rem', textAlign:'left' }}>
             {[
-              { icon:'⚡', title:'Daily challenge', desc:'A fresh prompt every day. Assign it to your class or let students write freely.' },
-              { icon:'🎭', title:'Character Generator', desc:'Students build vivid characters to anchor their stories — saved and reusable.' },
-              { icon:'📖', title:'Microfiction', desc:'100–300 word stories. A perfect low-stakes exercise for any lesson.' },
-              { icon:'📚', title:'Flash Fiction', desc:'Up to 1,000 words. Longer form writing to develop narrative craft.' },
-              { icon:'📝', title:'Assignments', desc:'Set prompts with due dates and word counts. Review and give written feedback.' },
-              { icon:'🏆', title:'Badges', desc:'Students earn recognition as they write. Motivation built into the platform.' },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <line x1="4" y1="18" x2="48" y2="18" stroke={B.seaMid} strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M16 18 C16 10, 36 10, 36 18" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+                    <line x1="26" y1="4" x2="26" y2="7" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" opacity="0.85"/>
+                    <line x1="36" y1="7" x2="34" y2="9" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" opacity="0.7"/>
+                    <line x1="16" y1="7" x2="18" y2="9" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" opacity="0.7"/>
+                    <line x1="40" y1="12" x2="38" y2="13" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" opacity="0.5"/>
+                    <line x1="12" y1="12" x2="14" y2="13" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" opacity="0.5"/>
+                  </svg>
+                ),
+                title:'Daily challenge', desc:'A fresh prompt every day. Assign it to your class or let students write freely.'
+              },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <circle cx="14" cy="10" r="6" stroke={B.seaMid} strokeWidth="2.2" fill="none"/>
+                    <path d="M2 22 C2 16, 26 16, 26 22" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+                    <circle cx="36" cy="10" r="5" stroke={B.terra} strokeWidth="2" fill="none" opacity="0.7"/>
+                    <path d="M24 22 C24 17, 46 17, 46 22" stroke={B.terra} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.7"/>
+                  </svg>
+                ),
+                title:'Character Generator', desc:'Students build vivid characters to anchor their stories — saved and reusable.'
+              },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <path d="M26 3 C26 3, 20 10, 20 14 C20 17.3, 22.7 20, 26 20 C29.3 20, 32 17.3, 32 14 C32 10, 26 3, 26 3Z" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    <path d="M8 17 C11 13, 15 13, 18 17" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
+                    <path d="M34 17 C37 13, 41 13, 44 17" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
+                  </svg>
+                ),
+                title:'Microfiction', desc:'100–300 words. A perfect low-stakes exercise for any lesson.'
+              },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <path d="M26 4 C20 4, 8 6, 4 8 L4 22 C8 20, 20 18, 26 20Z" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    <path d="M26 4 C32 4, 44 6, 48 8 L48 22 C44 20, 32 18, 26 20Z" stroke={B.terra} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
+                    <line x1="26" y1="4" x2="26" y2="20" stroke={B.ink} strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
+                  </svg>
+                ),
+                title:'Flash Fiction', desc:'Up to 1,000 words. Longer form writing to develop narrative craft.'
+              },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <rect x="14" y="4" width="24" height="18" rx="2" stroke={B.seaMid} strokeWidth="2.2" fill="none"/>
+                    <line x1="14" y1="10" x2="38" y2="10" stroke={B.seaMid} strokeWidth="1.5" strokeLinecap="round"/>
+                    <line x1="20" y1="4" x2="20" y2="7" stroke={B.seaMid} strokeWidth="2" strokeLinecap="round"/>
+                    <line x1="32" y1="4" x2="32" y2="7" stroke={B.seaMid} strokeWidth="2" strokeLinecap="round"/>
+                    <line x1="18" y1="15" x2="34" y2="15" stroke={B.terra} strokeWidth="2" strokeLinecap="round" opacity="0.85"/>
+                    <line x1="18" y1="19" x2="28" y2="19" stroke={B.terra} strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
+                  </svg>
+                ),
+                title:'Assignments', desc:'Set prompts with due dates and word counts. Review and give written feedback.'
+              },
+              {
+                icon: (
+                  <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
+                    <circle cx="26" cy="16" r="7" stroke={B.seaMid} strokeWidth="2.2" fill="none"/>
+                    <path d="M26 11 L27.2 14.4 L30.8 14.4 L28 16.6 L29 20 L26 17.8 L23 20 L24 16.6 L21.2 14.4 L24.8 14.4 Z" stroke={B.terra} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
+                    <path d="M22 10 L19 2 L23 4" stroke={B.seaMid} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    <path d="M30 10 L33 2 L29 4" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
+                  </svg>
+                ),
+                title:'Badges', desc:'Students earn recognition as they write. Motivation built into the platform.'
+              },
             ].map(f => (
               <div key={f.title} style={{ ...card, marginBottom:0, textAlign:'left' }}>
-                <div style={{ fontSize:'1.4rem', marginBottom:'0.4rem' }}>{f.icon}</div>
-                <div style={{ fontWeight:600, color: B.ink, fontSize:'0.88rem', marginBottom:'0.3rem' }}>{f.title}</div>
-                <div style={{ fontSize:'0.78rem', color: B.inkLight, lineHeight:1.6 }}>{f.desc}</div>
+                <div style={{ marginBottom:'0.6rem' }}>{f.icon}</div>
+                <div style={{ fontWeight:600, color: B.ink, fontSize:'0.85rem', marginBottom:'0.25rem' }}>{f.title}</div>
+                <div style={{ fontSize:'0.76rem', color: B.inkLight, lineHeight:1.6 }}>{f.desc}</div>
               </div>
             ))}
           </div>
 
-          <div style={{ marginTop:'2rem' }}>
+          {/* Shape the future — teacher specific */}
+          <div style={{
+            background: B.sandMid || '#EDE3D4', border: `1px solid ${B.sandDeep}`,
+            borderRadius: 14, padding: '1.25rem 1.5rem',
+            marginBottom: '1.5rem', textAlign: 'left',
+          }}>
+            <div style={{ fontWeight:600, color: B.terra, fontSize:'0.9rem', marginBottom:'0.4rem' }}>
+              Help shape Fictifly for educators
+            </div>
+            <p style={{ fontSize:'0.82rem', color: B.inkMid, lineHeight:1.7, marginBottom:'0.75rem' }}>
+              You're among the first teachers on the platform. Your experience in the classroom is exactly what we need to build the right tools — assignments, feedback, safeguards, and more. Tell us what would make this genuinely useful for you and your students.
+            </p>
+            <a
+              href="mailto:hello@fictifly.app?subject=Teacher feedback"
+              style={{
+                display:'inline-block',
+                background: B.terra, color: B.white,
+                borderRadius: 8, padding: '0.45rem 1rem',
+                fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:'0.82rem',
+                textDecoration: 'none',
+              }}
+            >
+              Share your thoughts →
+            </a>
+          </div>
+
+          <div style={{ marginTop:'1rem' }}>
             <PrimaryBtn onClick={() => navigate('/classroom')}>Go to my classroom →</PrimaryBtn>
             <div style={{ marginTop:'0.75rem' }}>
               <button onClick={() => navigate('/classroom')} style={{ background:'transparent', border:'none', color: B.inkLight, fontSize:'0.82rem', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", textDecoration:'underline' }}>
