@@ -4,6 +4,7 @@ import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 
 import FictiflyLogo from '../components/FictiflyLogo';
+import TheWell from '../components/TheWell';
 
 // ── Brand tokens ────────────────────────────────────────────────────────────
 const B = {
@@ -177,7 +178,7 @@ function PrimaryBtn({ onClick, disabled, loading: busy, children }) {
 
 function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
   const STEPS = ['Your identity','Your preferences','All set'];
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // 0 = welcome, 1-3 = setup, 4 = feature tour
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -234,12 +235,42 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
     setLoading(true);
     await supabase.from('users').update({ profile_complete: true }).eq('id', user.id);
     await fetchProfile(user.id);
-    navigate('/dashboard');
+    setLoading(false);
+    setStep(4);
   };
 
   return (
     <div>
-      <ProgressBar step={step} total={3} label={STEPS[step-1]}/>
+      {/* ── Step 0 — Welcome ── */}
+      {step === 0 && (
+        <div style={{ textAlign:'center', padding:'1rem 0 2rem' }}>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:'1.5rem' }}>
+            <TheWell size="medium" darkBg={true} animate={true} style={{ borderRadius:16, overflow:'hidden' }}/>
+          </div>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:'1.5rem' }}>
+            <FictiflyLogo width={180} />
+          </div>
+          <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'1.8rem', fontWeight:600, color:B.ink, marginBottom:'0.75rem' }}>
+            Welcome to your writing space
+          </h2>
+          <p style={{ fontSize:'0.95rem', color:B.inkMid, lineHeight:1.8, maxWidth:420, margin:'0 auto 0.75rem' }}>
+            Fictifly is a place to explore ideas, sharpen your craft, and find your voice — one story at a time. We're really glad you're here.
+          </p>
+          <p style={{ fontFamily:"'Fraunces',serif", fontStyle:'italic', fontSize:'0.8rem', color:B.inkLight, opacity:0.6, marginBottom:'2.5rem', letterSpacing:'0.06em' }}>
+            de la tinta, tot
+          </p>
+          <PrimaryBtn onClick={() => setStep(1)}>Let's begin →</PrimaryBtn>
+        </div>
+      )}
+
+      {/* ── Steps 1–3 — Setup ── */}
+      {step >= 1 && step <= 3 && (
+        <div>
+          {/* Logo — compact, top of setup steps */}
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:'2rem' }}>
+            <FictiflyLogo width={150} />
+          </div>
+          <ProgressBar step={step} total={3} label={STEPS[step-1]}/>
 
       {/* Step 1 — Identity */}
       {step === 1 && (
@@ -331,32 +362,62 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
         </div>
       )}
 
-      {/* Step 3 — Ready */}
+      {/* Step 3 — Profile complete */}
       {step === 3 && (
         <div style={{ textAlign:'center' }}>
           <div style={{ fontSize:'3rem', marginBottom:'1rem' }}>✍️</div>
           <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'1.8rem', fontWeight:600, color: B.ink, marginBottom:'0.5rem' }}>
             You're all set, {displayName || profile?.username}!
           </h2>
-          <p style={{ color: B.inkLight, fontSize:'0.95rem', marginBottom:'2rem', maxWidth:380, margin:'0 auto 2rem' }}>
-            Your writer profile is ready. Time to find your first story.
+          <p style={{ color: B.inkLight, fontSize:'0.95rem', maxWidth:380, margin:'0 auto 2rem' }}>
+            Your writer profile is ready. Let's show you around.
+          </p>
+          <PrimaryBtn onClick={finish} loading={loading}>Show me around →</PrimaryBtn>
+          <div style={{ marginTop:'1rem' }}>
+            <button onClick={() => navigate('/dashboard')} style={{ background:'transparent', border:'none', color: B.inkLight, fontSize:'0.82rem', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", textDecoration:'underline' }}>
+              Skip to dashboard
+            </button>
+          </div>
+        </div>
+      )}
+        </div>
+      )}
+
+      {/* ── Step 4 — Feature tour ── */}
+      {step === 4 && (
+        <div style={{ textAlign:'center', padding:'1rem 0' }}>
+          <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'1.7rem', fontWeight:600, color: B.ink, marginBottom:'0.4rem' }}>
+            Here's what awaits you
+          </h2>
+          <p style={{ color: B.inkLight, fontSize:'0.9rem', marginBottom:'2rem' }}>
+            Everything you need to build a writing practice.
           </p>
 
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'0.75rem', marginBottom:'2rem', textAlign:'left' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginBottom:'1rem', textAlign:'left' }}>
             {[
-              { icon:'⚡', title:'Daily challenge', desc:'A fresh writing prompt every day' },
-              { icon:'🎭', title:'Character Generator', desc:'Build rich characters for your stories' },
-              { icon:'📖', title:'Microfiction', desc:'100–300 word stories to sharpen your craft' },
+              { icon:'⚡', title:'Daily challenge', desc:'A fresh prompt every day to keep your creativity sharp. Write, submit, and track your streak.' },
+              { icon:'🎭', title:'Character Generator', desc:'Build vivid, detailed characters to anchor your stories. Save them and bring them back anytime.' },
+              { icon:'📖', title:'Microfiction', desc:'100–300 word stories. Small in size, big in craft. Perfect for sharpening your voice.' },
+              { icon:'📚', title:'Flash Fiction', desc:'Up to 1,000 words. Room to breathe, room to build — your first full story starts here.' },
+              { icon:'🏆', title:'Badges', desc:'Earn recognition as you write. From your first spark to prolific storyteller — every word counts.' },
+              { icon:'✨', title:'More coming', desc:'New generators, community features, and writing tools are on the way. You\'re in early.' },
             ].map(f => (
-              <div key={f.title} style={{ ...card, marginBottom:0 }}>
+              <div key={f.title} style={{ ...card, marginBottom:0, textAlign:'left' }}>
                 <div style={{ fontSize:'1.4rem', marginBottom:'0.4rem' }}>{f.icon}</div>
-                <div style={{ fontWeight:600, color: B.ink, fontSize:'0.85rem', marginBottom:'0.2rem' }}>{f.title}</div>
-                <div style={{ fontSize:'0.75rem', color: B.inkLight, lineHeight:1.5 }}>{f.desc}</div>
+                <div style={{ fontWeight:600, color: B.ink, fontSize:'0.88rem', marginBottom:'0.3rem' }}>{f.title}</div>
+                <div style={{ fontSize:'0.78rem', color: B.inkLight, lineHeight:1.6 }}>{f.desc}</div>
               </div>
             ))}
           </div>
 
-          <PrimaryBtn onClick={finish} loading={loading}>Go to my dashboard →</PrimaryBtn>
+          <div style={{ marginTop:'2rem' }}>
+            <PrimaryBtn onClick={() => navigate('/dashboard')}>Start writing →</PrimaryBtn>
+            <div style={{ marginTop:'0.75rem' }}>
+              <button onClick={() => navigate('/dashboard')} style={{ background:'transparent', border:'none', color: B.inkLight, fontSize:'0.82rem', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", textDecoration:'underline' }}>
+                Skip to dashboard
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -369,7 +430,7 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
 
 function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
   const STEPS = ['Your profile','Your school','Create a class','Add students','Ready to teach'];
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -491,14 +552,37 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
     setLoading(true);
     await supabase.from('users').update({ profile_complete: true }).eq('id', user.id);
     await fetchProfile(user.id);
-    navigate('/classroom');
+    setLoading(false);
+    setStep(6);
   };
 
   const ATTESTATION_TEXT = 'By continuing, I confirm that my school administration and relevant parents or guardians have been notified of student participation on Fictifly, and that I take responsibility as the accountable adult for my students\' use of this platform.';
 
   return (
     <div>
-      <ProgressBar step={step} total={5} label={STEPS[step-1]}/>
+      {/* Step 0 — Welcome */}
+      {step === 0 && (
+        <div style={{ textAlign:'center', padding:'1rem 0 2rem' }}>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:'2rem' }}>
+            <TheWell size="medium" darkBg={true} animate={true} style={{ borderRadius:16, overflow:'hidden' }}/>
+          </div>
+          <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'2rem', fontWeight:600, color:B.ink, marginBottom:'0.75rem' }}>
+            Welcome to Fictifly
+          </h2>
+          <p style={{ fontSize:'1rem', color:B.inkMid, lineHeight:1.75, maxWidth:420, margin:'0 auto 0.75rem' }}>
+            You're setting up a classroom writing space — a place for your students to explore, create, and find their voices.
+          </p>
+          <p style={{ fontFamily:"'Fraunces',serif", fontStyle:'italic', fontSize:'0.82rem', color:B.inkLight, opacity:0.7, marginBottom:'2.5rem', letterSpacing:'0.05em' }}>
+            de la tinta, tot
+          </p>
+          <PrimaryBtn onClick={() => setStep(1)}>Let's begin →</PrimaryBtn>
+        </div>
+      )}
+
+      {/* Steps 1–5 — Setup */}
+      {step >= 1 && step <= 5 && (
+        <div>
+          <ProgressBar step={step} total={5} label={STEPS[step-1]}/>
 
       {/* Step 1 — Profile */}
       {step === 1 && (
@@ -732,7 +816,52 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
             ))}
           </div>
 
-          <PrimaryBtn onClick={finish} loading={loading}>Go to my classroom →</PrimaryBtn>
+          <PrimaryBtn onClick={finish} loading={loading}>Show me around →</PrimaryBtn>
+          <div style={{ marginTop:'1rem' }}>
+            <button onClick={() => navigate('/classroom')} style={{ background:'transparent', border:'none', color: B.inkLight, fontSize:'0.82rem', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", textDecoration:'underline' }}>
+              Skip to classroom
+            </button>
+          </div>
+        </div>
+      )}
+        </div>
+      )}
+
+      {/* Step 6 — Feature tour */}
+      {step === 6 && (
+        <div style={{ textAlign:'center', padding:'1rem 0' }}>
+          <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'1.7rem', fontWeight:600, color: B.ink, marginBottom:'0.4rem' }}>
+            Your classroom is ready
+          </h2>
+          <p style={{ color: B.inkLight, fontSize:'0.9rem', marginBottom:'2rem' }}>
+            Here's everything your students can look forward to.
+          </p>
+
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginBottom:'1rem', textAlign:'left' }}>
+            {[
+              { icon:'⚡', title:'Daily challenge', desc:'A fresh prompt every day. Assign it to your class or let students write freely.' },
+              { icon:'🎭', title:'Character Generator', desc:'Students build vivid characters to anchor their stories — saved and reusable.' },
+              { icon:'📖', title:'Microfiction', desc:'100–300 word stories. A perfect low-stakes exercise for any lesson.' },
+              { icon:'📚', title:'Flash Fiction', desc:'Up to 1,000 words. Longer form writing to develop narrative craft.' },
+              { icon:'📝', title:'Assignments', desc:'Set prompts with due dates and word counts. Review and give written feedback.' },
+              { icon:'🏆', title:'Badges', desc:'Students earn recognition as they write. Motivation built into the platform.' },
+            ].map(f => (
+              <div key={f.title} style={{ ...card, marginBottom:0, textAlign:'left' }}>
+                <div style={{ fontSize:'1.4rem', marginBottom:'0.4rem' }}>{f.icon}</div>
+                <div style={{ fontWeight:600, color: B.ink, fontSize:'0.88rem', marginBottom:'0.3rem' }}>{f.title}</div>
+                <div style={{ fontSize:'0.78rem', color: B.inkLight, lineHeight:1.6 }}>{f.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop:'2rem' }}>
+            <PrimaryBtn onClick={() => navigate('/classroom')}>Go to my classroom →</PrimaryBtn>
+            <div style={{ marginTop:'0.75rem' }}>
+              <button onClick={() => navigate('/classroom')} style={{ background:'transparent', border:'none', color: B.inkLight, fontSize:'0.82rem', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", textDecoration:'underline' }}>
+                Skip to classroom
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -771,11 +900,6 @@ export default function Onboarding() {
       `}</style>
 
       <div style={{ maxWidth:640, margin:'0 auto' }}>
-        {/* Logo */}
-        <div style={{ marginBottom:'2.5rem' }}>
-          <FictiflyLogo width={200} />
-        </div>
-
         {isTeacher
           ? <TeacherOnboarding user={user} profile={profile} fetchProfile={fetchProfile} navigate={navigate}/>
           : <RegularOnboarding user={user} profile={profile} fetchProfile={fetchProfile} navigate={navigate}/>
