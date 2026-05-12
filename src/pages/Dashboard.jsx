@@ -11,6 +11,7 @@ const isStudentAccount = (profile) =>
 
 export default function Dashboard() {
   const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
 
   // Redirect to onboarding if profile not complete
   useEffect(() => {
@@ -18,7 +19,6 @@ export default function Dashboard() {
       navigate('/onboarding', { replace: true });
     }
   }, [user, profile, navigate]);
-  const navigate = useNavigate();
   const [savedPrompts, setSavedPrompts] = useState([]);
   const [totalPromptsGenerated, setTotalPromptsGenerated] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
