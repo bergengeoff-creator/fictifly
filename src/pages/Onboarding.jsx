@@ -528,11 +528,11 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
 
           {/* Shape the future section */}
           <div style={{
-            background: B.sandMid || '#EDE3D4', border: `1px solid ${B.sandDeep}`,
+            background: '#EAF4FB', border: `1px solid ${B.seaMid}`,
             borderRadius: 14, padding: '1.25rem 1.5rem',
             marginBottom: '1.5rem', textAlign: 'left',
           }}>
-            <div style={{ fontWeight:600, color: B.terra, fontSize:'0.9rem', marginBottom:'0.4rem' }}>
+            <div style={{ fontWeight:600, color: B.sea, fontSize:'0.9rem', marginBottom:'0.4rem' }}>
               Help shape what comes next
             </div>
             <p style={{ fontSize:'0.82rem', color: B.inkMid, lineHeight:1.7, marginBottom:'0.75rem' }}>
@@ -542,7 +542,7 @@ function RegularOnboarding({ user, profile, fetchProfile, navigate }) {
               href="mailto:hello@fictifly.app?subject=Feature idea"
               style={{
                 display:'inline-block',
-                background: B.terra, color: B.white,
+                background: B.seaMid, color: B.white,
                 borderRadius: 8, padding: '0.45rem 1rem',
                 fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:'0.82rem',
                 textDecoration: 'none',
@@ -1236,11 +1236,11 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
 
           {/* Shape the future — teacher specific */}
           <div style={{
-            background: B.sandMid || '#EDE3D4', border: `1px solid ${B.sandDeep}`,
+            background: '#EAF4FB', border: `1px solid ${B.seaMid}`,
             borderRadius: 14, padding: '1.25rem 1.5rem',
             marginBottom: '1.5rem', textAlign: 'left',
           }}>
-            <div style={{ fontWeight:600, color: B.terra, fontSize:'0.9rem', marginBottom:'0.4rem' }}>
+            <div style={{ fontWeight:600, color: B.sea, fontSize:'0.9rem', marginBottom:'0.4rem' }}>
               Help shape Fictifly for educators
             </div>
             <p style={{ fontSize:'0.82rem', color: B.inkMid, lineHeight:1.7, marginBottom:'0.75rem' }}>
@@ -1250,7 +1250,7 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
               href="mailto:hello@fictifly.app?subject=Teacher feedback"
               style={{
                 display:'inline-block',
-                background: B.terra, color: B.white,
+                background: B.seaMid, color: B.white,
                 borderRadius: 8, padding: '0.45rem 1rem',
                 fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:'0.82rem',
                 textDecoration: 'none',

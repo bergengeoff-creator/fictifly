@@ -672,12 +672,12 @@ export default function ClassroomDashboard() {
                 {showBulkGenerate && (
                   <div style={sectionStyle}>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>Bulk generate student accounts</h3>
-                    <p style={{ fontSize: '0.85rem', color: '#9A8878', marginBottom: '1rem' }}>Accounts will be automatically linked to this class. You'll get a printable card sheet with each student's login details.</p>
+                    <p style={{ fontSize: '0.85rem', color: '#9A8878', marginBottom: '1rem' }}>Accounts will be automatically linked to this class. <strong style={{ color: '#B56840' }}>Print or save the login cards immediately</strong> — passcodes cannot be retrieved later.</p>
                     <label style={labelStyle}>Username prefix
-                      <input type="text" value={bulkPrefix} onChange={(e) => setBulkPrefix(e.target.value.replace(/\s/g, ''))} placeholder="e.g. MrsSmith_Period1" style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
+                      <input type="text" value={bulkPrefix} onChange={(e) => setBulkPrefix(e.target.value.replace(/\s/g, ''))} placeholder="e.g. MrsSmith_P1" style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.35rem' }} />
                     </label>
-                    <div style={{ fontSize: '0.75rem', color: '#9A8878', marginBottom: '0.75rem' }}>Usernames will look like: <strong>{bulkPrefix || 'Prefix'}_SwiftFalcon42</strong></div>
-                    <label style={labelStyle}>Number of accounts (max 30)
+                    <div style={{ fontSize: '0.75rem', color: '#9A8878', marginBottom: '0.75rem' }}>Usernames will look like: <strong>{bulkPrefix ? `${bulkPrefix}_CleverFox42` : 'CleverFox42'}</strong></div>
+                    <label style={labelStyle}>Number of accounts (max 50)
                       <input type="number" value={bulkCount} onChange={(e) => setBulkCount(Math.min(50, Math.max(1, parseInt(e.target.value) || 1)))} min={1} max={50} style={{ ...inputStyle, marginTop: '0.4rem' }} />
                     </label>
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
@@ -686,9 +686,22 @@ export default function ClassroomDashboard() {
                     </div>
                     {generatedAccounts.length > 0 && (
                       <div style={{ marginTop: '1.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                          <div style={{ fontWeight: 600, color: '#3A7040' }}>{generatedAccounts.length} accounts created!</div>
-                          <button onClick={handlePrint} style={btnPrimary}>Print login cards</button>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div style={{ fontWeight: 600, color: '#3A7040' }}>{generatedAccounts.length} accounts created</div>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button onClick={handlePrint} style={btnPrimary}>🖨 Print login cards</button>
+                            <button onClick={() => {
+                              const csv = 'Username,Passcode\n' + generatedAccounts.map(a => `${a.username},${a.passcode}`).join('\n');
+                              const blob = new Blob([csv], { type: 'text/csv' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url; a.download = `${selectedClass.name.replace(/\s+/g,'_')}_logins.csv`; a.click();
+                              URL.revokeObjectURL(url);
+                            }} style={btnSecondary}>⬇ Download CSV</button>
+                          </div>
+                        </div>
+                        <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '8px', padding: '0.6rem 0.85rem', fontSize: '0.78rem', color: '#9A6830', marginBottom: '0.75rem' }}>
+                          ⚠ Save these now — passcodes won't be shown again after you leave this page.
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
                           {generatedAccounts.map((acc, i) => (
