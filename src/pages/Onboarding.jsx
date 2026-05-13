@@ -30,6 +30,34 @@ const SUBJECTS = ['English','Creative Writing','Language Arts','Literature','Oth
 const GRADE_LEVELS = ['Elementary (K-5)','Middle School (6-8)','High School (9-12)','College / University','Other'];
 const REGIONS = ['North America','South America','Europe','Asia','Africa','Australia / Oceania','Other'];
 
+const ADJECTIVES = [
+  'Amber','Arctic','Bold','Brave','Bright','Bronze','Calm','Clever','Cosmic','Crisp',
+  'Crystal','Cunning','Daring','Dawn','Dusty','Echo','Epic','Fabled','Fierce','Fiery',
+  'Frosty','Gilded','Golden','Grand','Gritty','Hidden','Hollow','Icy','Indigo','Jade',
+  'Keen','Lofty','Lucky','Lunar','Maple','Marble','Misty','Mystic','Noble','Olive',
+  'Onyx','Ornate','Phantom','Plum','Polar','Quick','Quiet','Radiant','Rapid','Raven',
+  'Royal','Ruby','Rustic','Sandy','Scarlet','Shadow','Sharp','Silent','Silver','Slate',
+  'Smoky','Solar','Stark','Steel','Stormy','Swift','Tawny','Thunder','Timber','Twilight',
+  'Velvet','Vivid','Wandering','Wild','Winter','Wry','Zephyr','Zinc',
+];
+const NOUNS = [
+  'Author','Bard','Blade','Brook','Cloud','Coder','Comet','Craft','Creek','Crown',
+  'Dusk','Echo','Falcon','Fern','Flame','Flash','Flint','Fox','Frost','Grove',
+  'Hawk','Horizon','Hound','Ink','Isle','Jade','Leaf','Legend','Light','Lore',
+  'Lynx','Mage','Maple','Mist','Moon','Myth','Peak','Pen','Pine','Plot',
+  'Prose','Quest','Quill','Raven','Reed','Ridge','River','Rock','Rogue','Sage',
+  'Scout','Scribe','Scroll','Shade','Shore','Sketch','Sky','Spark','Star','Stone',
+  'Storm','Stout','Stream','Tale','Tide','Token','Tome','Trail','Vale','Verse',
+  'Voice','Warden','Wave','Wind','Wolf','Word','Writer','Yarn',
+];
+
+const generateFunUsername = () => {
+  const adj  = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+  const num  = Math.floor(10 + Math.random() * 90); // 10–99
+  return `${adj}${noun}${num}`;
+};
+
 const generateSeeds = (n=6) => Array.from({length:n}, () => Math.random().toString(36).substring(2,8));
 
 // ── Shared styles ────────────────────────────────────────────────────────────
@@ -644,7 +672,7 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
 
     // Generate username/passcode pairs
     const accounts = Array.from({length: count}, () => ({
-      username: `student${Math.random().toString(36).substring(2,8)}`,
+      username: generateFunUsername(),
       passcode: Math.floor(100000 + Math.random() * 900000).toString(),
     }));
 
@@ -911,14 +939,59 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
 
           {generatedCodes.length > 0 && (
             <div style={card}>
-              <div style={{ fontSize:'0.78rem', fontWeight:600, color: B.inkMid, marginBottom:'0.75rem' }}>
-                {generatedCodes.length} student accounts created — save these passcodes
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.75rem' }}>
+                <div style={{ fontSize:'0.78rem', fontWeight:600, color: B.inkMid }}>
+                  {generatedCodes.length} student accounts created
+                </div>
+                <button
+                  onClick={() => {
+                    const win = window.open('', '_blank');
+                    win.document.write(`
+                      <html><head><title>Fictifly Student Login Cards — ${className || 'Class'}</title>
+                      <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; background: #fff; }
+                        h2 { font-size: 14px; color: #3A3226; margin-bottom: 4px; }
+                        p { font-size: 11px; color: #9A8878; margin-bottom: 20px; }
+                        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+                        .card { border: 1px solid #D9C9B0; border-radius: 8px; padding: 12px; page-break-inside: avoid; }
+                        .site { font-size: 9px; color: #9A8878; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.08em; }
+                        .username { font-size: 13px; font-weight: bold; color: #3A3226; margin-bottom: 4px; }
+                        .passcode-label { font-size: 9px; color: #9A8878; text-transform: uppercase; letter-spacing: 0.08em; }
+                        .passcode { font-size: 18px; font-family: monospace; color: #2E6DA4; font-weight: bold; letter-spacing: 0.15em; }
+                        @media print { body { padding: 10px; } }
+                      </style></head><body>
+                      <h2>Fictifly — ${className || 'Class'} Login Cards</h2>
+                      <p>Give each card to the matching student. Keep this sheet private.</p>
+                      <div class="grid">
+                        ${generatedCodes.map(s => `
+                          <div class="card">
+                            <div class="site">fictifly.app</div>
+                            <div class="username">${s.username}</div>
+                            <div class="passcode-label">Passcode</div>
+                            <div class="passcode">${s.passcode}</div>
+                          </div>`).join('')}
+                      </div>
+                      <script>window.print();</script>
+                      </body></html>
+                    `);
+                    win.document.close();
+                  }}
+                  style={{
+                    background: B.sea, color: B.white, border:'none',
+                    borderRadius:8, padding:'0.4rem 0.9rem',
+                    fontFamily:"'DM Sans',sans-serif", fontSize:'0.78rem',
+                    fontWeight:600, cursor:'pointer',
+                  }}
+                >
+                  Print login cards
+                </button>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap:'0.5rem', maxHeight:200, overflowY:'auto' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))', gap:'0.5rem', maxHeight:220, overflowY:'auto' }}>
                 {generatedCodes.map((s,i) => (
-                  <div key={i} style={{ background: B.sand, borderRadius:8, padding:'0.5rem 0.75rem', fontSize:'0.78rem' }}>
-                    <div style={{ fontWeight:600, color: B.ink }}>{s.username}</div>
-                    <div style={{ color: B.sea, fontFamily:'monospace', fontSize:'0.85rem' }}>{s.passcode}</div>
+                  <div key={i} style={{ background: B.sand, borderRadius:8, padding:'0.6rem 0.75rem' }}>
+                    <div style={{ fontWeight:600, color: B.ink, fontSize:'0.82rem', marginBottom:'0.2rem' }}>{s.username}</div>
+                    <div style={{ fontSize:'0.72rem', color: B.inkLight, marginBottom:'0.1rem' }}>Passcode</div>
+                    <div style={{ color: B.sea, fontFamily:'monospace', fontSize:'1rem', fontWeight:700, letterSpacing:'0.1em' }}>{s.passcode}</div>
                   </div>
                 ))}
               </div>
@@ -950,9 +1023,12 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
         <div style={{ textAlign:'center' }}>
           <div style={{ display:'flex', justifyContent:'center', marginBottom:'1rem' }}>
             <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
-              <path d="M26 4 C20 4, 8 6, 4 8 L4 22 C8 20, 20 18, 26 20Z" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              <path d="M26 4 C32 4, 44 6, 48 8 L48 22 C44 20, 32 18, 26 20Z" stroke={B.terra} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
-              <line x1="26" y1="4" x2="26" y2="20" stroke={B.ink} strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
+              <circle cx="10" cy="8" r="4.5" stroke={B.seaMid} strokeWidth="1.8" fill="none" opacity="0.7"/>
+              <path d="M2 22 C2 17, 18 17, 18 22" stroke={B.seaMid} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
+              <circle cx="26" cy="7" r="5.5" stroke={B.seaMid} strokeWidth="2.2" fill="none"/>
+              <path d="M16 22 C16 16, 36 16, 36 22" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+              <circle cx="42" cy="8" r="4.5" stroke={B.terra} strokeWidth="1.8" fill="none" opacity="0.7"/>
+              <path d="M34 22 C34 17, 50 17, 50 22" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
             </svg>
           </div>
           <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'1.8rem', fontWeight:600, color: B.ink, marginBottom:'0.5rem' }}>
@@ -967,9 +1043,12 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
               {
                 icon: (
                   <svg width="52" height="24" viewBox="0 0 52 24" fill="none">
-                    <path d="M26 4 C20 4, 8 6, 4 8 L4 22 C8 20, 20 18, 26 20Z" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                    <path d="M26 4 C32 4, 44 6, 48 8 L48 22 C44 20, 32 18, 26 20Z" stroke={B.terra} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
-                    <line x1="26" y1="4" x2="26" y2="20" stroke={B.ink} strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
+                    <circle cx="10" cy="8" r="4.5" stroke={B.seaMid} strokeWidth="1.8" fill="none" opacity="0.7"/>
+                    <path d="M2 22 C2 17, 18 17, 18 22" stroke={B.seaMid} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
+                    <circle cx="26" cy="7" r="5.5" stroke={B.seaMid} strokeWidth="2.2" fill="none"/>
+                    <path d="M16 22 C16 16, 36 16, 36 22" stroke={B.seaMid} strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+                    <circle cx="42" cy="8" r="4.5" stroke={B.terra} strokeWidth="1.8" fill="none" opacity="0.7"/>
+                    <path d="M34 22 C34 17, 50 17, 50 22" stroke={B.terra} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.7"/>
                   </svg>
                 ),
                 title: className || 'Classes',
