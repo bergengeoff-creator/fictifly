@@ -11,15 +11,6 @@ const GENRES = [
   'Romance','Romantic Comedy','Sci-Fi','Spy','Suspense','Thriller','Open Genre',
 ];
 
-const adjectives = ['Swift','Brave','Clever','Bold','Bright','Calm','Keen','Wise','Wild','Quiet','Sharp','Cool','Gentle','Merry','Noble'];
-const nouns = ['Penguin','Narrator','Scribe','Author','Dreamer','Writer','Poet','Falcon','Otter','Fox','Raven','Panda','Tiger','Koala','Wolf'];
-
-const generateUsername = (prefix) => {
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  const num = Math.floor(Math.random() * 900) + 100;
-  return prefix ? prefix + '_' + adj + noun + num : adj + noun + num;
-};
 const generatePasscode = () => Math.floor(100000 + Math.random() * 900000).toString();
 const generateClassCode = () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
