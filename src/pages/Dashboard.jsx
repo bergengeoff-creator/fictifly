@@ -6,7 +6,7 @@ import StoryModal from '../components/StoryModal';
 import TheWell from '../utils/TheWell';
 import WellModal from '../components/WellModal';
 import FictiflyLogo from '../components/FictiflyLogo';
-import Account from '../components/Account'; // NEW: Import Account tab
+import Account from '..//Account'; // NEW: Import Account tab
 
 const isStudentAccount = (profile) =>
   profile && (profile.account_type === 'minor' || profile.account_type === 'student');
