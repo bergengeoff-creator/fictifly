@@ -1275,7 +1275,90 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ROOT — detects account type and routes accordingly
+// STUDENT FLOW — 2 steps (welcome + avatar)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function StudentOnboarding({ user, profile, fetchProfile, navigate }) {
+  const [step, setStep] = useState(0);
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || null);
+  const [loading, setLoading] = useState(false);
+
+  const finish = async () => {
+    setLoading(true);
+    await supabase.from('users').update({
+      avatar_url: avatarUrl,
+      profile_complete: true,
+    }).eq('id', user.id);
+    await fetchProfile(user.id);
+    navigate('/dashboard');
+  };
+
+  return (
+    <div>
+      {/* Step 0 — Welcome */}
+      {step === 0 && (
+        <div style={{ textAlign:'center', padding:'1rem 0 2rem' }}>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:'1.5rem' }}>
+            <TheWell size="medium" darkBg={true} animate={true} style={{ borderRadius:16, overflow:'hidden' }}/>
+          </div>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:'1.5rem' }}>
+            <FictiflyLogo width={180}/>
+          </div>
+          <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'1.8rem', fontWeight:600, color:B.ink, marginBottom:'0.75rem' }}>
+            Welcome, {profile?.username || 'writer'}
+          </h2>
+          <p style={{ fontSize:'0.95rem', color:B.inkMid, lineHeight:1.8, maxWidth:380, margin:'0 auto 0.75rem' }}>
+            This is your writing space. Your teacher has set everything up — you just need to show up and write.
+          </p>
+          <p style={{ fontSize:'0.88rem', color:B.inkMid, lineHeight:1.8, maxWidth:380, margin:'0 auto 2rem' }}>
+            Every story starts somewhere. Yours starts here.
+          </p>
+          <PrimaryBtn onClick={() => setStep(1)}>Pick an avatar →</PrimaryBtn>
+          <div style={{ marginTop:'0.75rem' }}>
+            <button onClick={finish} style={{ background:'transparent', border:'none', color:B.inkLight, fontSize:'0.82rem', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", textDecoration:'underline' }}>
+              Skip, take me to my dashboard
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 1 — Avatar */}
+      {step === 1 && (
+        <div>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:'2rem' }}>
+            <FictiflyLogo width={150}/>
+          </div>
+          <h2 style={{ fontFamily:"'Fraunces',serif", fontSize:'1.6rem', fontWeight:600, color:B.ink, marginBottom:'0.3rem' }}>
+            Pick your avatar
+          </h2>
+          <p style={{ color:B.inkLight, fontSize:'0.88rem', marginBottom:'1.5rem' }}>
+            Choose something that feels like you. You can change it later.
+          </p>
+
+          <div style={{ ...card, marginBottom:'1.5rem' }}>
+            <AvatarPicker
+              accountType="minor"
+              selectedUrl={avatarUrl}
+              onSelect={setAvatarUrl}
+            />
+          </div>
+
+          <div style={{ display:'flex', gap:'0.75rem', alignItems:'center' }}>
+            <PrimaryBtn onClick={finish} loading={loading}>
+              Let's write →
+            </PrimaryBtn>
+            <button onClick={finish} style={{ background:'transparent', border:'none', color:B.inkLight, fontSize:'0.82rem', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", textDecoration:'underline' }}>
+              Skip
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ROOT
 // ══════════════════════════════════════════════════════════════════════════════
 
 export default function Onboarding() {
@@ -1297,17 +1380,20 @@ export default function Onboarding() {
   }
 
   const isTeacher = profile.account_type === 'teacher';
+  const isStudent = profile.account_type === 'student';
 
   return (
-    <div style={{ minHeight:'100vh', background: B.sand, padding:'2rem 1.25rem 5rem', fontFamily:"'DM Sans',sans-serif" }}>
+    <div style={{ minHeight:'100vh', background: isStudent ? '#1A1610' : B.sand, padding:'2rem 1.25rem 5rem', fontFamily:"'DM Sans',sans-serif" }}>
       <style>{`
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         input:focus, select:focus, textarea:focus { border-color: ${B.terra} !important; box-shadow: 0 0 0 3px ${B.terra}22; }
       `}</style>
 
-      <div style={{ maxWidth:640, margin:'0 auto' }}>
+      <div style={{ maxWidth: isStudent ? 480 : 640, margin:'0 auto' }}>
         {isTeacher
           ? <TeacherOnboarding user={user} profile={profile} fetchProfile={fetchProfile} navigate={navigate}/>
+          : isStudent
+          ? <StudentOnboarding user={user} profile={profile} fetchProfile={fetchProfile} navigate={navigate}/>
           : <RegularOnboarding user={user} profile={profile} fetchProfile={fetchProfile} navigate={navigate}/>
         }
       </div>
