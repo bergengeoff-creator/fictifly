@@ -648,13 +648,25 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
       passcode: Math.floor(100000 + Math.random() * 900000).toString(),
     }));
 
-    const response = await fetch('/api/create-students', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accounts, classId: createdClassId }),
-    });
-
-    const { results } = await response.json();
+    let results;
+    try {
+      const response = await fetch('/api/create-students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accounts, classId: createdClassId }),
+      });
+      const json = await response.json();
+      if (!response.ok) {
+        setLoading(false);
+        setError(json.error || 'Failed to create student accounts');
+        return;
+      }
+      results = json.results;
+    } catch (fetchErr) {
+      setLoading(false);
+      setError('Network error — please try again');
+      return;
+    }
     setLoading(false);
 
     const successful = results.filter(r => r.success);
