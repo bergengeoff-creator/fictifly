@@ -38,6 +38,7 @@ export default function ClassroomDashboard() {
   const [showBulkGenerate, setShowBulkGenerate] = useState(false);
   const [newClassName, setNewClassName] = useState('');
   const [newClassGrade, setNewClassGrade] = useState('');
+  const [newClassNotes, setNewClassNotes] = useState('');
   const [bulkPrefix, setBulkPrefix] = useState('');
   const [bulkCount, setBulkCount] = useState(5);
   const [generatedAccounts, setGeneratedAccounts] = useState([]);
@@ -87,6 +88,7 @@ export default function ClassroomDashboard() {
   const [showEditClass, setShowEditClass] = useState(false);
   const [editClassName, setEditClassName] = useState('');
   const [editClassGrade, setEditClassGrade] = useState('');
+  const [editClassNotes, setEditClassNotes] = useState('');
   const [savingClassEdit, setSavingClassEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingClass, setDeletingClass] = useState(false);
@@ -273,12 +275,12 @@ export default function ClassroomDashboard() {
     setSavingClassEdit(true);
     const { error: err } = await supabase
       .from('classes')
-      .update({ name: editClassName.trim(), grade_level: editClassGrade || null })
+      .update({ name: editClassName.trim(), grade_level: editClassGrade || null, notes: editClassNotes.trim() || null })
       .eq('id', selectedClass.id);
     setSavingClassEdit(false);
     if (err) { setError(err.message); return; }
-    setSelectedClass({ ...selectedClass, name: editClassName.trim(), grade_level: editClassGrade || null });
-    setClasses(prev => prev.map(c => c.id === selectedClass.id ? { ...c, name: editClassName.trim(), grade_level: editClassGrade || null } : c));
+    setSelectedClass({ ...selectedClass, name: editClassName.trim(), grade_level: editClassGrade || null, notes: editClassNotes.trim() || null });
+    setClasses(prev => prev.map(c => c.id === selectedClass.id ? { ...c, name: editClassName.trim(), grade_level: editClassGrade || null, notes: editClassNotes.trim() || null } : c));
     setShowEditClass(false);
     setSuccess('Class updated.');
     setTimeout(() => setSuccess(null), 3000);
@@ -303,13 +305,14 @@ export default function ClassroomDashboard() {
     const classCode = generateClassCode();
     const { data, error: insertError } = await supabase
       .from('classes')
-      .insert({ teacher_id: user.id, name: newClassName.trim(), grade_level: newClassGrade || null, class_code: classCode })
+      .insert({ teacher_id: user.id, name: newClassName.trim(), grade_level: newClassGrade || null, notes: newClassNotes.trim() || null, class_code: classCode })
       .select().single();
     if (insertError) { setError('Failed to create class: ' + insertError.message); return; }
     setClasses(prev => [data, ...prev]);
     setShowCreateClass(false);
     setNewClassName('');
     setNewClassGrade('');
+    setNewClassNotes('');
     setSuccess('Class created successfully!');
     setTimeout(() => setSuccess(null), 3000);
   };
@@ -477,11 +480,17 @@ export default function ClassroomDashboard() {
                 <label style={labelStyle}>Class name
                   <input type="text" value={newClassName} onChange={(e) => setNewClassName(e.target.value)} placeholder="e.g. Period 1 Creative Writing" style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
                 </label>
-                <label style={labelStyle}>Grade level (optional)
-                  <select value={newClassGrade} onChange={(e) => setNewClassGrade(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', appearance: 'none' }}>
+                <label style={labelStyle}>Grade level <span style={{ fontWeight: 400, color: '#9A8878' }}>(optional)</span>
+                  <select value={newClassGrade} onChange={(e) => setNewClassGrade(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem', appearance: 'none' }}>
                     <option value="">Select grade level...</option>
                     {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
+                </label>
+                <label style={labelStyle}>Notes <span style={{ fontWeight: 400, color: '#9A8878' }}>(optional)</span>
+                  <textarea value={newClassNotes} onChange={(e) => setNewClassNotes(e.target.value)}
+                    placeholder="e.g. 10th grade creative writing, fall semester. Focus on short fiction."
+                    rows={3}
+                    style={{ ...inputStyle, marginTop: '0.4rem', resize: 'vertical', lineHeight: 1.6 }}/>
                 </label>
                 {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginBottom: '0.75rem', fontSize: '0.85rem' }}>{error}</div>}
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
@@ -540,7 +549,7 @@ export default function ClassroomDashboard() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                <button onClick={() => { setEditClassName(selectedClass.name); setEditClassGrade(selectedClass.grade_level || ''); setShowEditClass(true); setShowDeleteConfirm(false); }}
+                <button onClick={() => { setEditClassName(selectedClass.name); setEditClassGrade(selectedClass.grade_level || ''); setEditClassNotes(selectedClass.notes || ''); setShowEditClass(true); setShowDeleteConfirm(false); }}
                   style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.45rem 0.9rem', fontSize: '0.82rem', fontWeight: 500, color: '#6B5D4E', cursor: 'pointer', fontFamily: 'sans-serif' }}>
                   Edit class
                 </button>
@@ -560,12 +569,17 @@ export default function ClassroomDashboard() {
                   style={{ ...inputStyle, marginBottom: '0.75rem' }} placeholder="Class name"/>
                 <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.35rem' }}>Grade level</label>
                 <select value={editClassGrade} onChange={e => setEditClassGrade(e.target.value)}
-                  style={{ ...inputStyle, marginBottom: '1rem', appearance: 'none' }}>
+                  style={{ ...inputStyle, marginBottom: '0.75rem', appearance: 'none' }}>
                   <option value="">No grade level</option>
                   {['Elementary (K-5)','Middle School (6-8)','High School (9-12)','College / University','Other'].map(g => (
                     <option key={g} value={g}>{g}</option>
                   ))}
                 </select>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.35rem' }}>Notes <span style={{ fontWeight: 400, color: '#9A8878' }}>(optional)</span></label>
+                <textarea value={editClassNotes} onChange={e => setEditClassNotes(e.target.value)}
+                  placeholder="e.g. 10th grade creative writing, fall semester"
+                  rows={3}
+                  style={{ ...inputStyle, marginBottom: '1rem', resize: 'vertical', lineHeight: 1.6 }}/>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button onClick={handleEditClass} disabled={savingClassEdit}
                     style={{ background: '#D4845A', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', opacity: savingClassEdit ? 0.6 : 1 }}>
