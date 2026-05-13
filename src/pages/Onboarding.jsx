@@ -688,10 +688,10 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
             Welcome, educator
           </h2>
           <p style={{ fontSize:'0.95rem', color:B.inkMid, lineHeight:1.8, maxWidth:420, margin:'0 auto 0.75rem' }}>
-            Fictifly is a place for your students to explore ideas, develop their voices, and discover what they have to say — one story at a time.
+            Fictifly was designed by educators, for educators. A place for your students to explore ideas, develop their voices, and discover what they have to say — one story at a time.
           </p>
           <p style={{ fontSize:'0.88rem', color:B.inkMid, lineHeight:1.8, maxWidth:420, margin:'0 auto 0.75rem' }}>
-            Careful attention to educator and student safety has been at the heart of how this platform was designed — from content moderation to privacy controls to how students and adults interact. You're in good hands, and so are they.
+            Careful attention to educator and student safety has been at the heart of how this platform was built — from content moderation to privacy controls to how students and adults interact. You're in good hands, and so are they.
           </p>
           <p style={{ fontFamily:"'Fraunces',serif", fontStyle:'italic', fontSize:'0.8rem', color:B.inkLight, opacity:0.6, marginBottom:'2.5rem', letterSpacing:'0.06em' }}>
             de la tinta, tot
