@@ -557,7 +557,8 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
   const [schoolName, setSchoolName] = useState(profile?.school_name || '');
   const [subject, setSubject] = useState(profile?.subject || '');
   const [region, setRegion] = useState(profile?.region || '');
-  const [attestation, setAttestation] = useState('');
+  const [attestationName, setAttestationName] = useState('');
+  const [attestationTimestamp, setAttestationTimestamp] = useState(null);
 
   // Step 3
   const [className, setClassName] = useState('');
@@ -599,13 +600,17 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
     if (!schoolName.trim()) { setError('Please enter your school name'); return; }
     if (!subject) { setError('Please select your subject'); return; }
     if (!region) { setError('Please select your region'); return; }
-    if (attestation.toLowerCase().trim() !== 'i confirm') {
-      setError('Please type "I confirm" to continue'); return;
+    if (!attestationName.trim() || attestationName.trim().split(' ').length < 2) {
+      setError('Please enter your full name to sign'); return;
     }
+    const ts = new Date().toISOString();
+    setAttestationTimestamp(ts);
     setLoading(true); setError(null);
     const { error: err } = await supabase.from('users').update({
       school_name: schoolName.trim(),
       subject, region,
+      attestation_name: attestationName.trim(),
+      attestation_signed_at: ts,
     }).eq('id', user.id);
     setLoading(false);
     if (err) { setError(err.message); return; }
@@ -622,7 +627,6 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
       teacher_id: user.id,
       name: className.trim(),
       grade_level: gradeLevel,
-      description: classDescription.trim(),
       join_code: code,
       is_active: true,
       require_approval: false,
@@ -784,15 +788,31 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
             <p style={{ fontSize:'0.82rem', color: B.inkMid, lineHeight:1.65, marginBottom:'1rem' }}>
               {ATTESTATION_TEXT}
             </p>
-            <label style={label}>Type <strong>"I confirm"</strong> to continue</label>
-            <input style={{ ...input, borderColor: attestation.toLowerCase().trim()==='i confirm' ? B.sea : B.sandDeep }}
-              value={attestation} placeholder="I confirm"
-              onChange={e => setAttestation(e.target.value)}/>
+            <label style={label}>
+              Sign with your full name to confirm
+            </label>
+            <input
+              style={{
+                ...input,
+                fontFamily:"'Fraunces', Georgia, serif",
+                fontStyle:'italic',
+                fontSize:'1rem',
+                borderColor: attestationName.trim().split(' ').length >= 2 && attestationName.trim() ? B.sea : B.sandDeep,
+              }}
+              value={attestationName}
+              placeholder="Your full name"
+              onChange={e => setAttestationName(e.target.value)}
+            />
+            {attestationName.trim() && attestationName.trim().split(' ').length >= 2 && (
+              <div style={{ fontSize:'0.72rem', color: B.inkLight, marginTop:'0.4rem' }}>
+                Signed as <em style={{ fontFamily:"'Fraunces',serif" }}>{attestationName.trim()}</em>
+              </div>
+            )}
           </div>
 
           {error && <div style={{ color:'#E05050', fontSize:'0.82rem', marginBottom:'1rem' }}>{error}</div>}
           <PrimaryBtn onClick={saveStep2} loading={loading}
-            disabled={!schoolName || !subject || !region || attestation.toLowerCase().trim()!=='i confirm'}>
+            disabled={!schoolName || !subject || !region || attestationName.trim().split(' ').length < 2}>
             Continue →
           </PrimaryBtn>
         </div>
