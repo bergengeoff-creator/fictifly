@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 
 export default function Account({ profile, isPremium, isTeacher }) {
   // Determine tier label and limits based on account type
