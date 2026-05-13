@@ -558,7 +558,6 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
   const [subject, setSubject] = useState(profile?.subject || '');
   const [region, setRegion] = useState(profile?.region || '');
   const [attestationName, setAttestationName] = useState('');
-  const [attestationTimestamp, setAttestationTimestamp] = useState(null);
 
   // Step 3
   const [className, setClassName] = useState('');
@@ -604,7 +603,6 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
       setError('Please enter your full name to sign'); return;
     }
     const ts = new Date().toISOString();
-    setAttestationTimestamp(ts);
     setLoading(true); setError(null);
     const { error: err } = await supabase.from('users').update({
       school_name: schoolName.trim(),
