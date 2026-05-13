@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import StoryModal from '../components/StoryModal';
 import TheWell from '../utils/TheWell';
