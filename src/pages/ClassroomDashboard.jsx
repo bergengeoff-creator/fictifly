@@ -92,6 +92,14 @@ export default function ClassroomDashboard() {
   const [editDueDate, setEditDueDate] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Class management
+  const [showEditClass, setShowEditClass] = useState(false);
+  const [editClassName, setEditClassName] = useState('');
+  const [editClassGrade, setEditClassGrade] = useState('');
+  const [savingClassEdit, setSavingClassEdit] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingClass, setDeletingClass] = useState(false);
+
   const fetchClasses = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
@@ -259,6 +267,46 @@ export default function ClassroomDashboard() {
     setTimeout(() => setSuccess(null), 3000);
   };
 
+  // Fun username generator
+  const ADJECTIVES = ['Amber','Arctic','Bold','Brave','Bright','Bronze','Calm','Clever','Cosmic','Crisp','Crystal','Cunning','Daring','Dawn','Dusty','Echo','Epic','Fabled','Fierce','Fiery','Frosty','Gilded','Golden','Grand','Gritty','Hidden','Hollow','Icy','Indigo','Jade','Keen','Lofty','Lucky','Lunar','Maple','Marble','Misty','Mystic','Noble','Olive','Onyx','Ornate','Phantom','Plum','Polar','Quick','Quiet','Radiant','Rapid','Raven','Royal','Ruby','Rustic','Sandy','Scarlet','Shadow','Sharp','Silent','Silver','Slate','Smoky','Solar','Stark','Steel','Stormy','Swift','Tawny','Thunder','Timber','Twilight','Velvet','Vivid','Wild','Winter','Zephyr'];
+  const NOUNS = ['Author','Bard','Blade','Brook','Cloud','Comet','Craft','Creek','Crown','Dusk','Echo','Falcon','Fern','Flame','Flash','Flint','Fox','Frost','Grove','Hawk','Horizon','Hound','Ink','Isle','Jade','Leaf','Legend','Light','Lore','Lynx','Mage','Maple','Mist','Moon','Myth','Peak','Pen','Pine','Plot','Prose','Quest','Quill','Raven','Reed','Ridge','River','Rock','Rogue','Sage','Scout','Scribe','Scroll','Shade','Shore','Sketch','Sky','Spark','Star','Stone','Storm','Stream','Tale','Tide','Token','Tome','Trail','Vale','Verse','Voice','Wave','Wind','Wolf','Word','Writer','Yarn'];
+  const funUsername = (prefix) => {
+    const adj  = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+    const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+    const num  = Math.floor(10 + Math.random() * 90);
+    return prefix ? `${prefix}_${adj}${noun}${num}` : `${adj}${noun}${num}`;
+  };
+
+  const handleEditClass = async () => {
+    if (!editClassName.trim()) { setError('Class name cannot be empty'); return; }
+    setSavingClassEdit(true);
+    const { error: err } = await supabase
+      .from('classes')
+      .update({ name: editClassName.trim(), grade_level: editClassGrade || null })
+      .eq('id', selectedClass.id);
+    setSavingClassEdit(false);
+    if (err) { setError(err.message); return; }
+    setSelectedClass({ ...selectedClass, name: editClassName.trim(), grade_level: editClassGrade || null });
+    setClasses(prev => prev.map(c => c.id === selectedClass.id ? { ...c, name: editClassName.trim(), grade_level: editClassGrade || null } : c));
+    setShowEditClass(false);
+    setSuccess('Class updated.');
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  const handleDeleteClass = async () => {
+    setDeletingClass(true);
+    const { error: err } = await supabase
+      .from('classes')
+      .update({ is_active: false })
+      .eq('id', selectedClass.id);
+    setDeletingClass(false);
+    if (err) { setError(err.message); return; }
+    setClasses(prev => prev.filter(c => c.id !== selectedClass.id));
+    setView('classes');
+    setSelectedClass(null);
+    setShowDeleteConfirm(false);
+  };
+
   const handleCreateClass = async () => {
     if (!newClassName.trim()) { setError('Please enter a class name.'); return; }
     const classCode = generateClassCode();
@@ -285,7 +333,7 @@ export default function ClassroomDashboard() {
     setGenerating(true);
     setError(null);
     const accounts = Array.from({ length: bulkCount }, () => ({
-      username: generateUsername(bulkPrefix.trim()),
+      username: funUsername(bulkPrefix.trim()),
       passcode: generatePasscode(),
     }));
     try {
@@ -500,12 +548,71 @@ export default function ClassroomDashboard() {
                   <span style={{ fontWeight: 700, color: '#2E6DA4', letterSpacing: '0.15em' }}>{selectedClass.class_code}</span>
                 </div>
               </div>
-              {classMembers.length >= 30 && profile.account_type !== 'premium' && (
-                <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', padding: '0.85rem 1.1rem', fontSize: '0.85rem', color: '#B56840' }}>
-                  You have reached the 30 student limit. <a href="mailto:upgrade@fictifly.com" style={{ color: '#D4845A', fontWeight: 600 }}>Contact us to upgrade.</a>
-                </div>
-              )}
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <button onClick={() => { setEditClassName(selectedClass.name); setEditClassGrade(selectedClass.grade_level || ''); setShowEditClass(true); setShowDeleteConfirm(false); }}
+                  style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.45rem 0.9rem', fontSize: '0.82rem', fontWeight: 500, color: '#6B5D4E', cursor: 'pointer', fontFamily: 'sans-serif' }}>
+                  Edit class
+                </button>
+                <button onClick={() => { setShowDeleteConfirm(true); setShowEditClass(false); }}
+                  style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', padding: '0.45rem 0.9rem', fontSize: '0.82rem', fontWeight: 500, color: '#B56840', cursor: 'pointer', fontFamily: 'sans-serif' }}>
+                  Delete class
+                </button>
+              </div>
             </div>
+
+            {/* Edit class form */}
+            {showEditClass && (
+              <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '12px', padding: '1.25rem', marginBottom: '1rem' }}>
+                <div style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.9rem' }}>Edit class</div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.35rem' }}>Class name</label>
+                <input value={editClassName} onChange={e => setEditClassName(e.target.value)}
+                  style={{ ...inputStyle, marginBottom: '0.75rem' }} placeholder="Class name"/>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.35rem' }}>Grade level</label>
+                <select value={editClassGrade} onChange={e => setEditClassGrade(e.target.value)}
+                  style={{ ...inputStyle, marginBottom: '1rem', appearance: 'none' }}>
+                  <option value="">No grade level</option>
+                  {['Elementary (K-5)','Middle School (6-8)','High School (9-12)','College / University','Other'].map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={handleEditClass} disabled={savingClassEdit}
+                    style={{ background: '#D4845A', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', opacity: savingClassEdit ? 0.6 : 1 }}>
+                    {savingClassEdit ? 'Saving...' : 'Save changes'}
+                  </button>
+                  <button onClick={() => setShowEditClass(false)}
+                    style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', color: '#9A8878', cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Delete confirmation */}
+            {showDeleteConfirm && (
+              <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '12px', padding: '1.25rem', marginBottom: '1rem' }}>
+                <div style={{ fontWeight: 600, color: '#B56840', marginBottom: '0.5rem' }}>Archive this class?</div>
+                <p style={{ fontSize: '0.85rem', color: '#6B5D4E', marginBottom: '1rem', lineHeight: 1.6 }}>
+                  The class will be archived and removed from your dashboard. Student accounts are preserved and can still be managed. This cannot be undone.
+                </p>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={handleDeleteClass} disabled={deletingClass}
+                    style={{ background: '#B56840', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', opacity: deletingClass ? 0.6 : 1 }}>
+                    {deletingClass ? 'Archiving...' : 'Yes, archive class'}
+                  </button>
+                  <button onClick={() => setShowDeleteConfirm(false)}
+                    style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', color: '#9A8878', cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {classMembers.length >= 30 && profile.account_type !== 'premium' && (
+              <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', padding: '0.85rem 1.1rem', fontSize: '0.85rem', color: '#B56840', marginBottom: '1rem' }}>
+                You have reached the 30 student limit. <a href="mailto:upgrade@fictifly.com" style={{ color: '#D4845A', fontWeight: 600 }}>Contact us to upgrade.</a>
+              </div>
+            )}
 
             {success && <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', color: '#3A7040', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>{success}</div>}
             {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', color: '#B56840', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>{error}</div>}
