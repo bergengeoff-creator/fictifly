@@ -51,11 +51,12 @@ const NOUNS = [
   'Voice','Warden','Wave','Wind','Wolf','Word','Writer','Yarn',
 ];
 
-const generateFunUsername = () => {
+const generateFunUsername = (prefix = '') => {
   const adj  = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
   const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
-  const num  = Math.floor(10 + Math.random() * 90); // 10–99
-  return `${adj}${noun}${num}`;
+  const num  = Math.floor(10 + Math.random() * 90);
+  const base = `${adj}${noun}${num}`;
+  return prefix ? `${prefix}_${base}` : base;
 };
 
 const generateSeeds = (n=6) => Array.from({length:n}, () => Math.random().toString(36).substring(2,8));
@@ -597,6 +598,7 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
 
   // Step 4
   const [studentCount, setStudentCount] = useState('');
+  const [usernamePrefix, setUsernamePrefix] = useState('');
   const [generatedCodes, setGeneratedCodes] = useState([]);
 
   const checkUsername = async (val) => {
@@ -672,7 +674,7 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
 
     // Generate username/passcode pairs
     const accounts = Array.from({length: count}, () => ({
-      username: generateFunUsername(),
+      username: generateFunUsername(usernamePrefix.trim()),
       passcode: Math.floor(100000 + Math.random() * 900000).toString(),
     }));
 
@@ -928,7 +930,19 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
           )}
 
           <div style={card}>
-            <label style={label}>How many student passcode accounts to generate?</label>
+            <div style={{ marginBottom:'1rem' }}>
+              <label style={label}>Username prefix <span style={{ fontWeight:400, color:B.inkLight }}>(optional)</span></label>
+              <input
+                style={input}
+                value={usernamePrefix}
+                placeholder={`e.g. ${(displayName || 'MsSmith').replace(/\s+/g,'').substring(0,10)}_P1`}
+                onChange={e => setUsernamePrefix(e.target.value.replace(/\s/g,''))}
+              />
+              <div style={{ fontSize:'0.72rem', color:B.inkLight, marginTop:'0.4rem' }}>
+                Usernames will look like: <strong style={{ color:B.ink }}>{usernamePrefix ? `${usernamePrefix}_CleverFox42` : 'CleverFox42'}</strong>
+              </div>
+            </div>
+            <label style={label}>How many accounts to generate?</label>
             <div style={{ display:'flex', gap:'0.75rem', alignItems:'center' }}>
               <input style={{ ...input, width:120 }} type="number" min="1" max="50"
                 value={studentCount} placeholder="e.g. 28"
