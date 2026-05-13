@@ -625,14 +625,14 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
       teacher_id: user.id,
       name: className.trim(),
       grade_level: gradeLevel,
-      join_code: code,
+      class_code: code,
       is_active: true,
       require_approval: false,
     }).select().single();
     setLoading(false);
     if (err) { setError(err.message); return; }
     setCreatedClassId(data.id);
-    setJoinCode(code);
+    setJoinCode(data.class_code);
     setStep(4);
   };
 
