@@ -642,21 +642,12 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
     if (!createdClassId) { setStep(5); return; }
     setLoading(true); setError(null);
 
-    const studentRows = Array.from({length: count}, (_, i) => ({
-      class_id: createdClassId,
-      teacher_id: user.id,
-      username: `student${Math.random().toString(36).substring(2,8)}`,
-      account_type: 'student',
-      is_minor: true,
-      age_verified: false,
-      profile_public: false,
-      profile_complete: false,
-      recovery_type: 'teacher',
-      passcode: Math.floor(100000 + Math.random() * 900000).toString(),
-    }));
+    const { data, error: err } = await supabase.rpc('create_student_accounts', {
+      p_teacher_id: user.id,
+      p_class_id: createdClassId,
+      p_count: count,
+    });
 
-    const { data, error: err } = await supabase
-      .from('users').insert(studentRows).select('username, passcode');
     setLoading(false);
     if (err) { setError(err.message); return; }
     setGeneratedCodes(data || []);
