@@ -642,15 +642,27 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
     if (!createdClassId) { setStep(5); return; }
     setLoading(true); setError(null);
 
-    const { data, error: err } = await supabase.rpc('create_student_accounts', {
-      p_teacher_id: user.id,
-      p_class_id: createdClassId,
-      p_count: count,
+    // Generate username/passcode pairs
+    const accounts = Array.from({length: count}, () => ({
+      username: `student${Math.random().toString(36).substring(2,8)}`,
+      passcode: Math.floor(100000 + Math.random() * 900000).toString(),
+    }));
+
+    const response = await fetch('/api/create-students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accounts, classId: createdClassId }),
     });
 
+    const { results } = await response.json();
     setLoading(false);
-    if (err) { setError(err.message); return; }
-    setGeneratedCodes(data || []);
+
+    const successful = results.filter(r => r.success);
+    if (successful.length === 0) {
+      setError('Failed to create student accounts. Please try again.');
+      return;
+    }
+    setGeneratedCodes(successful);
     setStep(5);
   };
 
