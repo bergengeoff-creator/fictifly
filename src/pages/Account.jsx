@@ -1,4 +1,3 @@
-
 export default function Account({ profile, isPremium, isTeacher }) {
   // Determine tier label and limits based on account type
   const getTierInfo = () => {
@@ -146,21 +145,18 @@ export default function Account({ profile, isPremium, isTeacher }) {
       </div>
 
       {/* Support Fictifly section */}
-      <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '14px', padding: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-          <span style={{ fontSize: '1.3rem' }}>❤️</span>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#3A7040', margin: 0 }}>
-            Support Fictifly
-          </h3>
-        </div>
-        <p style={{ fontSize: '0.88rem', color: '#3A7040', lineHeight: 1.6, marginBottom: '1rem' }}>
-          Love Fictifly? Your donation helps us offer free and discounted access to underfunded schools and students who need it most.
+      <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#3A3226', margin: '0 0 0.5rem 0' }}>
+          Support Fictifly
+        </h3>
+        <p style={{ fontSize: '0.88rem', color: '#6B5D4E', lineHeight: 1.6, marginBottom: '1rem' }}>
+          Your donation helps us offer free and discounted access to underfunded schools and students who need it most.
         </p>
         <a
           href="mailto:fictifly@gmail.com?subject=I'd like to donate to Fictifly&body=Hi! I'm interested in supporting Fictifly and helping students get free access."
           style={{
             display: 'inline-block',
-            background: '#3A7040',
+            background: '#D4845A',
             color: '#FFFCF8',
             borderRadius: '8px',
             padding: '0.5rem 1.1rem',
