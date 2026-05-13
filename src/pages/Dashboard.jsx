@@ -6,6 +6,7 @@ import StoryModal from '../components/StoryModal';
 import TheWell from '../utils/TheWell';
 import WellModal from '../components/WellModal';
 import FictiflyLogo from '../components/FictiflyLogo';
+import Account from '../components/Account'; // NEW: Import Account tab
 
 const isStudentAccount = (profile) =>
   profile && (profile.account_type === 'minor' || profile.account_type === 'student');
@@ -13,6 +14,9 @@ const isStudentAccount = (profile) =>
 export default function Dashboard() {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // NEW: Tab state
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   // Redirect to onboarding if profile not complete — only on initial load
   useEffect(() => {
@@ -350,551 +354,637 @@ export default function Dashboard() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#F5EFE6', fontFamily: 'sans-serif', color: '#3A3226', padding: '0 1.25rem 5rem' }}>
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #D9C9B0', marginBottom: '2.5rem' }}>
+      {/* HEADER / NAV — UPDATED */}
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #D9C9B0', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <Link to="/dashboard" style={{ textDecoration: 'none', display: 'block' }}>
           <FictiflyLogo />
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {profile && profile.account_type === 'teacher' && (
-            <Link to="/classroom" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', textDecoration: 'none' }}>My Classes</Link>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {/* Writers button — premium/teacher only */}
           {profile && (isPremium || profile.account_type === 'teacher') && (
-            <Link to="/writers" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', textDecoration: 'none' }}>Writers</Link>
+            <button
+              onClick={() => navigate('/writers')}
+              style={{
+                background: 'transparent',
+                border: '1px solid #D9C9B0',
+                borderRadius: '8px',
+                color: '#6B5D4E',
+                fontSize: '0.82rem',
+                padding: '0.4rem 0.9rem',
+                cursor: 'pointer',
+                textDecoration: 'none',
+              }}
+            >
+              Writers
+            </button>
           )}
-          <Link to="/profile" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', textDecoration: 'none' }}>My Profile</Link>
-          <button onClick={handleSignOut} style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer' }}>Sign out</button>
+
+          {/* My Classes button — teacher only */}
+          {profile && profile.account_type === 'teacher' && (
+            <button
+              onClick={() => navigate('/classroom')}
+              style={{
+                background: 'transparent',
+                border: '1px solid #D9C9B0',
+                borderRadius: '8px',
+                color: '#6B5D4E',
+                fontSize: '0.82rem',
+                padding: '0.4rem 0.9rem',
+                cursor: 'pointer',
+              }}
+            >
+              My Classes
+            </button>
+          )}
+
+          {/* My Profile button */}
+          <button
+            onClick={() => navigate('/profile')}
+            style={{
+              background: 'transparent',
+              border: '1px solid #D9C9B0',
+              borderRadius: '8px',
+              color: '#6B5D4E',
+              fontSize: '0.82rem',
+              padding: '0.4rem 0.9rem',
+              cursor: 'pointer',
+            }}
+          >
+            My Profile
+          </button>
+
+          {/* Account button — NEW */}
+          <button
+            onClick={() => setActiveTab('account')}
+            style={{
+              background: activeTab === 'account' ? '#3A3226' : 'transparent',
+              border: activeTab === 'account' ? 'none' : '1px solid #D9C9B0',
+              borderRadius: '8px',
+              color: activeTab === 'account' ? '#FFFCF8' : '#6B5D4E',
+              fontSize: '0.82rem',
+              padding: '0.4rem 0.9rem',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'account' ? 600 : 400,
+            }}
+          >
+            Account
+          </button>
+
+          {/* Sign out button */}
+          <button
+            onClick={handleSignOut}
+            style={{
+              background: 'transparent',
+              border: '1px solid #D9C9B0',
+              borderRadius: '8px',
+              color: '#6B5D4E',
+              fontSize: '0.82rem',
+              padding: '0.4rem 0.9rem',
+              cursor: 'pointer',
+            }}
+          >
+            Sign out
+          </button>
         </div>
       </div>
 
-      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.6rem' }}>Dashboard</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <div
-            onClick={() => setShowWellModal(true)}
-            style={{ cursor: 'pointer' }}
-            title="What is The Well?"
-          >
-            <TheWell size="icon" darkBg={true} />
-          </div>
-          <h1 style={{ fontSize: '2.2rem', fontWeight: 700, margin: 0 }}>
-            {isNewUser ? 'Welcome, ' : 'Welcome back, '}
-            <span style={{ color: '#2E6DA4', fontStyle: 'italic', fontWeight: 500 }}>
-              {profile ? (profile.display_name || profile.username) : 'Writer'}
-            </span>
-          </h1>
-        </div>
+      {/* ACCOUNT TAB — NEW */}
+      {activeTab === 'account' && (
+        <Account profile={profile} isPremium={isPremium} isTeacher={isTeacher} />
+      )}
 
-        {showWellModal && <WellModal onClose={() => setShowWellModal(false)}/>}
-        <p style={{ color: '#6B5D4E', fontSize: '0.95rem', marginBottom: '2rem' }}>
-          {accountLabel}
-        </p>
-
-        {(isNewUser || showTrialWelcome) && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-            {/* Static simplified Well for dashboard — no animation */}
-            <svg width="120" height="120" viewBox="145 137 238 224" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '0.75rem' }}>
-              <circle cx="264.45" cy="241.23" r="129.02" fill="#231f20"/>
-              <circle cx="264.34" cy="240.27" r="91.38" fill="none" stroke="#b49041" strokeDasharray="3.99 2.99" strokeWidth=".75" strokeMiterlimit="10" opacity=".5"/>
-              <circle cx="264.21" cy="241.62" r="119.08" transform="translate(-93.47 257.6) rotate(-45)" fill="none" stroke="#b49041" strokeWidth="3" strokeMiterlimit="10"/>
-              <rect x="260.44" y="357.71" width="6.79" height="6.79" transform="translate(332.63 -80.8) rotate(45)" fill="#c1a14c"/>
-              <rect x="141.77" y="236.02" width="6.79" height="6.79" transform="translate(211.81 -32.52) rotate(45)" fill="#c1a14c"/>
-              <rect x="379.61" y="236.28" width="6.79" height="6.79" transform="translate(281.67 -200.63) rotate(45)" fill="#c1a14c"/>
-              <rect x="260.61" y="119.55" width="6.79" height="6.79" transform="translate(164.27 -150.68) rotate(45)" fill="#c1a14c"/>
-              <circle cx="264" cy="241.05" r="66.8" fill="#20466d" stroke="#3b6297" strokeWidth=".75" strokeMiterlimit="10"/>
-              <ellipse cx="262.7" cy="236.12" rx="28.24" ry="30.49" fill="#2d6ea4"/>
-              <ellipse cx="260.15" cy="232.61" rx="13.65" ry="14.56" fill="#4d90bd"/>
-              <ellipse cx="257.96" cy="229.44" rx="6.04" ry="7.44" fill="#7fb1d3"/>
-              <ellipse cx="256.06" cy="228.75" rx="2.87" ry="3.86" fill="#cbe6f8"/>
-              <circle cx="266.66" cy="235.03" r="46.07" fill="none" stroke="#c1a14c" strokeWidth="5" strokeMiterlimit="10"/>
-              <circle cx="266.81" cy="234.69" r="43.19" fill="none" stroke="#e4c89c" strokeWidth="2" strokeMiterlimit="10"/>
-              {/* Flor de Barcelona — static at top position */}
-              <g transform="translate(264.36,149.59)">
-                <circle r="11.09" transform="translate(-0.13,0.2) rotate(-37.29)" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                <path d="M11.38,0.44c4.03.95,7.03,4.57,7.03,8.89,0,5.05-4.09,9.14-9.14,9.14-4.23,0-7.79-2.87-8.83-6.77" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                <path d="M-10.85,0.01c-4.16-.85-7.3-4.54-7.3-8.95,0-5.05,4.09-9.14,9.14-9.14,4.39,0,8.06,3.1,8.94,7.22" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                <path d="M-0.39,12.39c-1.26,3.54-4.64,6.08-8.61,6.08-5.05,0-9.14-4.09-9.14-9.14,0-4.04,2.63-7.47,6.27-8.68" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                <path d="M0.38,-11.05c.95-4.03,4.57-7.03,8.89-7.03,5.05,0,9.14,4.09,9.14,9.14,0,4.39-3.1,8.06-7.22,8.94" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                <circle r="11.19" fill="#0098c0" opacity=".72"/>
-                <ellipse cx="-4.14" cy="-5.93" rx="1.2" ry=".89" transform="rotate(-25.31)" fill="#cbe6f8" opacity=".85"/>
-              </g>
-            </svg>
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <div style={{ fontFamily: "'Fraunces', serif", fontSize: '1.1rem', fontStyle: 'italic', color: '#6B5D4E', marginBottom: '0.3rem' }}>Welcome to The Well</div>
-              <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>Where every story begins</div>
+      {/* DASHBOARD TAB (default) */}
+      {activeTab === 'dashboard' && (
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.6rem' }}>Dashboard</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+            <div
+              onClick={() => setShowWellModal(true)}
+              style={{ cursor: 'pointer' }}
+              title="What is The Well?"
+            >
+              <TheWell size="icon" darkBg={true} />
             </div>
-            <div style={{ background: '#EAF4FB', border: '1px solid #5B9EC9', borderRadius: '12px', padding: '1rem 1.25rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <div>
-                <div style={{ fontWeight: 600, color: '#2E6DA4', marginBottom: '0.2rem' }}>Complete your profile</div>
-                <div style={{ fontSize: '0.85rem', color: '#6B5D4E' }}>Add a bio, avatar, and favourite genres to personalise your experience.</div>
+            <h1 style={{ fontSize: '2.2rem', fontWeight: 700, margin: 0 }}>
+              {isNewUser ? 'Welcome, ' : 'Welcome back, '}
+              <span style={{ color: '#2E6DA4', fontStyle: 'italic', fontWeight: 500 }}>
+                {profile ? (profile.display_name || profile.username) : 'Writer'}
+              </span>
+            </h1>
+          </div>
+
+          {showWellModal && <WellModal onClose={() => setShowWellModal(false)}/>}
+          <p style={{ color: '#6B5D4E', fontSize: '0.95rem', marginBottom: '2rem' }}>
+            {accountLabel}
+          </p>
+
+          {(isNewUser || showTrialWelcome) && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
+              {/* Static simplified Well for dashboard — no animation */}
+              <svg width="120" height="120" viewBox="145 137 238 224" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '0.75rem' }}>
+                <circle cx="264.45" cy="241.23" r="129.02" fill="#231f20"/>
+                <circle cx="264.34" cy="240.27" r="91.38" fill="none" stroke="#b49041" strokeDasharray="3.99 2.99" strokeWidth=".75" strokeMiterlimit="10" opacity=".5"/>
+                <circle cx="264.21" cy="241.62" r="119.08" transform="translate(-93.47 257.6) rotate(-45)" fill="none" stroke="#b49041" strokeWidth="3" strokeMiterlimit="10"/>
+                <rect x="260.44" y="357.71" width="6.79" height="6.79" transform="translate(332.63 -80.8) rotate(45)" fill="#c1a14c"/>
+                <rect x="141.77" y="236.02" width="6.79" height="6.79" transform="translate(211.81 -32.52) rotate(45)" fill="#c1a14c"/>
+                <rect x="379.61" y="236.28" width="6.79" height="6.79" transform="translate(281.67 -200.63) rotate(45)" fill="#c1a14c"/>
+                <rect x="260.61" y="119.55" width="6.79" height="6.79" transform="translate(164.27 -150.68) rotate(45)" fill="#c1a14c"/>
+                <circle cx="264" cy="241.05" r="66.8" fill="#20466d" stroke="#3b6297" strokeWidth=".75" strokeMiterlimit="10"/>
+                <ellipse cx="262.7" cy="236.12" rx="28.24" ry="30.49" fill="#2d6ea4"/>
+                <ellipse cx="260.15" cy="232.61" rx="13.65" ry="14.56" fill="#4d90bd"/>
+                <ellipse cx="257.96" cy="229.44" rx="6.04" ry="7.44" fill="#7fb1d3"/>
+                <ellipse cx="256.06" cy="228.75" rx="2.87" ry="3.86" fill="#cbe6f8"/>
+                <circle cx="266.66" cy="235.03" r="46.07" fill="none" stroke="#c1a14c" strokeWidth="5" strokeMiterlimit="10"/>
+                <circle cx="266.81" cy="234.69" r="43.19" fill="none" stroke="#e4c89c" strokeWidth="2" strokeMiterlimit="10"/>
+                {/* Flor de Barcelona — static at top position */}
+                <g transform="translate(264.36,149.59)">
+                  <circle r="11.09" transform="translate(-0.13,0.2) rotate(-37.29)" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
+                  <path d="M11.38,0.44c4.03.95,7.03,4.57,7.03,8.89,0,5.05-4.09,9.14-9.14,9.14-4.23,0-7.79-2.87-8.83-6.77" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
+                  <path d="M-10.85,0.01c-4.16-.85-7.3-4.54-7.3-8.95,0-5.05,4.09-9.14,9.14-9.14,4.39,0,8.06,3.1,8.94,7.22" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
+                  <path d="M-0.39,12.39c-1.26,3.54-4.64,6.08-8.61,6.08-5.05,0-9.14-4.09-9.14-9.14,0-4.04,2.63-7.47,6.27-8.68" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
+                  <path d="M0.38,-11.05c.95-4.03,4.57-7.03,8.89-7.03,5.05,0,9.14,4.09,9.14,9.14,0,4.39-3.1,8.06-7.22,8.94" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
+                  <circle r="11.19" fill="#0098c0" opacity=".72"/>
+                  <ellipse cx="-4.14" cy="-5.93" rx="1.2" ry=".89" transform="rotate(-25.31)" fill="#cbe6f8" opacity=".85"/>
+                </g>
+              </svg>
+              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ fontFamily: "'Fraunces', serif", fontSize: '1.1rem', fontStyle: 'italic', color: '#6B5D4E', marginBottom: '0.3rem' }}>Welcome to The Well</div>
+                <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>Where every story begins</div>
               </div>
-              <Link to="/profile" style={{ background: '#2E6DA4', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}>Complete profile</Link>
-            </div>
-          </div>
-        )}
-
-        {/* Premium trial — welcome banner (day 1 only) */}
-        {profile && profile.account_type === 'standard' && showTrialWelcome && (
-          <div style={{ background: '#FFFCF8', border: '1px solid #D4845A', borderRadius: '14px', padding: '1.5rem', marginBottom: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', borderLeft: '4px solid #D4845A' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.6rem' }}>
-              <span style={{ fontSize: '1.4rem' }}>🎉</span>
-              <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A' }}>Welcome to Fictifly</div>
-            </div>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#3A3226', marginBottom: '0.4rem' }}>
-              Thanks for joining, {profile.display_name || profile.username}!
-            </h2>
-            <p style={{ fontSize: '0.88rem', color: '#6B5D4E', lineHeight: 1.65, marginBottom: '1rem' }}>
-              We're so glad you're here. To give you the best possible start, we're gifting you a free 14-day Premium trial — no card required, no strings attached. Dive in and make it your own.
-            </p>
-            <div style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.5rem' }}>Your trial includes</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
-              {TRIAL_BENEFITS.map(b => (
-                <div key={b.text} style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', fontSize: '0.85rem' }}>
-                  <span style={{ color: '#6BAF72', fontWeight: 700, flexShrink: 0 }}>✓</span>
-                  <span style={{ color: b.soon ? '#9A8878' : '#3A3226' }}>
-                    {b.text}
-                    {b.sub && <span style={{ fontSize: '0.75rem', color: '#9A8878', marginLeft: '0.4rem' }}>— {b.sub}</span>}
-                  </span>
+              <div style={{ background: '#EAF4FB', border: '1px solid #5B9EC9', borderRadius: '12px', padding: '1rem 1.25rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: '#2E6DA4', marginBottom: '0.2rem' }}>Complete your profile</div>
+                  <div style={{ fontSize: '0.85rem', color: '#6B5D4E' }}>Add a bio, avatar, and favourite genres to personalise your experience.</div>
                 </div>
-              ))}
+                <button onClick={() => navigate('/profile')} style={{ background: '#2E6DA4', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Complete profile</button>
+              </div>
             </div>
-            <div style={{ fontSize: '0.78rem', color: '#9A8878', fontStyle: 'italic' }}>
-              Your trial runs for 14 days. Happy writing — we can't wait to read what you create. ✍️
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Premium trial — countdown warning (7 days or less) */}
-        {profile && profile.account_type === 'standard' && showTrialWarning && (
-          <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div>
-              <div style={{ fontWeight: 600, color: '#9A6830', marginBottom: '0.2rem', fontSize: '0.95rem' }}>
-                ⏳ {daysLeft === 1 ? 'Last day' : `${daysLeft} days`} left on your Premium trial
+          {/* Premium trial — welcome banner (day 1 only) */}
+          {profile && profile.account_type === 'standard' && showTrialWelcome && (
+            <div style={{ background: '#FFFCF8', border: '1px solid #D4845A', borderRadius: '14px', padding: '1.5rem', marginBottom: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', borderLeft: '4px solid #D4845A' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.6rem' }}>
+                <span style={{ fontSize: '1.4rem' }}>🎉</span>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A' }}>Welcome to Fictifly</div>
               </div>
-              <div style={{ fontSize: '0.82rem', color: '#9A6830', lineHeight: 1.5 }}>
-                After your trial you'll revert to 6 prompts/day and lose story submission and directory access.
-              </div>
-            </div>
-            <a href="mailto:fictifly@gmail.com?subject=Premium Upgrade&body=Hi! I'd like to keep my Premium access after my trial ends."
-              style={{ background: '#D4845A', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              Keep my Premium access
-            </a>
-          </div>
-        )}
-
-        {/* Premium trial — expired */}
-        {profile && profile.account_type === 'standard' && trialExpired && (
-          <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div>
-              <div style={{ fontWeight: 600, color: '#B56840', marginBottom: '0.2rem', fontSize: '0.95rem' }}>
-                Your Premium trial has ended
-              </div>
-              <div style={{ fontSize: '0.82rem', color: '#B56840', lineHeight: 1.5 }}>
-                You're back on the free plan — 6 prompts/day, no story submission or directory access.
-              </div>
-            </div>
-            <a href="mailto:fictifly@gmail.com?subject=Premium Upgrade&body=Hi! I'd like to upgrade to Premium."
-              style={{ background: '#D4845A', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              Keep my Premium access
-            </a>
-          </div>
-        )}
-
-        {/* Daily prompt */}
-        <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginBottom: '2rem', borderLeft: '4px solid #D4845A' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div>
-              <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.25rem' }}>
-                {dailyPrompt?.challenge_type === 'character' ? "Today's Character Challenge" : "Today's Challenge"}
-              </div>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0 }}>
-                {dailyPrompt?.challenge_type === 'character' ? 'Character Day' : 'Daily Prompt'}
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#3A3226', marginBottom: '0.4rem' }}>
+                Thanks for joining, {profile.display_name || profile.username}!
               </h2>
+              <p style={{ fontSize: '0.88rem', color: '#6B5D4E', lineHeight: 1.65, marginBottom: '1rem' }}>
+                We're so glad you're here. To give you the best possible start, we're gifting you a free 14-day Premium trial — no card required, no strings attached. Dive in and make it your own.
+              </p>
+              <div style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.5rem' }}>Your trial includes</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+                {TRIAL_BENEFITS.map(b => (
+                  <div key={b.text} style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', fontSize: '0.85rem' }}>
+                    <span style={{ color: '#6BAF72', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    <span style={{ color: b.soon ? '#9A8878' : '#3A3226' }}>
+                      {b.text}
+                      {b.sub && <span style={{ fontSize: '0.75rem', color: '#9A8878', marginLeft: '0.4rem' }}>— {b.sub}</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#9A8878', fontStyle: 'italic' }}>
+                Your trial runs for 14 days. Happy writing — we can't wait to read what you create. ✍️
+              </div>
             </div>
-            {dailyPrompt && (
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <span style={{ background: '#D4845A', color: '#FFFCF8', fontSize: '0.82rem', fontWeight: 700, letterSpacing: '0.04em', padding: '0.3rem 0.85rem', borderRadius: '20px' }}>
-                  {dailyPrompt.word_count} words
-                </span>
-                <span style={{ background: '#EDE3D4', color: '#3A3226', fontSize: '0.82rem', fontWeight: 600, padding: '0.3rem 0.85rem', borderRadius: '20px' }}>
-                  {dailyPrompt.genre}
-                </span>
-                {dailyPrompt.challenge_type === 'character' && (
-                  <span style={{ background: '#F5EDF5', color: '#7A4A90', border: '1px solid #B07AC0', fontSize: '0.82rem', fontWeight: 600, padding: '0.3rem 0.85rem', borderRadius: '20px' }}>
-                    ✦ Character day
+          )}
+
+          {/* Premium trial — countdown warning (7 days or less) */}
+          {profile && profile.account_type === 'standard' && showTrialWarning && (
+            <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <div style={{ fontWeight: 600, color: '#9A6830', marginBottom: '0.2rem', fontSize: '0.95rem' }}>
+                  ⏳ {daysLeft === 1 ? 'Last day' : `${daysLeft} days`} left on your Premium trial
+                </div>
+                <div style={{ fontSize: '0.82rem', color: '#9A6830', lineHeight: 1.5 }}>
+                  After your trial you'll revert to 6 prompts/day and lose story submission and directory access.
+                </div>
+              </div>
+              <a href="mailto:fictifly@gmail.com?subject=Premium Upgrade&body=Hi! I'd like to keep my Premium access after my trial ends."
+                style={{ background: '#D4845A', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                Keep my Premium access
+              </a>
+            </div>
+          )}
+
+          {/* Premium trial — expired */}
+          {profile && profile.account_type === 'standard' && trialExpired && (
+            <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <div style={{ fontWeight: 600, color: '#B56840', marginBottom: '0.2rem', fontSize: '0.95rem' }}>
+                  Your Premium trial has ended
+                </div>
+                <div style={{ fontSize: '0.82rem', color: '#B56840', lineHeight: 1.5 }}>
+                  You're back on the free plan — 6 prompts/day, no story submission or directory access.
+                </div>
+              </div>
+              <a href="mailto:fictifly@gmail.com?subject=Premium Upgrade&body=Hi! I'd like to upgrade to Premium."
+                style={{ background: '#D4845A', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                Keep my Premium access
+              </a>
+            </div>
+          )}
+
+          {/* Daily prompt */}
+          <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginBottom: '2rem', borderLeft: '4px solid #D4845A' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.25rem' }}>
+                  {dailyPrompt?.challenge_type === 'character' ? "Today's Character Challenge" : "Today's Challenge"}
+                </div>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0 }}>
+                  {dailyPrompt?.challenge_type === 'character' ? 'Character Day' : 'Daily Prompt'}
+                </h2>
+              </div>
+              {dailyPrompt && (
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span style={{ background: '#D4845A', color: '#FFFCF8', fontSize: '0.82rem', fontWeight: 700, letterSpacing: '0.04em', padding: '0.3rem 0.85rem', borderRadius: '20px' }}>
+                    {dailyPrompt.word_count} words
+                  </span>
+                  <span style={{ background: '#EDE3D4', color: '#3A3226', fontSize: '0.82rem', fontWeight: 600, padding: '0.3rem 0.85rem', borderRadius: '20px' }}>
+                    {dailyPrompt.genre}
+                  </span>
+                  {dailyPrompt.challenge_type === 'character' && (
+                    <span style={{ background: '#F5EDF5', color: '#7A4A90', border: '1px solid #B07AC0', fontSize: '0.82rem', fontWeight: 600, padding: '0.3rem 0.85rem', borderRadius: '20px' }}>
+                      ✦ Character day
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {dailyPromptLoading ? (
+              <div style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>Loading today's prompt...</div>
+            ) : dailyPrompt ? (
+              <div>
+                {dailyPrompt.challenge_type === 'character' ? (
+                  // ── Character day card ────────────────────────────────────────
+                  <div>
+                    {/* Active character display */}
+                    {(() => {
+                      const char = activeCharacter || dailyPrompt.character_data;
+                      return char ? (
+                        <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '1rem 1.1rem', marginBottom: '1rem' }}>
+                          {char.name && (
+                            <div style={{ fontFamily: "'Fraunces', serif", fontSize: '1.05rem', fontWeight: 600, color: '#3A3226', marginBottom: '0.5rem' }}>{char.name}</div>
+                          )}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                            {[
+                              { label: 'Profession', val: char.profession },
+                              { label: 'Background', val: char.background },
+                              { label: 'Personality', val: char.personality },
+                              { label: 'Flaw', val: char.flaw },
+                              { label: 'Motivation', val: char.motivation },
+                            ].filter(r => r.val).map(r => (
+                              <div key={r.label} style={{ display: 'flex', gap: '0.6rem', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9A8878', minWidth: 72, flexShrink: 0 }}>{r.label}</span>
+                                <span style={{ fontFamily: "'Fraunces', serif", fontSize: '0.92rem', color: '#3A3226', lineHeight: 1.5 }}>{r.val}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {char.writing_prompt && (
+                            <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid #D9C9B0', fontFamily: "'Fraunces', serif", fontSize: '0.95rem', fontStyle: 'italic', color: '#6B5D4E', lineHeight: 1.6 }}>
+                              {char.writing_prompt}
+                            </div>
+                          )}
+                        </div>
+                      ) : null;
+                    })()}
+
+                    {/* Premium swap — saved character */}
+                    {isPremium && savedCharacters.length > 0 && (
+                      <div style={{ marginBottom: '1rem' }}>
+                        <button
+                          onClick={() => setShowCharacterSwap(s => !s)}
+                          style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.78rem', fontWeight: 500, color: '#6B5D4E', cursor: 'pointer' }}
+                        >
+                          {activeCharacter ? '↺ Change character' : '☆ Use a saved character'}
+                        </button>
+                        {activeCharacter && (
+                          <button
+                            onClick={() => { setActiveCharacter(null); setShowCharacterSwap(false); }}
+                            style={{ background: 'transparent', border: 'none', fontSize: '0.78rem', color: '#9A8878', cursor: 'pointer', marginLeft: '0.5rem' }}
+                          >
+                            Reset to today's character
+                          </button>
+                        )}
+                        {showCharacterSwap && (
+                          <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: 200, overflowY: 'auto' }}>
+                            {savedCharacters.map(c => {
+                              const name = c.character_data?.name;
+                              const profession = c.character_data?.profession;
+                              const label = [name, profession].filter(Boolean).join(' — ') || 'Unnamed character';
+                              return (
+                                <button
+                                  key={c.id}
+                                  onClick={() => { setActiveCharacter(c.character_data); setShowCharacterSwap(false); }}
+                                  style={{ textAlign: 'left', background: activeCharacter === c.character_data ? '#EAF4FB' : '#F5EFE6', border: `1px solid ${activeCharacter === c.character_data ? '#5B9EC9' : '#D9C9B0'}`, borderRadius: '8px', padding: '0.5rem 0.85rem', fontSize: '0.82rem', color: '#3A3226', cursor: 'pointer' }}
+                                >
+                                  {label}
+                                  {c.genre && <span style={{ color: '#9A8878', marginLeft: '0.5rem', fontSize: '0.75rem' }}>{c.genre}</span>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Non-premium upsell banner */}
+                    {!isPremium && (
+                      <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '8px', padding: '0.65rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.82rem', color: '#9A6830' }}>
+                          ✦ <strong>Premium</strong> — use your own saved characters on character days
+                        </span>
+                        <a href="mailto:fictifly@gmail.com?subject=Premium Upgrade"
+                          style={{ fontSize: '0.78rem', fontWeight: 600, color: '#B56840', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                          Upgrade →
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Write button */}
+                    {dailyWritten ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ background: '#F0F7ED', border: '1px solid #6BAF72', color: '#3A7040', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
+                        <button onClick={handleOpenDailyPrompt} style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer' }}>Edit story</button>
+                      </div>
+                    ) : (
+                      <button onClick={handleOpenDailyPrompt} style={{ background: '#D4845A', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+                        Write this character's story →
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  // ── Standard day card ─────────────────────────────────────────
+                  <div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', minWidth: 52 }}>Action</span>
+                        <span style={{ fontSize: '1.15rem', fontWeight: 500, color: '#3A3226', fontStyle: 'italic' }}>{dailyPrompt.action}</span>
+                      </div>
+                      <div style={{ height: '1px', background: '#EDE3D4' }} />
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', minWidth: 52 }}>Word</span>
+                        <span style={{ fontSize: '1.15rem', fontWeight: 500, color: '#2E6DA4', fontStyle: 'italic' }}>{dailyPrompt.word}</span>
+                      </div>
+                    </div>
+                    {dailyWritten ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ background: '#F0F7ED', border: '1px solid #6BAF72', color: '#3A7040', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
+                        <button onClick={handleOpenDailyPrompt} style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer' }}>Edit story</button>
+                      </div>
+                    ) : (
+                      <button onClick={handleOpenDailyPrompt} style={{ background: '#D4845A', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+                        Write today's story →
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>Today's prompt is on its way — check back shortly.</div>
+            )}
+          </div>
+
+          {/* Assignments — students only */}
+          {profile && isStudentAccount(profile) && assignments.length > 0 && (
+            <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Assignments</h2>
+                {pendingAssignments.length > 0 && (
+                  <span style={{ background: '#D4845A', color: '#FFFCF8', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.55rem', borderRadius: '20px' }}>
+                    {pendingAssignments.length} due
                   </span>
                 )}
               </div>
-            )}
-          </div>
 
-          {dailyPromptLoading ? (
-            <div style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>Loading today's prompt...</div>
-          ) : dailyPrompt ? (
-            <div>
-              {dailyPrompt.challenge_type === 'character' ? (
-                // ── Character day card ────────────────────────────────────────
-                <div>
-                  {/* Active character display */}
-                  {(() => {
-                    const char = activeCharacter || dailyPrompt.character_data;
-                    return char ? (
-                      <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '1rem 1.1rem', marginBottom: '1rem' }}>
-                        {char.name && (
-                          <div style={{ fontFamily: "'Fraunces', serif", fontSize: '1.05rem', fontWeight: 600, color: '#3A3226', marginBottom: '0.5rem' }}>{char.name}</div>
-                        )}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                          {[
-                            { label: 'Profession', val: char.profession },
-                            { label: 'Background', val: char.background },
-                            { label: 'Personality', val: char.personality },
-                            { label: 'Flaw', val: char.flaw },
-                            { label: 'Motivation', val: char.motivation },
-                          ].filter(r => r.val).map(r => (
-                            <div key={r.label} style={{ display: 'flex', gap: '0.6rem', alignItems: 'baseline' }}>
-                              <span style={{ fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9A8878', minWidth: 72, flexShrink: 0 }}>{r.label}</span>
-                              <span style={{ fontFamily: "'Fraunces', serif", fontSize: '0.92rem', color: '#3A3226', lineHeight: 1.5 }}>{r.val}</span>
-                            </div>
-                          ))}
-                        </div>
-                        {char.writing_prompt && (
-                          <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid #D9C9B0', fontFamily: "'Fraunces', serif", fontSize: '0.95rem', fontStyle: 'italic', color: '#6B5D4E', lineHeight: 1.6 }}>
-                            {char.writing_prompt}
-                          </div>
-                        )}
-                      </div>
-                    ) : null;
-                  })()}
-
-                  {/* Premium swap — saved character */}
-                  {isPremium && savedCharacters.length > 0 && (
-                    <div style={{ marginBottom: '1rem' }}>
-                      <button
-                        onClick={() => setShowCharacterSwap(s => !s)}
-                        style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.78rem', fontWeight: 500, color: '#6B5D4E', cursor: 'pointer' }}
-                      >
-                        {activeCharacter ? '↺ Change character' : '☆ Use a saved character'}
-                      </button>
-                      {activeCharacter && (
-                        <button
-                          onClick={() => { setActiveCharacter(null); setShowCharacterSwap(false); }}
-                          style={{ background: 'transparent', border: 'none', fontSize: '0.78rem', color: '#9A8878', cursor: 'pointer', marginLeft: '0.5rem' }}
-                        >
-                          Reset to today's character
-                        </button>
-                      )}
-                      {showCharacterSwap && (
-                        <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: 200, overflowY: 'auto' }}>
-                          {savedCharacters.map(c => {
-                            const name = c.character_data?.name;
-                            const profession = c.character_data?.profession;
-                            const label = [name, profession].filter(Boolean).join(' — ') || 'Unnamed character';
-                            return (
-                              <button
-                                key={c.id}
-                                onClick={() => { setActiveCharacter(c.character_data); setShowCharacterSwap(false); }}
-                                style={{ textAlign: 'left', background: activeCharacter === c.character_data ? '#EAF4FB' : '#F5EFE6', border: `1px solid ${activeCharacter === c.character_data ? '#5B9EC9' : '#D9C9B0'}`, borderRadius: '8px', padding: '0.5rem 0.85rem', fontSize: '0.82rem', color: '#3A3226', cursor: 'pointer' }}
-                              >
-                                {label}
-                                {c.genre && <span style={{ color: '#9A8878', marginLeft: '0.5rem', fontSize: '0.75rem' }}>{c.genre}</span>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Non-premium upsell banner */}
-                  {!isPremium && (
-                    <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '8px', padding: '0.65rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.82rem', color: '#9A6830' }}>
-                        ✦ <strong>Premium</strong> — use your own saved characters on character days
-                      </span>
-                      <a href="mailto:fictifly@gmail.com?subject=Premium Upgrade"
-                        style={{ fontSize: '0.78rem', fontWeight: 600, color: '#B56840', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                        Upgrade →
-                      </a>
-                    </div>
-                  )}
-
-                  {/* Write button */}
-                  {dailyWritten ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ background: '#F0F7ED', border: '1px solid #6BAF72', color: '#3A7040', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
-                      <button onClick={handleOpenDailyPrompt} style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer' }}>Edit story</button>
-                    </div>
-                  ) : (
-                    <button onClick={handleOpenDailyPrompt} style={{ background: '#D4845A', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
-                      Write this character's story →
-                    </button>
-                  )}
-                </div>
-              ) : (
-                // ── Standard day card ─────────────────────────────────────────
-                <div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', minWidth: 52 }}>Action</span>
-                      <span style={{ fontSize: '1.15rem', fontWeight: 500, color: '#3A3226', fontStyle: 'italic' }}>{dailyPrompt.action}</span>
-                    </div>
-                    <div style={{ height: '1px', background: '#EDE3D4' }} />
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', minWidth: 52 }}>Word</span>
-                      <span style={{ fontSize: '1.15rem', fontWeight: 500, color: '#2E6DA4', fontStyle: 'italic' }}>{dailyPrompt.word}</span>
-                    </div>
-                  </div>
-                  {dailyWritten ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ background: '#F0F7ED', border: '1px solid #6BAF72', color: '#3A7040', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
-                      <button onClick={handleOpenDailyPrompt} style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer' }}>Edit story</button>
-                    </div>
-                  ) : (
-                    <button onClick={handleOpenDailyPrompt} style={{ background: '#D4845A', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
-                      Write today's story →
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>Today's prompt is on its way — check back shortly.</div>
-          )}
-        </div>
-
-        {/* Assignments — students only */}
-        {profile && isStudentAccount(profile) && assignments.length > 0 && (
-          <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginBottom: '2rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Assignments</h2>
               {pendingAssignments.length > 0 && (
-                <span style={{ background: '#D4845A', color: '#FFFCF8', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.55rem', borderRadius: '20px' }}>
-                  {pendingAssignments.length} due
-                </span>
-              )}
-            </div>
-
-            {pendingAssignments.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: submittedAssignments.length > 0 ? '1.25rem' : 0 }}>
-                {pendingAssignments.map(a => {
-                  const dueDate = new Date(a.due_date);
-                  const daysUntilDue = Math.ceil((dueDate - new Date()) / (1000 * 60 * 60 * 24));
-                  const isDueSoon = daysUntilDue <= 2;
-                  return (
-                    <div key={a.id} style={{ background: '#F5EFE6', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', border: `1px solid ${isDueSoon ? '#D4845A' : 'transparent'}` }}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#3A3226', marginBottom: '0.2rem' }}>{a.title}</div>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>
-                          {a.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {a.word_count} words{a.genre ? ` · ${a.genre}` : ''}
-                        </div>
-                        {(a.action || a.word || a.location || a.object) && (
-                          <div style={{ fontSize: '0.78rem', color: '#6B5D4E', marginBottom: '0.2rem' }}>
-                            {[
-                              a.action && `Action: ${a.action}`,
-                              a.word && `Word: ${a.word}`,
-                              a.location && `Location: ${a.location}`,
-                              a.object && `Object: ${a.object}`,
-                            ].filter(Boolean).join(' · ')}
-                          </div>
-                        )}
-                        <div style={{ fontSize: '0.72rem', color: isDueSoon ? '#B56840' : '#9A8878', fontWeight: isDueSoon ? 600 : 400 }}>
-                          Due {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          {daysUntilDue === 0 ? ' · Due today!' : isDueSoon ? ` · ${daysUntilDue} day${daysUntilDue !== 1 ? 's' : ''} left` : ''}
-                        </div>
-                      </div>
-                      <button onClick={() => handleOpenSubmission(a)}
-                        style={{ background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                        Submit story
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {submittedAssignments.length > 0 && (
-              <div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.5rem' }}>Submitted ✓</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {submittedAssignments.map(a => {
-                    const fb = assignmentFeedback[a.id];
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: submittedAssignments.length > 0 ? '1.25rem' : 0 }}>
+                  {pendingAssignments.map(a => {
+                    const dueDate = new Date(a.due_date);
+                    const daysUntilDue = Math.ceil((dueDate - new Date()) / (1000 * 60 * 60 * 24));
+                    const isDueSoon = daysUntilDue <= 2;
                     return (
-                      <div key={a.id} style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', padding: '0.85rem 1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: fb ? '0.75rem' : 0 }}>
-                          <div>
-                            <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#3A3226' }}>{a.title}</div>
-                            <div style={{ fontSize: '0.72rem', color: '#6BAF72', fontWeight: 600, marginTop: '0.15rem' }}>Submitted ✓</div>
+                      <div key={a.id} style={{ background: '#F5EFE6', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', border: `1px solid ${isDueSoon ? '#D4845A' : 'transparent'}` }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#3A3226', marginBottom: '0.2rem' }}>{a.title}</div>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>
+                            {a.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {a.word_count} words{a.genre ? ` · ${a.genre}` : ''}
                           </div>
-                          <button onClick={() => handleOpenSubmission(a)}
-                            style={{ background: 'transparent', border: '1px solid #6BAF72', color: '#3A7040', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer' }}>
-                            Edit submission
-                          </button>
+                          {(a.action || a.word || a.location || a.object) && (
+                            <div style={{ fontSize: '0.78rem', color: '#6B5D4E', marginBottom: '0.2rem' }}>
+                              {[
+                                a.action && `Action: ${a.action}`,
+                                a.word && `Word: ${a.word}`,
+                                a.location && `Location: ${a.location}`,
+                                a.object && `Object: ${a.object}`,
+                              ].filter(Boolean).join(' · ')}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.72rem', color: isDueSoon ? '#B56840' : '#9A8878', fontWeight: isDueSoon ? 600 : 400 }}>
+                            Due {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {daysUntilDue === 0 ? ' · Due today!' : isDueSoon ? ` · ${daysUntilDue} day${daysUntilDue !== 1 ? 's' : ''} left` : ''}
+                          </div>
                         </div>
-                        {fb && (
-                          <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.75rem 1rem' }}>
-                            <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2E6DA4', marginBottom: '0.4rem' }}>
-                              💬 Teacher feedback
-                            </div>
-                            <p style={{ fontSize: '0.88rem', color: '#3A3226', lineHeight: 1.6, margin: 0 }}>{fb.feedback}</p>
-                            {fb.feedback_at && (
-                              <div style={{ fontSize: '0.7rem', color: '#9A8878', marginTop: '0.4rem' }}>
-                                {new Date(fb.feedback_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </div>
-                            )}
-                          </div>
-                        )}
+                        <button onClick={() => handleOpenSubmission(a)}
+                          style={{ background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                          Submit story
+                        </button>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
-          {stats.map((stat) => (
-            <div key={stat.label} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
-              <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#3A3226' }}>{stat.value}</div>
-              <div style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.25rem' }}>{stat.label}</div>
-            </div>
-          ))}
-        </div>
-
-        <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '1rem' }}>Start writing</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-          {generators.map((g) => (
-            <Link key={g.title} to={g.path} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '4px solid ' + g.color, borderRadius: '12px', padding: '1.25rem 1.5rem', cursor: 'pointer', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', textDecoration: 'none', display: 'block' }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(58,50,38,0.1)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(58,50,38,0.05)'; }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#3A3226' }}>{g.title}</span>
-                {g.new && <span style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#F0F7ED', color: '#3A7040', border: '1px solid #6BAF72', borderRadius: '20px', padding: '0.15rem 0.5rem' }}>New</span>}
-              </div>
-              <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>{g.desc}</div>
-            </Link>
-          ))}
-        </div>
-
-        {canAccessBeta && BETA_FEATURES.length > 0 && (
-          <div style={{ marginBottom: '2rem' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Beta features</h2>
-              <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: '#EAF4FB', color: '#2E6DA4', border: '1px solid #5B9EC9', borderRadius: '20px', padding: '0.2rem 0.6rem' }}>Premium</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {BETA_FEATURES.map(f => {
-                const isEnabled = betaFeatures[f.key];
-                const isJoining = joiningBeta === f.key;
-                return (
-                  <div key={f.key} style={{ background: '#FFFCF8', border: `1px solid ${isEnabled ? '#6BAF72' : '#D9C9B0'}`, borderLeft: `4px solid ${isEnabled ? '#6BAF72' : '#D9C9B0'}`, borderRadius: '12px', padding: '1.1rem 1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', boxShadow: '0 2px 12px rgba(58,50,38,0.04)', transition: 'border-color 0.2s' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                        <span style={{ fontSize: '1rem', fontWeight: 600, color: '#3A3226' }}>{f.title}</span>
-                        {isEnabled && <span style={{ fontSize: '0.58rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#F0F7ED', color: '#3A7040', border: '1px solid #6BAF72', borderRadius: '20px', padding: '0.12rem 0.45rem' }}>Active</span>}
-                      </div>
-                      <div style={{ fontSize: '0.82rem', color: '#9A8878', lineHeight: 1.5 }}>{f.desc}</div>
-                    </div>
-                    {isEnabled ? (
-                      <Link to={f.path} style={{ background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '9px', padding: '0.5rem 1.1rem', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.82rem', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                        Open →
-                      </Link>
-                    ) : (
-                      <button
-                        onClick={() => joinBeta(f.key)}
-                        disabled={isJoining}
-                        style={{ background: isJoining ? '#D9C9B0' : '#3A3226', color: '#FFFCF8', border: 'none', borderRadius: '9px', padding: '0.5rem 1.1rem', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.82rem', cursor: isJoining ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'background 0.18s' }}
-                        onMouseEnter={e => { if (!isJoining) e.currentTarget.style.background = '#6B5D4E'; }}
-                        onMouseLeave={e => { if (!isJoining) e.currentTarget.style.background = '#3A3226'; }}
-                      >
-                        {isJoining ? 'Enabling…' : 'Enable beta access'}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Saved Prompts</h2>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Link to="/generators/microfiction" style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Microfiction</Link>
-              <span style={{ color: '#9A8878', fontSize: '0.78rem' }}>·</span>
-              <Link to="/generators/flash-fiction" style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Flash Fiction</Link>
-            </div>
-          </div>
-
-          {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).length === 0 ? (
-            <p style={{ color: '#9A8878', fontSize: '0.9rem', fontStyle: 'italic', marginBottom: '1rem' }}>No unwritten prompts — great work!</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
-              {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).slice(0, 3).map(p => (
-                <div key={p.id} style={{ background: '#F5EFE6', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  <div>
-                    <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>{p.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {p.word_count} words</div>
-                    <div style={{ fontSize: '0.88rem', color: '#3A3226', fontWeight: 500 }}>{p.genre}</div>
-                    <div style={{ fontSize: '0.82rem', color: '#6B5D4E' }}>{p.action || p.location} · {p.word || p.object}</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    {profile && isStudentAccount(profile) && (
-                      <button
-                        onClick={() => setStoryModalData({ prompt: { ...p, wordCount: p.word_count, dbId: p.id }, assignmentId: null })}
-                        style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.72rem', fontWeight: 500, padding: '0.3rem 0.7rem', cursor: 'pointer' }}>
-                        Submit
-                      </button>
-                    )}
-                    <Link to={p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=saved' : '/generators/flash-fiction?tab=saved'} style={{ fontSize: '0.75rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Write →</Link>
+              {submittedAssignments.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.5rem' }}>Submitted ✓</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {submittedAssignments.map(a => {
+                      const fb = assignmentFeedback[a.id];
+                      return (
+                        <div key={a.id} style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', padding: '0.85rem 1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: fb ? '0.75rem' : 0 }}>
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#3A3226' }}>{a.title}</div>
+                              <div style={{ fontSize: '0.72rem', color: '#6BAF72', fontWeight: 600, marginTop: '0.15rem' }}>Submitted ✓</div>
+                            </div>
+                            <button onClick={() => handleOpenSubmission(a)}
+                              style={{ background: 'transparent', border: '1px solid #6BAF72', color: '#3A7040', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer' }}>
+                              Edit submission
+                            </button>
+                          </div>
+                          {fb && (
+                            <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.75rem 1rem' }}>
+                              <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2E6DA4', marginBottom: '0.4rem' }}>
+                                💬 Teacher feedback
+                              </div>
+                              <p style={{ fontSize: '0.88rem', color: '#3A3226', lineHeight: 1.6, margin: 0 }}>{fb.feedback}</p>
+                              {fb.feedback_at && (
+                                <div style={{ fontSize: '0.7rem', color: '#9A8878', marginTop: '0.4rem' }}>
+                                  {new Date(fb.feedback_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              ))}
-              {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).length > 3 && (
-                <p style={{ fontSize: '0.82rem', color: '#9A8878', textAlign: 'center' }}>And {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).length - 3} more — view all in the generators above.</p>
               )}
             </div>
           )}
 
-          {writtenPromptIds.length > 0 && (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878' }}>Written ✓</div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <Link to="/generators/microfiction?tab=written" style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Microfiction</Link>
-                  <span style={{ color: '#9A8878', fontSize: '0.78rem' }}>·</span>
-                  <Link to="/generators/flash-fiction?tab=written" style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>Flash Fiction</Link>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
+            {stats.map((stat) => (
+              <div key={stat.label} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
+                <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#3A3226' }}>{stat.value}</div>
+                <div style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.25rem' }}>{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '1rem' }}>Start writing</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+            {generators.map((g) => (
+              <button key={g.title} onClick={() => navigate(g.path)} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '4px solid ' + g.color, borderRadius: '12px', padding: '1.25rem 1.5rem', cursor: 'pointer', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', textAlign: 'left', textDecoration: 'none', display: 'block' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(58,50,38,0.1)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(58,50,38,0.05)'; }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#3A3226' }}>{g.title}</span>
+                  {g.new && <span style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#F0F7ED', color: '#3A7040', border: '1px solid #6BAF72', borderRadius: '20px', padding: '0.15rem 0.5rem' }}>New</span>}
                 </div>
+                <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>{g.desc}</div>
+              </button>
+            ))}
+          </div>
+
+          {canAccessBeta && BETA_FEATURES.length > 0 && (
+            <div style={{ marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginBottom: '1rem' }}>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Beta features</h2>
+                <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: '#EAF4FB', color: '#2E6DA4', border: '1px solid #5B9EC9', borderRadius: '20px', padding: '0.2rem 0.6rem' }}>Premium</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {savedPrompts.filter(p => writtenPromptIds.includes(p.id)).slice(0, 3).map(p => (
-                  <div key={p.id} style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {BETA_FEATURES.map(f => {
+                  const isEnabled = betaFeatures[f.key];
+                  const isJoining = joiningBeta === f.key;
+                  return (
+                    <div key={f.key} style={{ background: '#FFFCF8', border: `1px solid ${isEnabled ? '#6BAF72' : '#D9C9B0'}`, borderLeft: `4px solid ${isEnabled ? '#6BAF72' : '#D9C9B0'}`, borderRadius: '12px', padding: '1.1rem 1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', boxShadow: '0 2px 12px rgba(58,50,38,0.04)', transition: 'border-color 0.2s' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                          <span style={{ fontSize: '1rem', fontWeight: 600, color: '#3A3226' }}>{f.title}</span>
+                          {isEnabled && <span style={{ fontSize: '0.58rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#F0F7ED', color: '#3A7040', border: '1px solid #6BAF72', borderRadius: '20px', padding: '0.12rem 0.45rem' }}>Active</span>}
+                        </div>
+                        <div style={{ fontSize: '0.82rem', color: '#9A8878', lineHeight: 1.5 }}>{f.desc}</div>
+                      </div>
+                      {isEnabled ? (
+                        <button onClick={() => navigate(f.path)} style={{ background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '9px', padding: '0.5rem 1.1rem', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.82rem', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0, cursor: 'pointer' }}>
+                          Open →
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => joinBeta(f.key)}
+                          disabled={isJoining}
+                          style={{ background: isJoining ? '#D9C9B0' : '#3A3226', color: '#FFFCF8', border: 'none', borderRadius: '9px', padding: '0.5rem 1.1rem', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.82rem', cursor: isJoining ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'background 0.18s' }}
+                          onMouseEnter={e => { if (!isJoining) e.currentTarget.style.background = '#6B5D4E'; }}
+                          onMouseLeave={e => { if (!isJoining) e.currentTarget.style.background = '#3A3226'; }}
+                        >
+                          {isJoining ? 'Enabling…' : 'Enable beta access'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Saved Prompts</h2>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={() => navigate('/generators/microfiction')} style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>Microfiction</button>
+                <span style={{ color: '#9A8878', fontSize: '0.78rem' }}>·</span>
+                <button onClick={() => navigate('/generators/flash-fiction')} style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>Flash Fiction</button>
+              </div>
+            </div>
+
+            {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).length === 0 ? (
+              <p style={{ color: '#9A8878', fontSize: '0.9rem', fontStyle: 'italic', marginBottom: '1rem' }}>No unwritten prompts — great work!</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+                {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).slice(0, 3).map(p => (
+                  <div key={p.id} style={{ background: '#F5EFE6', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <div>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#6BAF72', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>{p.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {p.word_count} words ✓</div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>{p.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {p.word_count} words</div>
                       <div style={{ fontSize: '0.88rem', color: '#3A3226', fontWeight: 500 }}>{p.genre}</div>
                       <div style={{ fontSize: '0.82rem', color: '#6B5D4E' }}>{p.action || p.location} · {p.word || p.object}</div>
                     </div>
-                    <Link to={p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=written' : '/generators/flash-fiction?tab=written'} style={{ fontSize: '0.75rem', color: '#3A7040', textDecoration: 'none', fontWeight: 500 }}>View →</Link>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {profile && isStudentAccount(profile) && (
+                        <button
+                          onClick={() => setStoryModalData({ prompt: { ...p, wordCount: p.word_count, dbId: p.id }, assignmentId: null })}
+                          style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.72rem', fontWeight: 500, padding: '0.3rem 0.7rem', cursor: 'pointer' }}>
+                          Submit
+                        </button>
+                      )}
+                      <button onClick={() => navigate(p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=saved' : '/generators/flash-fiction?tab=saved')} style={{ fontSize: '0.75rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>Write →</button>
+                    </div>
+                  </div>
+                ))}
+                {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).length > 3 && (
+                  <p style={{ fontSize: '0.82rem', color: '#9A8878', textAlign: 'center' }}>And {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).length - 3} more — view all in the generators above.</p>
+                )}
+              </div>
+            )}
+
+            {writtenPromptIds.length > 0 && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878' }}>Written ✓</div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button onClick={() => navigate('/generators/microfiction?tab=written')} style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>Microfiction</button>
+                    <span style={{ color: '#9A8878', fontSize: '0.78rem' }}>·</span>
+                    <button onClick={() => navigate('/generators/flash-fiction?tab=written')} style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>Flash Fiction</button>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {savedPrompts.filter(p => writtenPromptIds.includes(p.id)).slice(0, 3).map(p => (
+                    <div key={p.id} style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#6BAF72', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>{p.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {p.word_count} words ✓</div>
+                        <div style={{ fontSize: '0.88rem', color: '#3A3226', fontWeight: 500 }}>{p.genre}</div>
+                        <div style={{ fontSize: '0.82rem', color: '#6B5D4E' }}>{p.action || p.location} · {p.word || p.object}</div>
+                      </div>
+                      <button onClick={() => navigate(p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=written' : '/generators/flash-fiction?tab=written')} style={{ fontSize: '0.75rem', color: '#3A7040', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>View →</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {earnedBadges.length > 0 && (
+            <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginTop: '1rem' }}>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '1rem' }}>Badges</h2>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                {earnedBadges.filter(ub => ub.badges).map((ub) => (
+                  <div key={ub.id} title={ub.badges?.description} style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 500, color: '#3A3226' }}>
+                    <span style={{ fontSize: '1.3rem' }}>{ub.badges.icon}</span>
+                    {ub.badges.name}
                   </div>
                 ))}
               </div>
             </div>
           )}
         </div>
-
-        {earnedBadges.length > 0 && (
-          <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginTop: '1rem' }}>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '1rem' }}>Badges</h2>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-              {earnedBadges.filter(ub => ub.badges).map((ub) => (
-                <div key={ub.id} title={ub.badges?.description} style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 500, color: '#3A3226' }}>
-                  <span style={{ fontSize: '1.3rem' }}>{ub.badges.icon}</span>
-                  {ub.badges.name}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {storyModalData && (
         <StoryModal
