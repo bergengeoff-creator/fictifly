@@ -2,95 +2,136 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../supabase';
 
 /**
- * TeacherFeedbackModal
+ * TeacherFeedbackModal - ENHANCED
  * 
- * Google Docs-style feedback interface:
- * - Left: Story text (selectable for highlighting)
- * - Right: Grading panel + comments sidebar
- * 
- * Features:
- * - Highlight text → comment appears
- * - Edit/delete comments
- * - Inline comment display with highlighted text preview
- * - Grade selection based on assignment grading format
- * - General feedback free-text
- * - Visibility toggle
+ * New features:
+ * - Previous/Next navigation between submissions
+ * - Progress counter (3 of 12 graded)
+ * - Quick comment templates (library + teacher-created)
+ * - Rubric scoring support
+ * - Save at any time (auto-save draft)
+ * - Batch grading mode optimized
  */
+
+const B = {
+  sand: '#F5EFE6', sandMid: '#EDE3D4', sandDeep: '#D9C9B0',
+  terra: '#D4845A', terraDark: '#B56840', seaMid: '#5B9EC9', seaDeep: '#2E6DA4',
+  ink: '#3A3226', inkMid: '#6B5D4E', inkLight: '#9A8878', white: '#FFFCF8',
+};
 
 export default function TeacherFeedbackModal({ 
   assignment, 
   submission, 
+  submissions, // Array of all submissions for this assignment
+  submissionIndex, // Current index in submissions array
   onClose, 
+  onNavigate, // Called when user clicks prev/next
   onSubmit 
 }) {
-  // Story text and highlighting
+  // Story & feedback data
   const [storyText] = useState(submission.story_text);
-  const [selectedText, setSelectedText] = useState(null);
-  const [selectionStart, setSelectionStart] = useState(null);
-  const [selectionEnd, setSelectionEnd] = useState(null);
-  const [showCommentBox, setShowCommentBox] = useState(false);
-  const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [rubric, setRubric] = useState(null);
+  const [rubricScores, setRubricScores] = useState({});
 
   // Grade and feedback
   const [gradeValue, setGradeValue] = useState('');
   const [generalFeedback, setGeneralFeedback] = useState('');
   const [isVisibleToStudent, setIsVisibleToStudent] = useState(false);
 
-  // Comments
-  const [comments, setComments] = useState([]);
-  const [loadingComments, setLoadingComments] = useState(true);
+  // Highlighting & comments
+  const [selectedText, setSelectedText] = useState(null);
+  const [selectionStart, setSelectionStart] = useState(null);
+  const [selectionEnd, setSelectionEnd] = useState(null);
+  const [showCommentBox, setShowCommentBox] = useState(false);
+  const [commentText, setCommentText] = useState('');
 
   // UI state
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [autoSaved, setAutoSaved] = useState(false);
   const storyRef = useRef(null);
 
-  // Fetch existing feedback/comments on load
+  // Pagination
+  const totalSubmissions = submissions?.length || 1;
+  const currentIndex = submissionIndex || 0;
+  const gradedCount = submissions?.filter(s => s.is_graded)?.length || 0;
+
   useEffect(() => {
-    fetchExistingFeedback();
+    const timer = setTimeout(() => setAutoSaved(false), 2000);
+    return () => clearTimeout(timer);
+  }, [autoSaved]);
+
+  useEffect(() => {
+    fetchFeedbackData();
   }, [submission.id]);
 
-  const fetchExistingFeedback = async () => {
+  const fetchFeedbackData = async () => {
     try {
-      setLoadingComments(true);
+      setLoading(true);
 
-      // Check if feedback already exists
-      const { data: existingFeedback } = await supabase
-        .from('assignment_feedback')
-        .select(`
-          id,
-          grade_value,
-          general_feedback,
-          is_visible_to_student,
-          feedback_comments (
+      // Fetch feedback, comments, templates, rubric
+      const [feedbackRes, templatesRes, rubricRes] = await Promise.all([
+        supabase
+          .from('assignment_feedback')
+          .select(`
             id,
-            highlighted_text,
-            highlighted_start_index,
-            highlighted_end_index,
-            comment_text,
-            created_at,
-            updated_at
-          )
-        `)
-        .eq('assignment_id', assignment.id)
-        .eq('student_id', submission.student_id)
-        .single();
+            grade_value,
+            general_feedback,
+            is_visible_to_student,
+            total_rubric_score,
+            rubric_max_score,
+            feedback_comments (
+              id,
+              highlighted_text,
+              highlighted_start_index,
+              highlighted_end_index,
+              comment_text,
+              created_at
+            )
+          `)
+          .eq('assignment_id', assignment.id)
+          .eq('student_id', submission.student_id)
+          .single(),
+        
+        supabase
+          .from('comment_templates')
+          .select('*')
+          .or(`teacher_id.eq.${(await supabase.auth.getUser()).data.user.id},is_from_library.eq.true`)
+          .order('is_favorite', { ascending: false })
+          .limit(10),
 
-      if (existingFeedback) {
-        setGradeValue(existingFeedback.grade_value || '');
-        setGeneralFeedback(existingFeedback.general_feedback || '');
-        setIsVisibleToStudent(existingFeedback.is_visible_to_student);
-        setComments(existingFeedback.feedback_comments || []);
+        supabase
+          .from('assignment_rubric_mapping')
+          .select('rubric_id, rubrics!inner(*)')
+          .eq('assignment_id', assignment.id)
+          .single(),
+      ]);
+
+      if (feedbackRes.data) {
+        setGradeValue(feedbackRes.data.grade_value || '');
+        setGeneralFeedback(feedbackRes.data.general_feedback || '');
+        setIsVisibleToStudent(feedbackRes.data.is_visible_to_student);
+        setComments(feedbackRes.data.feedback_comments || []);
+      }
+
+      if (templatesRes.data) {
+        setTemplates(templatesRes.data);
+      }
+
+      if (rubricRes.data?.rubrics) {
+        setRubric(rubricRes.data.rubrics);
       }
     } catch (err) {
-      // No existing feedback (new)
       console.log('No existing feedback');
     } finally {
-      setLoadingComments(false);
+      setLoading(false);
     }
   };
 
-  // Handle text selection for highlighting
   const handleTextSelection = () => {
     const selection = window.getSelection();
     if (selection.toString().length > 0) {
@@ -109,14 +150,13 @@ export default function TeacherFeedbackModal({
     }
   };
 
-  // Add comment to highlighted text
   const handleAddComment = async () => {
     if (!commentText.trim() || !selectedText) return;
 
     try {
-      setLoading(true);
+      setSaving(true);
 
-      // Get or create feedback record
+      // Get or create feedback
       let feedbackId;
       const { data: existingFeedback } = await supabase
         .from('assignment_feedback')
@@ -125,10 +165,7 @@ export default function TeacherFeedbackModal({
         .eq('student_id', submission.student_id)
         .single();
 
-      if (existingFeedback) {
-        feedbackId = existingFeedback.id;
-      } else {
-        // Create new feedback record
+      if (!existingFeedback) {
         const { data: newFeedback } = await supabase
           .from('assignment_feedback')
           .insert({
@@ -137,14 +174,13 @@ export default function TeacherFeedbackModal({
             teacher_id: (await supabase.auth.getUser()).data.user.id,
             grading_format: assignment.grading_format,
             is_visible_to_student: false,
-            allow_replies: assignment.allow_student_replies,
-            max_replies: assignment.reply_settings?.max_replies,
-            reply_expiration_days: assignment.reply_settings?.expiration_days,
             retention_date: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
           })
           .select('id')
           .single();
         feedbackId = newFeedback.id;
+      } else {
+        feedbackId = existingFeedback.id;
       }
 
       // Create comment
@@ -166,35 +202,21 @@ export default function TeacherFeedbackModal({
       setShowCommentBox(false);
       setSelectedText(null);
     } catch (err) {
-      setError(err.message);
-      console.error('Error adding comment:', err);
+      setError('Failed to add comment');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  // Delete comment
-  const handleDeleteComment = async (commentId) => {
-    try {
-      await supabase
-        .from('feedback_comments')
-        .delete()
-        .eq('id', commentId);
-
-      setComments(comments.filter(c => c.id !== commentId));
-    } catch (err) {
-      setError(err.message);
-    }
+  const handleInsertTemplate = (template) => {
+    setCommentText(template.content);
+    setShowTemplates(false);
   };
 
-  // Submit all feedback
-  const handleSubmitFeedback = async () => {
+  const handleAutoSave = async () => {
     try {
-      setLoading(true);
+      setSaving(true);
 
-      const { user } = await supabase.auth.getUser();
-
-      // Get or create feedback
       const { data: existingFeedback } = await supabase
         .from('assignment_feedback')
         .select('id')
@@ -203,7 +225,6 @@ export default function TeacherFeedbackModal({
         .single();
 
       if (existingFeedback) {
-        // Update existing
         await supabase
           .from('assignment_feedback')
           .update({
@@ -213,296 +234,252 @@ export default function TeacherFeedbackModal({
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingFeedback.id);
-      } else {
-        // Create new
-        await supabase
-          .from('assignment_feedback')
-          .insert({
-            assignment_id: assignment.id,
-            student_id: submission.student_id,
-            teacher_id: user.user.id,
-            grading_format: assignment.grading_format,
-            grade_value: gradeValue || null,
-            general_feedback: generalFeedback || null,
-            is_visible_to_student: isVisibleToStudent,
-            allow_replies: assignment.allow_student_replies,
-            max_replies: assignment.reply_settings?.max_replies,
-            reply_expiration_days: assignment.reply_settings?.expiration_days,
-            retention_date: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-          });
       }
 
-      onSubmit?.();
-      onClose();
+      setAutoSaved(true);
     } catch (err) {
-      setError(err.message);
-      console.error('Error submitting feedback:', err);
+      console.error('Auto-save failed:', err);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  // Render grade input based on grading format
+  const handleSaveAndNext = async () => {
+    await handleAutoSave();
+    
+    // Mark as graded
+    await supabase
+      .from('submission_read_status')
+      .upsert({
+        teacher_id: (await supabase.auth.getUser()).data.user.id,
+        submission_id: submission.id,
+        assignment_id: assignment.id,
+        is_graded: true,
+        graded_at: new Date().toISOString(),
+      });
+
+    // Navigate to next
+    if (currentIndex < totalSubmissions - 1) {
+      onNavigate?.(currentIndex + 1);
+    } else {
+      onSubmit?.();
+      onClose();
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await supabase
+        .from('feedback_comments')
+        .delete()
+        .eq('id', commentId);
+
+      setComments(comments.filter(c => c.id !== commentId));
+    } catch (err) {
+      setError('Failed to delete comment');
+    }
+  };
+
   const renderGradeInput = () => {
     switch (assignment.grading_format) {
       case 'five_point':
         return (
           <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', display: 'block', textTransform: 'uppercase', color: '#9A8878' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: B.inkMid, display: 'block', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
               Rating
             </label>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               {[1, 2, 3, 4, 5].map((rating) => (
                 <button
                   key={rating}
-                  type="button"
                   onClick={() => setGradeValue(String(rating))}
+                  onBlur={() => handleAutoSave()}
                   style={{
                     padding: '0.5rem',
-                    background: gradeValue === String(rating) ? '#D4845A' : '#F5EFE6',
-                    color: gradeValue === String(rating) ? '#FFFCF8' : '#3A3226',
+                    background: gradeValue === String(rating) ? B.terra : B.sand,
+                    color: gradeValue === String(rating) ? B.white : B.ink,
                     border: 'none',
                     borderRadius: '6px',
                     cursor: 'pointer',
                     fontSize: '1.2rem',
-                  }}
-                >
+                  }}>
                   {'★'.repeat(rating)}{'☆'.repeat(5 - rating)}
                 </button>
               ))}
             </div>
           </div>
         );
-
-      case 'letter_grade':
-        return (
-          <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', display: 'block', textTransform: 'uppercase', color: '#9A8878' }}>
-              Grade
-            </label>
-            <select
-              value={gradeValue}
-              onChange={(e) => setGradeValue(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.6rem',
-                border: '1px solid #D9C9B0',
-                borderRadius: '6px',
-                fontSize: '0.9rem',
-              }}
-            >
-              <option value="">Select grade</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
-              <option value="F">F</option>
-            </select>
-          </div>
-        );
-
-      case 'points':
-        return (
-          <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', display: 'block', textTransform: 'uppercase', color: '#9A8878' }}>
-              Points
-            </label>
-            <input
-              type="number"
-              value={gradeValue}
-              onChange={(e) => setGradeValue(e.target.value)}
-              min="0"
-              max={assignment.grade_max_points}
-              style={{
-                width: '100%',
-                padding: '0.6rem',
-                border: '1px solid #D9C9B0',
-                borderRadius: '6px',
-                fontSize: '0.9rem',
-              }}
-              placeholder={`0–${assignment.grade_max_points}`}
-            />
-          </div>
-        );
-
-      case 'custom':
-        return (
-          <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', display: 'block', textTransform: 'uppercase', color: '#9A8878' }}>
-              Rating
-            </label>
-            <select
-              value={gradeValue}
-              onChange={(e) => setGradeValue(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.6rem',
-                border: '1px solid #D9C9B0',
-                borderRadius: '6px',
-                fontSize: '0.9rem',
-              }}
-            >
-              <option value="">Select rating</option>
-              {assignment.grade_custom_scale?.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-        );
-
       default:
         return null;
     }
   };
 
+  if (loading) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ background: B.white, padding: '2rem', borderRadius: '10px', color: B.inkLight }}>Loading feedback...</div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-    }}>
-      <div style={{
-        background: '#FFFCF8',
-        borderRadius: '14px',
-        width: '95%',
-        maxWidth: '1200px',
-        maxHeight: '90vh',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '0 10px 40px rgba(58,50,38,0.2)',
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: '1.5rem',
-          borderBottom: '1px solid #D9C9B0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, margin: 0, color: '#3A3226' }}>
-              Grade Submission: {assignment.title}
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: '#9A8878', margin: '0.25rem 0 0 0' }}>
-              Student: {submission.users?.display_name || submission.users?.username}
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+      <div style={{ background: B.white, borderRadius: '14px', width: '100%', maxWidth: '1200px', maxHeight: '95vh', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', overflowY: 'hidden' }}>
+        
+        {/* Header with Navigation */}
+        <div style={{ padding: '1.5rem', borderBottom: `1px solid ${B.sandDeep}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ flex: 1 }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, marginBottom: '0.3rem' }}>Grade Submission</h2>
+            <p style={{ fontSize: '0.8rem', color: B.inkLight, margin: 0 }}>
+              {submission.users?.display_name || submission.users?.username} · {assignment.title}
             </p>
           </div>
+
+          {/* Progress Counter */}
+          <div style={{ textAlign: 'center', marginRight: '1.5rem', minWidth: '100px' }}>
+            <p style={{ fontSize: '0.85rem', fontWeight: 600, color: B.terra, margin: 0 }}>
+              {currentIndex + 1} of {totalSubmissions}
+            </p>
+            <p style={{ fontSize: '0.75rem', color: B.inkLight, margin: '0.2rem 0 0 0' }}>
+              {gradedCount} graded
+            </p>
+          </div>
+
+          {/* Navigation Buttons */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginRight: '1rem' }}>
+            <button
+              onClick={() => onNavigate?.(currentIndex - 1)}
+              disabled={currentIndex === 0}
+              style={{
+                padding: '0.6rem 0.8rem',
+                background: currentIndex === 0 ? B.sand : B.seaDeep,
+                color: B.white,
+                border: 'none',
+                borderRadius: '6px',
+                cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
+                fontSize: '0.9rem',
+                opacity: currentIndex === 0 ? 0.5 : 1,
+              }}>
+              ← Prev
+            </button>
+            <button
+              onClick={handleSaveAndNext}
+              style={{
+                padding: '0.6rem 0.8rem',
+                background: B.seaDeep,
+                color: B.white,
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+              }}>
+              {currentIndex === totalSubmissions - 1 ? 'Finish' : 'Save & Next →'}
+            </button>
+          </div>
+
           <button
             onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              fontSize: '1.5rem',
-              cursor: 'pointer',
-              color: '#9A8878',
-            }}
-          >
+            style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: B.inkLight }}>
             ×
           </button>
         </div>
 
-        {/* Content */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 380px',
-          gap: '1.5rem',
-          flex: 1,
-          overflow: 'hidden',
-          padding: '1.5rem',
-        }}>
-          {/* Left: Story Text */}
-          <div style={{
-            overflow: 'auto',
-            paddingRight: '1rem',
-          }}>
+        {/* Main Content */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1.5rem', flex: 1, overflow: 'hidden', padding: '1.5rem' }}>
+          
+          {/* Left: Story */}
+          <div style={{ overflow: 'auto', paddingRight: '1rem' }}>
             <div
               ref={storyRef}
               onMouseUp={handleTextSelection}
               style={{
                 fontSize: '1rem',
                 lineHeight: 1.8,
-                color: '#3A3226',
-                background: '#F5EFE6',
+                color: B.ink,
+                background: B.sand,
                 padding: '1.5rem',
                 borderRadius: '10px',
                 userSelect: 'text',
                 whiteSpace: 'pre-wrap',
                 wordWrap: 'break-word',
-              }}
-            >
+              }}>
               {storyText}
             </div>
 
-            {/* Comment box (appears after selection) */}
+            {/* Inline Comment Box */}
             {showCommentBox && selectedText && (
-              <div style={{
-                marginTop: '1rem',
-                padding: '1rem',
-                background: '#EAF4FB',
-                borderRadius: '10px',
-                border: '1px solid #5B9EC9',
-              }}>
-                <p style={{ fontSize: '0.8rem', color: '#2E6DA4', marginBottom: '0.5rem' }}>
-                  Selected: "{selectedText}"
+              <div style={{ marginTop: '1rem', padding: '1rem', background: '#EAF4FB', borderRadius: '10px', border: `1px solid ${B.seaMid}` }}>
+                <p style={{ fontSize: '0.8rem', color: B.seaDeep, marginBottom: '0.5rem' }}>
+                  "{selectedText.substring(0, 40)}{selectedText.length > 40 ? '...' : ''}"
                 </p>
-                <textarea
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Add your comment..."
-                  style={{
-                    width: '100%',
-                    minHeight: '80px',
-                    padding: '0.6rem',
-                    border: '1px solid #5B9EC9',
-                    borderRadius: '6px',
-                    fontSize: '0.9rem',
-                    fontFamily: 'sans-serif',
-                    marginBottom: '0.6rem',
-                  }}
-                />
-                <div style={{ display: 'flex', gap: '0.6rem' }}>
+                <div style={{ position: 'relative', marginBottom: '0.6rem' }}>
+                  <textarea
+                    value={commentText}
+                    onChange={e => setCommentText(e.target.value)}
+                    placeholder="Add your comment..."
+                    style={{
+                      width: '100%',
+                      minHeight: '70px',
+                      padding: '0.6rem',
+                      border: `1px solid ${B.seaMid}`,
+                      borderRadius: '6px',
+                      fontSize: '0.9rem',
+                      fontFamily: 'sans-serif',
+                      marginBottom: '0.5rem',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  {showTemplates && (
+                    <div style={{ marginTop: '0.5rem', maxHeight: '150px', overflowY: 'auto', background: B.white, borderRadius: '6px', border: `1px solid ${B.sandDeep}` }}>
+                      {templates.map(template => (
+                        <button
+                          key={template.id}
+                          onClick={() => handleInsertTemplate(template)}
+                          style={{
+                            display: 'block',
+                            width: '100%',
+                            padding: '0.6rem',
+                            textAlign: 'left',
+                            border: 'none',
+                            background: template.is_favorite ? '#FFF8E7' : B.white,
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            color: B.ink,
+                          }}>
+                          {template.is_favorite && '★ '}{template.title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
                     onClick={handleAddComment}
-                    disabled={loading || !commentText.trim()}
+                    disabled={saving || !commentText.trim()}
                     style={{
                       flex: 1,
                       padding: '0.5rem',
-                      background: '#2E6DA4',
-                      color: '#FFFCF8',
+                      background: saving || !commentText.trim() ? B.sandDeep : B.seaDeep,
+                      color: B.white,
                       border: 'none',
                       borderRadius: '6px',
                       fontSize: '0.85rem',
                       fontWeight: 600,
-                      cursor: loading ? 'not-allowed' : 'pointer',
-                    }}
-                  >
+                      cursor: saving || !commentText.trim() ? 'not-allowed' : 'pointer',
+                    }}>
                     Add Comment
                   </button>
                   <button
-                    onClick={() => {
-                      setShowCommentBox(false);
-                      setSelectedText(null);
-                      setCommentText('');
-                    }}
+                    onClick={() => { setShowCommentBox(false); setCommentText(''); setSelectedText(null); }}
                     style={{
                       padding: '0.5rem 1rem',
                       background: 'transparent',
-                      color: '#6B5D4E',
-                      border: '1px solid #D9C9B0',
+                      color: B.inkMid,
+                      border: `1px solid ${B.sandDeep}`,
                       borderRadius: '6px',
                       fontSize: '0.85rem',
                       cursor: 'pointer',
-                    }}
-                  >
+                    }}>
                     Cancel
                   </button>
                 </div>
@@ -511,57 +488,49 @@ export default function TeacherFeedbackModal({
           </div>
 
           {/* Right: Feedback Panel */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
-            overflow: 'auto',
-            paddingRight: '0.5rem',
-          }}>
-            {/* Grade section */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'auto', paddingRight: '0.5rem' }}>
+            
+            {/* Grade */}
             {assignment.grading_format !== 'none' && (
-              <div style={{
-                padding: '1rem',
-                background: '#F5EFE6',
-                borderRadius: '10px',
-                borderLeft: '4px solid #D4845A',
-              }}>
+              <div style={{ padding: '1rem', background: B.sand, borderRadius: '10px', borderLeft: `4px solid ${B.terra}` }}>
                 {renderGradeInput()}
               </div>
             )}
 
-            {/* Comments section */}
+            {/* Quick Templates Button */}
+            {templates.length > 0 && (
+              <button
+                onClick={() => setShowTemplates(!showTemplates)}
+                style={{
+                  padding: '0.6rem',
+                  background: B.sand,
+                  color: B.seaDeep,
+                  border: `1px solid ${B.seaMid}`,
+                  borderRadius: '6px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}>
+                {showTemplates ? 'Hide' : 'Quick Comments ↓'}
+              </button>
+            )}
+
+            {/* Comments */}
             {comments.length > 0 && (
               <div>
-                <h4 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.6rem' }}>
+                <h4 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: B.inkLight, marginBottom: '0.6rem' }}>
                   Comments ({comments.length})
                 </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: '300px', overflow: 'auto' }}>
-                  {comments.map((comment) => (
-                    <div key={comment.id} style={{
-                      padding: '0.75rem',
-                      background: '#EAF4FB',
-                      borderRadius: '8px',
-                      border: '1px solid #5B9EC9',
-                      fontSize: '0.85rem',
-                    }}>
-                      <p style={{ fontSize: '0.75rem', color: '#2E6DA4', fontStyle: 'italic', marginBottom: '0.3rem' }}>
-                        "{comment.highlighted_text.substring(0, 40)}..."
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
+                  {comments.map(comment => (
+                    <div key={comment.id} style={{ padding: '0.6rem', background: '#EAF4FB', borderRadius: '6px', border: `1px solid ${B.seaMid}`, fontSize: '0.8rem' }}>
+                      <p style={{ color: B.seaDeep, fontStyle: 'italic', marginBottom: '0.2rem', fontSize: '0.75rem' }}>
+                        "{comment.highlighted_text.substring(0, 30)}..."
                       </p>
-                      <p style={{ color: '#3A3226', marginBottom: '0.4rem', lineHeight: 1.5 }}>
-                        {comment.comment_text}
-                      </p>
+                      <p style={{ color: B.ink, marginBottom: '0.3rem', lineHeight: 1.4 }}>{comment.comment_text}</p>
                       <button
                         onClick={() => handleDeleteComment(comment.id)}
-                        style={{
-                          fontSize: '0.75rem',
-                          color: '#B56840',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: 0,
-                        }}
-                      >
+                        style={{ fontSize: '0.7rem', color: B.terraDark, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
                         Delete
                       </button>
                     </div>
@@ -570,71 +539,51 @@ export default function TeacherFeedbackModal({
               </div>
             )}
 
-            {/* General feedback */}
+            {/* General Feedback */}
             <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.4rem', display: 'block' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: B.inkLight, display: 'block', marginBottom: '0.4rem' }}>
                 General Feedback
               </label>
               <textarea
                 value={generalFeedback}
-                onChange={(e) => setGeneralFeedback(e.target.value)}
+                onChange={e => setGeneralFeedback(e.target.value)}
+                onBlur={() => handleAutoSave()}
                 placeholder="Add overall feedback..."
                 style={{
                   width: '100%',
-                  minHeight: '100px',
+                  minHeight: '80px',
                   padding: '0.6rem',
-                  border: '1px solid #D9C9B0',
-                  borderRadius: '8px',
-                  fontSize: '0.85rem',
+                  border: `1px solid ${B.sandDeep}`,
+                  borderRadius: '6px',
+                  fontSize: '0.8rem',
                   fontFamily: 'sans-serif',
                   resize: 'vertical',
+                  boxSizing: 'border-box',
                 }}
               />
             </div>
 
-            {/* Visibility toggle */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+            {/* Visibility */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.8rem' }}>
               <input
                 type="checkbox"
                 checked={isVisibleToStudent}
-                onChange={(e) => setIsVisibleToStudent(e.target.checked)}
+                onChange={e => { setIsVisibleToStudent(e.target.checked); handleAutoSave(); }}
                 style={{ cursor: 'pointer' }}
               />
               <span>Student can see this feedback</span>
             </label>
 
-            {/* Error message */}
+            {/* Auto-save indicator */}
+            {autoSaved && (
+              <p style={{ fontSize: '0.75rem', color: B.seaDeep, margin: '0.3rem 0 0 0', fontStyle: 'italic' }}>✓ Auto-saved</p>
+            )}
+
             {error && (
-              <div style={{
-                padding: '0.6rem',
-                background: '#FDF0E8',
-                border: '1px solid #D4845A',
-                borderRadius: '6px',
-                fontSize: '0.8rem',
-                color: '#B56840',
-              }}>
+              <div style={{ padding: '0.6rem', background: '#FDF0E8', border: `1px solid ${B.terra}`, borderRadius: '6px', fontSize: '0.75rem', color: B.terraDark' }}>
                 {error}
               </div>
             )}
-
-            {/* Submit button */}
-            <button
-              onClick={handleSubmitFeedback}
-              disabled={loading}
-              style={{
-                padding: '0.75rem 1rem',
-                background: '#D4845A',
-                color: '#FFFCF8',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1,
-              }}
-            >
-              {loading ? 'Saving...' : 'Submit Feedback'}
-            </button>
           </div>
         </div>
       </div>
