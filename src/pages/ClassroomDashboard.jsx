@@ -180,10 +180,6 @@ export default function ClassroomDashboard() {
     
     setAssignmentSubmissions(subs || []);
     
-    const map = {};
-    (subs || []).forEach(s => { map[s.id] = s.teacher_feedback || ''; });
-    setFeedbackMap(map);
-  };
 
   const handleSelectClass = async (cls) => {
     setSelectedClass(cls);
