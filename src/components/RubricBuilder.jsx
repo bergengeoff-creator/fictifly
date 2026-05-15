@@ -46,7 +46,7 @@ useEffect(() => {
     setCategories([{ name: '', description: '', max_points: 5, position: 0 }]);
   }
   fetchTemplates();
-}, [mode]);
+}, [mode, categories.length]);
 
   const fetchTemplates = async () => {
     try {

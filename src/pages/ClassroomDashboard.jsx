@@ -73,7 +73,6 @@ export default function ClassroomDashboard() {
   // Submission review (MODIFIED)
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [assignmentSubmissions, setAssignmentSubmissions] = useState([]);
-  const [feedbackMap, setFeedbackMap] = useState({});
   
   // NEW: Teacher quality-of-life features
   const [feedbackSubmissionIndex, setFeedbackSubmissionIndex] = useState(null);
@@ -990,8 +989,7 @@ export default function ClassroomDashboard() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {assignmentSubmissions.map((sub, index) => (
-                      <div key={sub.id} style={sectionStyle} onClick={() => setFeedbackSubmissionIndex(index)} style={{ ...sectionStyle, marginBottom: 0, cursor: 'pointer' }}
-                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.1)'}
+                  <div key={sub.id} onClick={() => setFeedbackSubmissionIndex(index)} style={{ ...sectionStyle, marginBottom: 0, cursor: 'pointer' }}                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.1)'}
                         onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                           <div>
