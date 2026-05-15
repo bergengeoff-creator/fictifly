@@ -127,9 +127,20 @@ useEffect(() => {
     setError(null);
 
     try {
-      const response = await fetch('/api/teacher-features?action=createRubric', {
-        method: 'POST',
-        body: JSON.stringify({
+    const { data: { session } } = await supabase.auth.getSession();
+if (!session) {
+  setError('Not authenticated');
+  setLoading(false);
+  return;
+}
+
+const response = await fetch('/api/teacher-features?action=createRubric', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${session.access_token}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
           name: name.trim(),
           description: description.trim() || null,
           categories: categories.map(cat => ({
