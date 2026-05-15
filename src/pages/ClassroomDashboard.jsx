@@ -167,7 +167,7 @@ export default function ClassroomDashboard() {
   };
 
   // MODIFIED: Fetch all submissions for batch grading
-  const fetchAssignmentSubmissions = async (assignment) => {
+const fetchAssignmentSubmissions = async (assignment) => {
     setSelectedAssignment(assignment);
     setEditingAssignment(false);
     setFeedbackSubmissionIndex(null); // Reset feedback index
@@ -179,7 +179,7 @@ export default function ClassroomDashboard() {
       .eq('submitted_to_teacher', true);
     
     setAssignmentSubmissions(subs || []);
-    
+  };
 
   const handleSelectClass = async (cls) => {
     setSelectedClass(cls);
