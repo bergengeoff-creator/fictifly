@@ -29,9 +29,10 @@ export default function CommentTemplateManager({ onClose }) {
 
   const categories = ['Positive', 'Constructive', 'Grammar', 'Dialogue', 'Imagery', 'Structure'];
 
-  useEffect(() => {
-    initializeAuth();
-  }, []);
+useEffect(() => {
+  initializeAuth();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
   const initializeAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
