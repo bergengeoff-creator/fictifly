@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 import FictiflyLogo from '../components/FictiflyLogo';
+import TeacherFeedbackModal from '../components/TeacherFeedbackModal';
+import RubricBuilder from '../components/RubricBuilder';
+import CommentTemplateManager from '../components/CommentTemplateManager';
 
 const GRADE_LEVELS = ['Elementary (K-5)', 'Middle School (6-8)', 'High School (9-12)', 'Other'];
 const GENRES = [
@@ -67,11 +70,16 @@ export default function ClassroomDashboard() {
   const [assignmentStudentId, setAssignmentStudentId] = useState('');
   const [savingAssignment, setSavingAssignment] = useState(false);
 
-  // Submission review
+  // Submission review (MODIFIED)
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [assignmentSubmissions, setAssignmentSubmissions] = useState([]);
   const [feedbackMap, setFeedbackMap] = useState({});
   const [savingFeedback, setSavingFeedback] = useState({});
+  
+  // NEW: Teacher quality-of-life features
+  const [feedbackSubmissionIndex, setFeedbackSubmissionIndex] = useState(null);
+  const [showRubricBuilder, setShowRubricBuilder] = useState(false);
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
 
   // Edit assignment
   const [editingAssignment, setEditingAssignment] = useState(false);
@@ -160,15 +168,20 @@ export default function ClassroomDashboard() {
     setAssignments(withCounts);
   };
 
+  // MODIFIED: Fetch all submissions for batch grading
   const fetchAssignmentSubmissions = async (assignment) => {
     setSelectedAssignment(assignment);
     setEditingAssignment(false);
+    setFeedbackSubmissionIndex(null); // Reset feedback index
+    
     const { data: subs } = await supabase
       .from('submissions')
-      .select('*, users!submissions_user_id_fkey(username, display_name)')
+      .select('*, users!submissions_user_id_fkey(id, username, display_name)')
       .eq('assignment_id', assignment.id)
       .eq('submitted_to_teacher', true);
+    
     setAssignmentSubmissions(subs || []);
+    
     const map = {};
     (subs || []).forEach(s => { map[s.id] = s.teacher_feedback || ''; });
     setFeedbackMap(map);
@@ -181,6 +194,7 @@ export default function ClassroomDashboard() {
     setSelectedAssignment(null);
     setEditingAssignment(false);
     setApprovedPasscodes({});
+    setFeedbackSubmissionIndex(null);
     await fetchClassMembers(cls.id);
     await fetchResetRequests(cls.id);
     await fetchAssignments(cls.id);
@@ -536,7 +550,7 @@ export default function ClassroomDashboard() {
 
         {view === 'class-detail' && selectedClass && (
           <div>
-            <button onClick={() => { setView('classes'); setSelectedClass(null); setGeneratedAccounts([]); setShowBulkGenerate(false); setSelectedAssignment(null); setEditingAssignment(false); }} style={{ ...btnSecondary, marginBottom: '1.5rem' }}>← Back to classes</button>
+            <button onClick={() => { setView('classes'); setSelectedClass(null); setGeneratedAccounts([]); setShowBulkGenerate(false); setSelectedAssignment(null); setEditingAssignment(false); setFeedbackSubmissionIndex(null); }} style={{ ...btnSecondary, marginBottom: '1.5rem' }}>← Back to classes</button>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
@@ -624,7 +638,7 @@ export default function ClassroomDashboard() {
 
             <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '12px', padding: '4px', gap: '2px', marginBottom: '1.5rem' }}>
               {['students', 'assignments'].map(t => (
-                <button key={t} onClick={() => { setClassDetailTab(t); setSelectedAssignment(null); setShowBulkGenerate(false); setShowCreateAssignment(false); setEditingAssignment(false); setError(null); }}
+                <button key={t} onClick={() => { setClassDetailTab(t); setSelectedAssignment(null); setShowBulkGenerate(false); setShowCreateAssignment(false); setEditingAssignment(false); setFeedbackSubmissionIndex(null); setError(null); }}
                   style={{ flex: 1, background: classDetailTab === t ? '#FFFCF8' : 'transparent', border: 'none', borderRadius: '9px', color: classDetailTab === t ? '#3A3226' : '#9A8878', fontFamily: 'sans-serif', fontWeight: classDetailTab === t ? 600 : 400, fontSize: '0.85rem', padding: '0.5rem 1rem', cursor: 'pointer', transition: 'all 0.18s', boxShadow: classDetailTab === t ? '0 1px 4px rgba(58,50,38,0.1)' : 'none', position: 'relative' }}>
                   {t === 'students'
                     ? `Students (${classMembers.length})${resetRequests.length > 0 ? ` 🔑` : ''}`
@@ -757,9 +771,9 @@ export default function ClassroomDashboard() {
               </div>
             )}
 
-            {classDetailTab === 'assignments' && !selectedAssignment && (
+            {classDetailTab === 'assignments' && !selectedAssignment && !feedbackSubmissionIndex && (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
                   <button onClick={() => { setShowCreateAssignment(!showCreateAssignment); setError(null); }} style={btnPrimary}>+ New Assignment</button>
                 </div>
 
@@ -895,16 +909,20 @@ export default function ClassroomDashboard() {
               </div>
             )}
 
-            {classDetailTab === 'assignments' && selectedAssignment && (
+            {classDetailTab === 'assignments' && selectedAssignment && !feedbackSubmissionIndex && (
               <div>
                 <button onClick={() => { setSelectedAssignment(null); setEditingAssignment(false); }} style={{ ...btnSecondary, marginBottom: '1.5rem' }}>← Back to assignments</button>
 
                 <div style={sectionStyle}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem', gap: '1rem' }}>
                     <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A' }}>Assignment</div>
-                    {!editingAssignment && (
-                      <button onClick={() => handleStartEdit(selectedAssignment)} style={{ ...btnSecondary, fontSize: '0.78rem', padding: '0.3rem 0.8rem' }}>Edit</button>
-                    )}
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {!editingAssignment && (
+                        <button onClick={() => handleStartEdit(selectedAssignment)} style={{ ...btnSecondary, fontSize: '0.78rem', padding: '0.3rem 0.8rem' }}>Edit</button>
+                      )}
+                      <button onClick={() => setShowTemplateManager(true)} style={{ ...btnSecondary, fontSize: '0.78rem', padding: '0.3rem 0.8rem' }}>📝 Comment Templates</button>
+                      <button onClick={() => setShowRubricBuilder(true)} style={{ ...btnSecondary, fontSize: '0.78rem', padding: '0.3rem 0.8rem' }}>✓ Create Rubric</button>
+                    </div>
                   </div>
 
                   {!editingAssignment ? (
@@ -982,9 +1000,11 @@ export default function ClassroomDashboard() {
                 {assignmentSubmissions.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '2.5rem 0', color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>No submissions yet.</div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {assignmentSubmissions.map(sub => (
-                      <div key={sub.id} style={sectionStyle}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {assignmentSubmissions.map((sub, index) => (
+                      <div key={sub.id} style={sectionStyle} onClick={() => setFeedbackSubmissionIndex(index)} style={{ ...sectionStyle, marginBottom: 0, cursor: 'pointer' }}
+                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.1)'}
+                        onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                           <div>
                             <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{sub.users?.display_name || sub.users?.username}</div>
@@ -993,44 +1013,57 @@ export default function ClassroomDashboard() {
                             </div>
                           </div>
                           {sub.title && <div style={{ fontSize: '0.85rem', fontStyle: 'italic', color: '#6B5D4E' }}>"{sub.title}"</div>}
+                          <button style={{ ...btnPrimary, fontSize: '0.78rem', padding: '0.3rem 0.8rem' }} onClick={(e) => { e.stopPropagation(); setFeedbackSubmissionIndex(index); }}>Grade ✏</button>
                         </div>
-                        {sub.content ? (
-                          <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '1rem', marginBottom: '1rem' }}>
-                            <p style={{ fontSize: '0.9rem', color: '#3A3226', lineHeight: 1.75, fontFamily: 'Georgia, serif', whiteSpace: 'pre-wrap', margin: 0 }}>{sub.content}</p>
+                        {sub.content && (
+                          <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '0.75rem', marginBottom: '0.75rem', fontSize: '0.9rem', color: '#3A3226', lineHeight: 1.6, maxHeight: '150px', overflow: 'hidden' }}>
+                            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{sub.content}</p>
                           </div>
-                        ) : (
-                          <div style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.85rem', marginBottom: '1rem' }}>No story content submitted.</div>
                         )}
-                        <div>
-                          <label style={labelStyle}>Feedback</label>
-                          <textarea
-                            value={feedbackMap[sub.id] || ''}
-                            onChange={e => setFeedbackMap(prev => ({ ...prev, [sub.id]: e.target.value }))}
-                            placeholder="Leave feedback for this student..."
-                            rows={3}
-                            style={{ ...inputStyle, resize: 'vertical', marginBottom: '0.5rem' }}
-                          />
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <button onClick={() => handleSaveFeedback(sub.id)} disabled={savingFeedback[sub.id]}
-                              style={{ ...btnPrimary, fontSize: '0.8rem', padding: '0.4rem 1rem', opacity: savingFeedback[sub.id] ? 0.6 : 1 }}>
-                              {savingFeedback[sub.id] ? 'Saving...' : sub.teacher_feedback ? 'Update feedback' : 'Save feedback'}
-                            </button>
-                            {sub.feedback_at && (
-                              <span style={{ fontSize: '0.72rem', color: '#9A8878' }}>
-                                Last saved {new Date(sub.feedback_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                              </span>
-                            )}
-                          </div>
-                        </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
             )}
+
+            {classDetailTab === 'assignments' && selectedAssignment && feedbackSubmissionIndex !== null && (
+              <TeacherFeedbackModal
+                assignment={selectedAssignment}
+                submission={assignmentSubmissions[feedbackSubmissionIndex]}
+                submissions={assignmentSubmissions}
+                submissionIndex={feedbackSubmissionIndex}
+                onNavigate={(newIndex) => setFeedbackSubmissionIndex(newIndex)}
+                onClose={() => setFeedbackSubmissionIndex(null)}
+                onSubmit={() => {
+                  setFeedbackSubmissionIndex(null);
+                  setSuccess('All submissions graded!');
+                  setTimeout(() => setSuccess(null), 3000);
+                }}
+              />
+            )}
           </div>
         )}
       </div>
+
+      {/* NEW: Teacher Quality-of-Life Feature Modals */}
+      {showRubricBuilder && (
+        <RubricBuilder
+          onClose={() => setShowRubricBuilder(false)}
+          onSave={(rubric) => {
+            console.log('Rubric created:', rubric);
+            setShowRubricBuilder(false);
+            setSuccess('Rubric created!');
+            setTimeout(() => setSuccess(null), 3000);
+          }}
+        />
+      )}
+
+      {showTemplateManager && (
+        <CommentTemplateManager
+          onClose={() => setShowTemplateManager(false)}
+        />
+      )}
     </div>
   );
 }
