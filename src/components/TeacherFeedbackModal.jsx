@@ -123,15 +123,6 @@ export default function TeacherFeedbackModal({
         setTemplates(templatesRes.data);
       }
 
-      if (rubricRes.data?.rubrics) {
-        setRubric(rubricRes.data.rubrics);
-      }
-    } catch (err) {
-      console.log('No existing feedback');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleTextSelection = () => {
     const selection = window.getSelection();
