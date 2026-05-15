@@ -8,7 +8,6 @@ import { supabase } from '../supabase';
  * - Previous/Next navigation between submissions
  * - Progress counter (3 of 12 graded)
  * - Quick comment templates (library + teacher-created)
- * - Rubric scoring support
  * - Save at any time (auto-save draft)
  * - Batch grading mode optimized
  */
@@ -32,8 +31,6 @@ export default function TeacherFeedbackModal({
   const [storyText] = useState(submission.story_text);
   const [comments, setComments] = useState([]);
   const [templates, setTemplates] = useState([]);
-// const [rubric, setRubric] = useState(null);  // TODO: Rubric scoring in Phase 2
-// const [rubricScores, setRubricScores] = useState({});  // TODO: Rubric scoring in Phase 2
 
   // Grade and feedback
   const [gradeValue, setGradeValue] = useState('');
@@ -65,17 +62,17 @@ export default function TeacherFeedbackModal({
     return () => clearTimeout(timer);
   }, [autoSaved]);
 
- useEffect(() => {
-  fetchFeedbackData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [submission.id]);
+  useEffect(() => {
+    fetchFeedbackData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submission.id]);
 
   const fetchFeedbackData = async () => {
     try {
       setLoading(true);
 
-      // Fetch feedback, comments, templates, rubric
-      const [feedbackRes, templatesRes, rubricRes] = await Promise.all([
+      // Fetch feedback, comments, templates
+      const [feedbackRes, templatesRes] = await Promise.all([
         supabase
           .from('assignment_feedback')
           .select(`
@@ -83,8 +80,6 @@ export default function TeacherFeedbackModal({
             grade_value,
             general_feedback,
             is_visible_to_student,
-            total_rubric_score,
-            rubric_max_score,
             feedback_comments (
               id,
               highlighted_text,
@@ -104,12 +99,6 @@ export default function TeacherFeedbackModal({
           .or(`teacher_id.eq.${(await supabase.auth.getUser()).data.user.id},is_from_library.eq.true`)
           .order('is_favorite', { ascending: false })
           .limit(10),
-
-        supabase
-          .from('assignment_rubric_mapping')
-          .select('rubric_id, rubrics!inner(*)')
-          .eq('assignment_id', assignment.id)
-          .single(),
       ]);
 
       if (feedbackRes.data) {
@@ -123,6 +112,12 @@ export default function TeacherFeedbackModal({
         setTemplates(templatesRes.data);
       }
 
+    } catch (err) {
+      console.log('No existing feedback');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleTextSelection = () => {
     const selection = window.getSelection();
@@ -164,7 +159,6 @@ export default function TeacherFeedbackModal({
             assignment_id: assignment.id,
             student_id: submission.student_id,
             teacher_id: (await supabase.auth.getUser()).data.user.id,
-            grading_format: assignment.grading_format,
             is_visible_to_student: false,
             retention_date: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
           })
