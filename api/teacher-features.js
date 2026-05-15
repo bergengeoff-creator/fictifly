@@ -4,7 +4,27 @@
 // Handles: comment templates, rubrics, batch grading, submission tracking
 // ============================================================================
 
-import { supabase } from '../supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.REACT_APP_SUPABASE_URL,
+  process.env.REACT_APP_SUPABASE_ANON_KEY
+);
+
+// Helper to extract user from Authorization header
+async function getUserFromToken(req) {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return null;
+
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return null;
+    return user;
+  } catch (err) {
+    console.error('Auth error:', err);
+    return null;
+  }
+}
 
 export default async function handler(req, res) {
   const { method } = req;
@@ -107,21 +127,20 @@ export default async function handler(req, res) {
 // ============================================================================
 
 async function getCommentTemplates(req, res) {
-  const { assignmentId } = req.query;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
-    // Get teacher's templates + library templates
-    const { data: templates } = await supabase
+    const { data: templates, error } = await supabase
       .from('comment_templates')
       .select('*')
       .or(`teacher_id.eq.${user.id},is_from_library.eq.true`)
       .order('is_favorite', { ascending: false })
       .order('usage_count', { ascending: false });
 
-    res.status(200).json({ templates });
+    if (error) throw error;
+
+    res.status(200).json({ templates: templates || [] });
   } catch (error) {
     console.error('Error fetching templates:', error);
     res.status(500).json({ error: error.message });
@@ -129,10 +148,10 @@ async function getCommentTemplates(req, res) {
 }
 
 async function createCommentTemplate(req, res) {
-  const { title, content, category } = req.body;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { title, content, category } = req.body;
 
   if (!title || !content) {
     return res.status(400).json({ error: 'Title and content required' });
@@ -161,14 +180,13 @@ async function createCommentTemplate(req, res) {
 }
 
 async function updateCommentTemplate(req, res) {
-  const { templateId } = req.query;
-  const { title, content, category } = req.body;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+  const { templateId } = req.query;
+  const { title, content, category } = req.body;
+
   try {
-    // Verify ownership
     const { data: template } = await supabase
       .from('comment_templates')
       .select('teacher_id')
@@ -201,13 +219,12 @@ async function updateCommentTemplate(req, res) {
 }
 
 async function deleteCommentTemplate(req, res) {
-  const { templateId } = req.query;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+  const { templateId } = req.query;
+
   try {
-    // Verify ownership
     const { data: template } = await supabase
       .from('comment_templates')
       .select('teacher_id')
@@ -233,11 +250,11 @@ async function deleteCommentTemplate(req, res) {
 }
 
 async function toggleTemplateFavorite(req, res) {
+  const user = await getUserFromToken(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
   const { templateId } = req.query;
   const { isFavorite } = req.body;
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
     const { data: template } = await supabase
@@ -271,19 +288,19 @@ async function toggleTemplateFavorite(req, res) {
 // ============================================================================
 
 async function getRubrics(req, res) {
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
-    // Get teacher's rubrics + library templates
-    const { data: rubrics } = await supabase
+    const { data: rubrics, error } = await supabase
       .from('rubrics')
       .select('*')
       .or(`teacher_id.eq.${user.id},is_from_library.eq.true`)
       .order('created_at', { ascending: false });
 
-    res.status(200).json({ rubrics });
+    if (error) throw error;
+
+    res.status(200).json({ rubrics: rubrics || [] });
   } catch (error) {
     console.error('Error fetching rubrics:', error);
     res.status(500).json({ error: error.message });
@@ -291,13 +308,13 @@ async function getRubrics(req, res) {
 }
 
 async function getRubricWithCategories(req, res) {
-  const { rubricId } = req.query;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+  const { rubricId } = req.query;
+
   try {
-    const { data: rubric } = await supabase
+    const { data: rubric, error } = await supabase
       .from('rubrics')
       .select(`
         *,
@@ -313,9 +330,9 @@ async function getRubricWithCategories(req, res) {
       .eq('id', rubricId)
       .single();
 
+    if (error) throw error;
     if (!rubric) return res.status(404).json({ error: 'Rubric not found' });
 
-    // Check authorization (own rubric or library)
     if (rubric.teacher_id !== user.id && !rubric.is_from_library) {
       return res.status(403).json({ error: 'Not authorized' });
     }
@@ -328,17 +345,16 @@ async function getRubricWithCategories(req, res) {
 }
 
 async function createRubric(req, res) {
-  const { name, description, categories } = req.body;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { name, description, categories } = req.body;
 
   if (!name || !categories || categories.length === 0) {
     return res.status(400).json({ error: 'Name and categories required' });
   }
 
   try {
-    // Create rubric
     const { data: rubric, error: rubricError } = await supabase
       .from('rubrics')
       .insert({
@@ -352,7 +368,6 @@ async function createRubric(req, res) {
 
     if (rubricError) throw rubricError;
 
-    // Create categories
     const categoriesData = categories.map((cat, index) => ({
       rubric_id: rubric.id,
       name: cat.name,
@@ -368,8 +383,7 @@ async function createRubric(req, res) {
 
     if (catError) throw catError;
 
-    // Return full rubric with categories
-    const { data: fullRubric } = await supabase
+    const { data: fullRubric, error: fetchError } = await supabase
       .from('rubrics')
       .select(`
         *,
@@ -385,6 +399,8 @@ async function createRubric(req, res) {
       .eq('id', rubric.id)
       .single();
 
+    if (fetchError) throw fetchError;
+
     res.status(201).json({ rubric: fullRubric });
   } catch (error) {
     console.error('Error creating rubric:', error);
@@ -393,14 +409,13 @@ async function createRubric(req, res) {
 }
 
 async function updateRubric(req, res) {
-  const { rubricId } = req.query;
-  const { name, description } = req.body;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+  const { rubricId } = req.query;
+  const { name, description } = req.body;
+
   try {
-    // Verify ownership
     const { data: rubric } = await supabase
       .from('rubrics')
       .select('teacher_id')
@@ -432,13 +447,12 @@ async function updateRubric(req, res) {
 }
 
 async function deleteRubric(req, res) {
-  const { rubricId } = req.query;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+  const { rubricId } = req.query;
+
   try {
-    // Verify ownership
     const { data: rubric } = await supabase
       .from('rubrics')
       .select('teacher_id')
@@ -464,14 +478,13 @@ async function deleteRubric(req, res) {
 }
 
 async function duplicateRubric(req, res) {
-  const { rubricId } = req.query;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+  const { rubricId } = req.query;
+
   try {
-    // Get original rubric with categories
-    const { data: original } = await supabase
+    const { data: original, error: fetchError } = await supabase
       .from('rubrics')
       .select(`
         *,
@@ -487,9 +500,9 @@ async function duplicateRubric(req, res) {
       .eq('id', rubricId)
       .single();
 
+    if (fetchError) throw fetchError;
     if (!original) return res.status(404).json({ error: 'Rubric not found' });
 
-    // Create new rubric
     const { data: newRubric, error: rubricError } = await supabase
       .from('rubrics')
       .insert({
@@ -503,7 +516,6 @@ async function duplicateRubric(req, res) {
 
     if (rubricError) throw rubricError;
 
-    // Duplicate categories
     const categoriesData = original.rubric_categories.map(cat => ({
       rubric_id: newRubric.id,
       name: cat.name,
@@ -519,7 +531,7 @@ async function duplicateRubric(req, res) {
 
     if (catError) throw catError;
 
-    const { data: fullRubric } = await supabase
+    const { data: fullRubric, error: fetchError2 } = await supabase
       .from('rubrics')
       .select(`
         *,
@@ -535,6 +547,8 @@ async function duplicateRubric(req, res) {
       .eq('id', newRubric.id)
       .single();
 
+    if (fetchError2) throw fetchError2;
+
     res.status(201).json({ rubric: fullRubric });
   } catch (error) {
     console.error('Error duplicating rubric:', error);
@@ -547,16 +561,15 @@ async function duplicateRubric(req, res) {
 // ============================================================================
 
 async function addRubricCategory(req, res) {
+  const user = await getUserFromToken(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
   const { rubricId } = req.query;
   const { name, description, max_points, weight } = req.body;
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   if (!name) return res.status(400).json({ error: 'Category name required' });
 
   try {
-    // Verify rubric ownership
     const { data: rubric } = await supabase
       .from('rubrics')
       .select('teacher_id')
@@ -567,7 +580,6 @@ async function addRubricCategory(req, res) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    // Get position (number of existing categories)
     const { data: existingCats } = await supabase
       .from('rubric_categories')
       .select('position')
@@ -575,7 +587,7 @@ async function addRubricCategory(req, res) {
       .order('position', { ascending: false })
       .limit(1);
 
-    const position = existingCats.length > 0 ? existingCats[0].position + 1 : 0;
+    const position = existingCats && existingCats.length > 0 ? existingCats[0].position + 1 : 0;
 
     const { data: category, error } = await supabase
       .from('rubric_categories')
@@ -600,14 +612,13 @@ async function addRubricCategory(req, res) {
 }
 
 async function updateRubricCategory(req, res) {
-  const { categoryId } = req.query;
-  const { name, description, max_points, weight, position } = req.body;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+  const { categoryId } = req.query;
+  const { name, description, max_points, weight, position } = req.body;
+
   try {
-    // Verify ownership via rubric
     const { data: category } = await supabase
       .from('rubric_categories')
       .select('rubric_id')
@@ -649,13 +660,12 @@ async function updateRubricCategory(req, res) {
 }
 
 async function deleteRubricCategory(req, res) {
-  const { categoryId } = req.query;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+  const { categoryId } = req.query;
+
   try {
-    // Verify ownership via rubric
     const { data: category } = await supabase
       .from('rubric_categories')
       .select('rubric_id')
@@ -693,10 +703,10 @@ async function deleteRubricCategory(req, res) {
 // ============================================================================
 
 async function recordSubmissionView(req, res) {
-  const { submissionId, assignmentId } = req.body;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { submissionId, assignmentId } = req.body;
 
   try {
     const { data: status, error } = await supabase
@@ -720,19 +730,21 @@ async function recordSubmissionView(req, res) {
 }
 
 async function getSubmissionStatus(req, res) {
-  const { assignmentId } = req.query;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+  const { assignmentId } = req.query;
+
   try {
-    const { data: statuses } = await supabase
+    const { data: statuses, error } = await supabase
       .from('submission_read_status')
       .select('*')
       .eq('teacher_id', user.id)
       .eq('assignment_id', assignmentId);
 
-    res.status(200).json({ statuses });
+    if (error) throw error;
+
+    res.status(200).json({ statuses: statuses || [] });
   } catch (error) {
     console.error('Error fetching status:', error);
     res.status(500).json({ error: error.message });
@@ -740,11 +752,11 @@ async function getSubmissionStatus(req, res) {
 }
 
 async function updateSubmissionStatus(req, res) {
+  const user = await getUserFromToken(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
   const { submissionId } = req.query;
   const { isGraded } = req.body;
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
     const { data: updated, error } = await supabase
@@ -768,10 +780,10 @@ async function updateSubmissionStatus(req, res) {
 }
 
 async function createBatchSession(req, res) {
-  const { assignmentId } = req.body;
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { assignmentId } = req.body;
 
   try {
     const { data: session, error } = await supabase
@@ -793,11 +805,11 @@ async function createBatchSession(req, res) {
 }
 
 async function completeBatchSession(req, res) {
-  const { sessionId } = req.query;
-  const { status } = req.body; // 'completed' or 'abandoned'
-  const { data: { user } } = await supabase.auth.getUser();
-
+  const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { sessionId } = req.query;
+  const { status } = req.body;
 
   try {
     const { data: session, error } = await supabase
