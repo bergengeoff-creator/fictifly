@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../supabase';
 
 /**
  * CommentTemplateManager
@@ -24,17 +25,32 @@ export default function CommentTemplateManager({ onClose }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTemplate, setNewTemplate] = useState({ title: '', content: '', category: '' });
   const [saving, setSaving] = useState(false);
+  const [token, setToken] = useState(null);
 
   const categories = ['Positive', 'Constructive', 'Grammar', 'Dialogue', 'Imagery', 'Structure'];
 
   useEffect(() => {
-    fetchTemplates();
+    initializeAuth();
   }, []);
 
-  const fetchTemplates = async () => {
+  const initializeAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      setToken(session.access_token);
+      fetchTemplates(session.access_token);
+    }
+  };
+
+  const fetchTemplates = async (authToken) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/teacher-features?action=getTemplates');
+      const response = await fetch('/api/teacher-features?action=getTemplates', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
       const data = await response.json();
       setTemplates(data.templates || []);
     } catch (err) {
@@ -50,12 +66,21 @@ export default function CommentTemplateManager({ onClose }) {
       return;
     }
 
+    if (!token) {
+      setError('Not authenticated');
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
     try {
       const response = await fetch('/api/teacher-features?action=createTemplate', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           title: newTemplate.title.trim(),
           content: newTemplate.content.trim(),
@@ -82,9 +107,18 @@ export default function CommentTemplateManager({ onClose }) {
   };
 
   const handleToggleFavorite = async (templateId, currentFavorite) => {
+    if (!token) {
+      setError('Not authenticated');
+      return;
+    }
+
     try {
       const response = await fetch(`/api/teacher-features?action=toggleFavorite&templateId=${templateId}`, {
         method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ isFavorite: !currentFavorite }),
       });
 
@@ -97,12 +131,21 @@ export default function CommentTemplateManager({ onClose }) {
   };
 
   const handleDeleteTemplate = async (templateId) => {
-  const confirmed = window.confirm('Delete this template?');
-        if (!confirmed) return;
+    const confirmed = window.confirm('Delete this template?');
+    if (!confirmed) return;
+
+    if (!token) {
+      setError('Not authenticated');
+      return;
+    }
 
     try {
       const response = await fetch(`/api/teacher-features?action=deleteTemplate&templateId=${templateId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       if (response.ok) {
