@@ -471,6 +471,25 @@ const fetchAssignmentSubmissions = async (assignment) => {
               </div>
             </div>
 
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Feedback tools</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.65rem' }}>
+                {[
+                  { title: 'Quick Comments', desc: 'Template library', color: '#6BAF72', action: () => setShowTemplateManager(true) },
+                  { title: 'Rubrics', desc: 'Scoring guides', color: '#D4845A', action: () => setShowRubricBuilder(true) },
+                ].map(t => (
+                  <button key={t.title} onClick={t.action} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '3px solid ' + t.color, borderRadius: '10px', padding: '0.85rem 1.1rem', textDecoration: 'none', display: 'block', transition: 'box-shadow 0.18s, transform 0.18s', cursor: 'pointer', fontFamily: 'sans-serif', textAlign: 'left', fontSize: 'inherit', color: 'inherit' }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.09)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#3A3226' }}>{t.title}</span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#9A8878' }}>{t.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {showCreateClass && (
               <div style={sectionStyle}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Create a new class</h3>
