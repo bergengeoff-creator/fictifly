@@ -32,8 +32,8 @@ export default function TeacherFeedbackModal({
   const [storyText] = useState(submission.story_text);
   const [comments, setComments] = useState([]);
   const [templates, setTemplates] = useState([]);
-  const [rubric, setRubric] = useState(null);
-  const [rubricScores, setRubricScores] = useState({});
+// const [rubric, setRubric] = useState(null);  // TODO: Rubric scoring in Phase 2
+// const [rubricScores, setRubricScores] = useState({});  // TODO: Rubric scoring in Phase 2
 
   // Grade and feedback
   const [gradeValue, setGradeValue] = useState('');
@@ -65,9 +65,10 @@ export default function TeacherFeedbackModal({
     return () => clearTimeout(timer);
   }, [autoSaved]);
 
-  useEffect(() => {
-    fetchFeedbackData();
-  }, [submission.id]);
+ useEffect(() => {
+  fetchFeedbackData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [submission.id]);
 
   const fetchFeedbackData = async () => {
     try {

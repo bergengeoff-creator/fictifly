@@ -74,7 +74,6 @@ export default function ClassroomDashboard() {
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [assignmentSubmissions, setAssignmentSubmissions] = useState([]);
   const [feedbackMap, setFeedbackMap] = useState({});
-  const [savingFeedback, setSavingFeedback] = useState({});
   
   // NEW: Teacher quality-of-life features
   const [feedbackSubmissionIndex, setFeedbackSubmissionIndex] = useState(null);
@@ -408,17 +407,6 @@ export default function ClassroomDashboard() {
     setSavingAssignment(false);
     setSuccess('Assignment created!');
     setTimeout(() => setSuccess(null), 3000);
-  };
-
-  const handleSaveFeedback = async (submissionId) => {
-    setSavingFeedback(prev => ({ ...prev, [submissionId]: true }));
-    await supabase
-      .from('submissions')
-      .update({ teacher_feedback: feedbackMap[submissionId], feedback_at: new Date().toISOString() })
-      .eq('id', submissionId);
-    setSavingFeedback(prev => ({ ...prev, [submissionId]: false }));
-    setSuccess('Feedback saved!');
-    setTimeout(() => setSuccess(null), 2000);
   };
 
   const wordCountOptions = assignmentPromptType === 'microfiction' ? [100, 200, 300] : [500, 1000];

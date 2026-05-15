@@ -40,13 +40,13 @@ export default function RubricBuilder({ onClose, onSave, initialRubric = null, m
   const [templates, setTemplates] = useState([]);
   const [showTemplates, setShowTemplates] = useState(false);
 
-  useEffect(() => {
-    if (categories.length === 0 && mode === 'create') {
-      // Start with one empty category
-      setCategories([{ name: '', description: '', max_points: 5, position: 0 }]);
-    }
-    fetchTemplates();
-  }, []);
+useEffect(() => {
+  if (categories.length === 0 && mode === 'create') {
+    // Start with one empty category
+    setCategories([{ name: '', description: '', max_points: 5, position: 0 }]);
+  }
+  fetchTemplates();
+}, [mode]);
 
   const fetchTemplates = async () => {
     try {
