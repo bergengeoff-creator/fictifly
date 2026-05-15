@@ -580,7 +580,7 @@ export default function TeacherFeedbackModal({
             )}
 
             {error && (
-              <div style={{ padding: '0.6rem', background: '#FDF0E8', border: `1px solid ${B.terra}`, borderRadius: '6px', fontSize: '0.75rem', color: B.terraDark' }}>
+              <div style={{ padding: '0.6rem', background: '#FDF0E8', border: `1px solid ${B.terra}`, borderRadius: '6px', fontSize: '0.75rem', color: B.terraDark }}>
                 {error}
               </div>
             )}

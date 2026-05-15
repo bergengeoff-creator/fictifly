@@ -98,7 +98,8 @@ export default function CommentTemplateManager({ onClose }) {
   };
 
   const handleDeleteTemplate = async (templateId) => {
-    if (!confirm('Delete this template?')) return;
+  const confirmed = window.confirm('Delete this template?');
+        if (!confirmed) return;
 
     try {
       const response = await fetch(`/api/teacher-features?action=deleteTemplate&templateId=${templateId}`, {
