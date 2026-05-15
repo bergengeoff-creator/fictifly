@@ -71,35 +71,46 @@ export default function TeacherFeedbackModal({
     try {
       setLoading(true);
 
-      // Fetch feedback, comments, templates
-      const [feedbackRes, templatesRes] = await Promise.all([
-        supabase
-          .from('assignment_feedback')
-          .select(`
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('Not authenticated');
+        setLoading(false);
+        return;
+      }
+
+      const token = session.access_token;
+
+      // Fetch templates via API
+      const templatesRes = await fetch('/api/teacher-features?action=getTemplates', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const templatesData = await templatesRes.json();
+
+      // Fetch feedback, comments from Supabase directly
+      const feedbackRes = await supabase
+        .from('assignment_feedback')
+        .select(`
+          id,
+          grade_value,
+          general_feedback,
+          is_visible_to_student,
+          feedback_comments (
             id,
-            grade_value,
-            general_feedback,
-            is_visible_to_student,
-            feedback_comments (
-              id,
-              highlighted_text,
-              highlighted_start_index,
-              highlighted_end_index,
-              comment_text,
-              created_at
-            )
-          `)
-          .eq('assignment_id', assignment.id)
-          .eq('student_id', submission.student_id)
-          .single(),
-        
-        supabase
-          .from('comment_templates')
-          .select('*')
-          .or(`teacher_id.eq.${(await supabase.auth.getUser()).data.user.id},is_from_library.eq.true`)
-          .order('is_favorite', { ascending: false })
-          .limit(10),
-      ]);
+            highlighted_text,
+            highlighted_start_index,
+            highlighted_end_index,
+            comment_text,
+            created_at
+          )
+        `)
+        .eq('assignment_id', assignment.id)
+        .eq('student_id', submission.student_id)
+        .single();
 
       if (feedbackRes.data) {
         setGradeValue(feedbackRes.data.grade_value || '');
@@ -108,12 +119,12 @@ export default function TeacherFeedbackModal({
         setComments(feedbackRes.data.feedback_comments || []);
       }
 
-      if (templatesRes.data) {
-        setTemplates(templatesRes.data);
+      if (templatesData.templates) {
+        setTemplates(templatesData.templates);
       }
 
     } catch (err) {
-      console.log('No existing feedback');
+      console.log('Error fetching feedback:', err);
     } finally {
       setLoading(false);
     }
