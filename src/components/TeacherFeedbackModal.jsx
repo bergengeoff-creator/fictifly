@@ -92,7 +92,7 @@ export default function TeacherFeedbackModal({
     };
 
     loadFeedback();
-  }, [submission?.id, assignment?.rubric_id]);
+  }, [submission, assignment?.rubric_id]);
 
   // Load rubric categories if assignment has rubric
   useEffect(() => {
