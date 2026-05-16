@@ -450,7 +450,7 @@ export default function ClassroomDashboard() {
                 {[
                   { title: 'Microfiction', desc: '100–300 words', color: '#D4845A', path: '/generators/microfiction' },
                   { title: 'Flash Fiction', desc: '500–1,000 words', color: '#2E6DA4', path: '/generators/flash-fiction' },
-                  { title: 'Character Generator', desc: 'Build a character', color: '#6BAF72', path: '/generators/character', isNew: true },
+                  { title: 'Character Generator', desc: 'Build a character', color: '#D4845A', path: '/generators/character', isNew: true },
                 ].map(g => (
                   <Link key={g.title} to={g.path} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '3px solid ' + g.color, borderRadius: '10px', padding: '0.85rem 1.1rem', textDecoration: 'none', display: 'block', transition: 'box-shadow 0.18s, transform 0.18s' }}
                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.09)'; }}
