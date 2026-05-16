@@ -347,8 +347,10 @@ async function getRubricWithCategories(req, res) {
 async function createRubric(req, res) {
   const user = await getUserFromToken(req);
 
-  console.log('Creating rubric with user:', user);  // ADD THIS LINE
-
+  console.log('=== CREATE RUBRIC ===');
+  console.log('User:', user);
+  console.log('Body:', req.body);
+  
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   const { name, description, categories } = req.body;

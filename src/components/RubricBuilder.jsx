@@ -151,13 +151,20 @@ const response = await fetch('/api/teacher-features?action=createRubric', {
         }),
       });
 
-      const data = await response.json();
+let data;
+try {
+  data = await response.json();
+} catch (e) {
+  setError(`API Error: ${response.statusText || response.status}`);
+  setLoading(false);
+  return;
+}
 
-      if (!response.ok) {
-        setError(data.error);
-        setLoading(false);
-        return;
-      }
+if (!response.ok) {
+  setError(data.error || `Error: ${response.status}`);
+  setLoading(false);
+  return;
+}
 
       onSave?.(data.rubric);
       onClose();
