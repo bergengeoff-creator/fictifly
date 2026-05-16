@@ -424,20 +424,27 @@ const fetchAssignmentSubmissions = async (assignment) => {
 
         {view === 'classes' && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.4rem' }}>Educator</div>
-                <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>My Classes</h1>
-              </div>
-              <button onClick={() => {
-                if (classes.length >= 1 && profile.account_type !== 'premium') {
-                  setError('Free accounts are limited to 1 class. Contact us to upgrade for unlimited classes.');
-                  return;
-                }
-                setError(null);
-                setShowCreateClass(true);
-              }} style={btnPrimary}>+ New Class</button>
-            </div>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+  <div>
+    <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.4rem' }}>Educator</div>
+    <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>My Classes</h1>
+  </div>
+  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+    <button 
+      onClick={() => setShowCreateAssignmentModal(true)} 
+      style={btnPrimary}>
+      + New Assignment
+    </button>
+    <button onClick={() => {
+      if (classes.length >= 1 && profile.account_type !== 'premium') {
+        setError('Free accounts are limited to 1 class. Contact us to upgrade for unlimited classes.');
+        return;
+      }
+      setError(null);
+      setShowCreateClass(true);
+    }} style={btnPrimary}>+ New Class</button>
+  </div>
+</div>
 
             {/* Global reset request alert */}
             {totalPendingResets > 0 && (
@@ -793,6 +800,18 @@ const fetchAssignmentSubmissions = async (assignment) => {
                           {t === 'class' ? 'Whole class' : 'Individual student'}
                         </button>
                       ))}
+                      {showCreateAssignmentModal && (
+  <CreateAssignmentForm
+    availableClasses={classes}
+    onClose={() => setShowCreateAssignmentModal(false)}
+    onAssignmentCreated={(assignments) => {
+      setShowCreateAssignmentModal(false);
+      setSuccess('Assignment created successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+      // Optionally refresh assignments if needed
+    }}
+  />
+)}
                     </div>
                     {assignmentTarget === 'student' && (
                       <label style={labelStyle}>Select student
