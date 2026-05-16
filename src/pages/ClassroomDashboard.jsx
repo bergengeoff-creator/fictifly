@@ -101,6 +101,7 @@ export default function ClassroomDashboard() {
       .from('classes')
       .select('*')
       .eq('teacher_id', user.id)
+      .eq('is_active', true)
       .order('created_at', { ascending: false });
     setClasses(data || []);
 
