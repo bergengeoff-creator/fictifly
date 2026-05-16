@@ -11,6 +11,11 @@ const supabase = createClient(
   process.env.REACT_APP_SUPABASE_ANON_KEY
 );
 
+const supabaseAdmin = createClient(
+  process.env.REACT_APP_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 // Helper to extract user from Authorization header
 async function getUserFromToken(req) {
   const token = req.headers.authorization?.split(' ')[1];
@@ -360,7 +365,7 @@ async function createRubric(req, res) {
   }
 
   try {
-    const { data: rubric, error: rubricError } = await supabase
+    const { data: rubric, error: rubricError } = await supabaseAdmin
       .from('rubrics')
       .insert({
         teacher_id: user.id,
@@ -385,13 +390,13 @@ async function createRubric(req, res) {
       position: index,
     }));
 
-    const { error: catError } = await supabase
+    const { error: catError } = await supabaseAdmin
       .from('rubric_categories')
       .insert(categoriesData);
 
     if (catError) throw catError;
 
-    const { data: fullRubric, error: fetchError } = await supabase
+    const { data: fullRubric, error: fetchError } = await supabaseAdmin
       .from('rubrics')
       .select(`
         *,
