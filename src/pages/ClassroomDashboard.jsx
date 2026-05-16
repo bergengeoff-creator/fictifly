@@ -442,7 +442,7 @@ export default function ClassroomDashboard() {
             )}
 
             {error && !showCreateClass && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', color: '#B56840', padding: '0.85rem 1.1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>{error}</div>}
-            {success && <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', color: '#3A7040', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>{success}</div>}
+            {success && <div style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', borderRadius: '10px', color: '#6B5D4E', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>{success}</div>}
 
             <div style={{ marginBottom: '1.5rem' }}>
               <h3 style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Writing tools</h3>
@@ -457,7 +457,7 @@ export default function ClassroomDashboard() {
                     onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
                       <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#3A3226' }}>{g.title}</span>
-                      {g.isNew && <span style={{ fontSize: '0.58rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#F0F7ED', color: '#3A7040', border: '1px solid #6BAF72', borderRadius: '20px', padding: '0.12rem 0.45rem' }}>New</span>}
+                      {g.isNew && <span style={{ fontSize: '0.58rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#EDE3D4', color: '#6B5D4E', border: '1px solid #D9C9B0', borderRadius: '20px', padding: '0.12rem 0.45rem' }}>New</span>}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#9A8878' }}>{g.desc}</div>
                   </Link>
@@ -469,7 +469,7 @@ export default function ClassroomDashboard() {
               <h3 style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Feedback tools</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.65rem' }}>
                 {[
-                  { title: 'Quick Comments', desc: 'Template library', color: '#6BAF72', action: () => setShowTemplateManager(true) },
+                  { title: 'Quick Comments', desc: 'Template library', color: '#D4845A', action: () => setShowTemplateManager(true) },
                   { title: 'Rubrics', desc: 'Scoring guides', color: '#D4845A', action: () => setShowRubricBuilder(true) },
                 ].map(t => (
                   <button key={t.title} onClick={t.action} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '3px solid ' + t.color, borderRadius: '10px', padding: '0.85rem 1.1rem', textDecoration: 'none', display: 'block', transition: 'box-shadow 0.18s, transform 0.18s', cursor: 'pointer', fontFamily: 'sans-serif', textAlign: 'left', fontSize: 'inherit', color: 'inherit' }}
@@ -627,7 +627,7 @@ export default function ClassroomDashboard() {
               </div>
             )}
 
-            {success && <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '10px', color: '#3A7040', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>{success}</div>}
+            {success && <div style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', borderRadius: '10px', color: '#6B5D4E', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>{success}</div>}
             {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', color: '#B56840', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>{error}</div>}
 
             <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '12px', padding: '4px', gap: '2px', marginBottom: '1.5rem' }}>
@@ -670,8 +670,8 @@ export default function ClassroomDashboard() {
                 )}
 
                 {Object.keys(approvedPasscodes).length > 0 && (
-                  <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1rem' }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#3A7040', marginBottom: '0.75rem' }}>
+                  <div style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1rem' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#6B5D4E', marginBottom: '0.75rem' }}>
                       ✓ New passcodes — give these to your students
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
