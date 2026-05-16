@@ -346,9 +346,33 @@ async function getRubricWithCategories(req, res) {
 
 async function createRubric(req, res) {
   const user = await getUserFromToken(req);
+
+  console.log('Creating rubric with user:', user);  // ADD THIS LINE
+
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   const { name, description, categories } = req.body;
+
+  if (!name || !categories || categories.length === 0) {
+    return res.status(400).json({ error: 'Name and categories required' });
+  }
+
+  try {
+    const { data: rubric, error: rubricError } = await supabase
+      .from('rubrics')
+      .insert({
+        teacher_id: user.id,
+        name,
+        description: description || null,
+        is_from_library: false,
+      })
+      .select()
+      .single();
+
+    if (rubricError) {
+      console.log('Rubric insert error:', rubricError);  // ADD THIS LINE
+      throw rubricError;
+    }
 
   if (!name || !categories || categories.length === 0) {
     return res.status(400).json({ error: 'Name and categories required' });
