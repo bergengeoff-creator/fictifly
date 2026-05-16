@@ -963,7 +963,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
                       <button
                         onClick={saveCharacter}
                         disabled={savingId === 'saving'}
-                        style={{ background: savingId === 'saved' ? '#F0F7ED' : 'transparent', border: `1px solid ${savingId === 'saved' ? '#6BAF72' : B.sandDeep}`, color: savingId === 'saved' ? '#3A7040' : B.inkMid, borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.75rem', fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: savingId === 'saving' ? 'not-allowed' : 'pointer', transition: 'all 0.18s' }}
+                        style={{ background: savingId === 'saved' ? B.sandMid : 'transparent', border: `1px solid ${savingId === 'saved' ? B.sandDeep : B.sandDeep}`, color: savingId === 'saved' ? B.inkMid : B.inkMid, borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.75rem', fontFamily: "'DM Sans', sans-serif", fontWeight: 500, cursor: savingId === 'saving' ? 'not-allowed' : 'pointer', transition: 'all 0.18s' }}
                       >
                         {savingId === 'saved' ? '✓ Saved!' : savingId === 'saving' ? 'Saving…' : '☆ Save character'}
                       </button>

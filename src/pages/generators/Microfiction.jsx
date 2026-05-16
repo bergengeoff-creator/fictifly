@@ -20,15 +20,26 @@ const B = {
   ink:"#3A3226", inkMid:"#6B5D4E", inkLight:"#9A8878", white:"#FFFCF8",
 };
 
+// Genre colors: dark (text), main (badge), light (background), pale (very light)
 const GENRE_COLORS = [
-  { bg:"#EAF4FB", border:"#5B9EC9", text:"#2E6DA4" },
-  { bg:"#FDF0E8", border:"#D4845A", text:"#B56840" },
-  { bg:"#F0F7ED", border:"#6BAF72", text:"#3A7040" },
-  { bg:"#FDF5E8", border:"#C8A060", text:"#9A6830" },
-  { bg:"#F5EDF5", border:"#B07AC0", text:"#7A4A90" },
+  { dark: '#A65C2A', main: '#D4845A', light: '#E8CCB5', pale: '#F5EAE0' }, // Action/Adventure - Rust Orange
+  { dark: '#8B7341', main: '#C4A87A', light: '#E8D9C8', pale: '#F5F0E8' }, // Comedy - Warm Gold
+  { dark: '#6B7341', main: '#9BA87B', light: '#DCDCC8', pale: '#F0F0E8' }, // Drama - Muted Olive
+  { dark: '#9A7B7A', main: '#C4A5A5', light: '#E8D4D4', pale: '#F5EAE8' }, // Fairy Tale - Rose Taupe
+  { dark: '#4A6B6B', main: '#7B9898', light: '#D4E0E0', pale: '#F0F4F4' }, // Ghost Story - Deep Teal
+  { dark: '#6B7341', main: '#9BA87B', light: '#DCDCC8', pale: '#F0F0E8' }, // Historical - Muted Olive
+  { dark: '#4A5F73', main: '#7B96A8', light: '#D4E0E8', pale: '#F0F4F8' }, // Horror - Blue-Gray
+  { dark: '#9A7B7A', main: '#C4A5A5', light: '#E8D4D4', pale: '#F5EAE8' }, // Romance - Rose Taupe
+  { dark: '#9A7B7A', main: '#C4A5A5', light: '#E8D4D4', pale: '#F5EAE8' }, // Romantic Comedy - Rose Taupe
+  { dark: '#4A5F73', main: '#7B96A8', light: '#D4E0E8', pale: '#F0F4F8' }, // Sci-Fi - Blue-Gray
+  { dark: '#4A6B6B', main: '#7B9898', light: '#D4E0E0', pale: '#F0F4F4' }, // Suspense/Thriller - Deep Teal
+  { dark: '#6B5D4E', main: '#D4845A', light: '#EDE3D4', pale: '#F5EAE0' }, // Open Genre - Taupe
 ];
 
-const genreColor = (genre) => GENRE_COLORS[GENRES.indexOf(genre) % GENRE_COLORS.length] || GENRE_COLORS[0];
+const genreColor = (genre) => {
+  const colors = GENRE_COLORS[GENRES.indexOf(genre) % GENRE_COLORS.length] || GENRE_COLORS[11];
+  return { bg: colors.pale, border: colors.light, text: colors.dark };
+};
 const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 const INSTRUCTIONS = {
@@ -80,7 +91,7 @@ const PromptCard = ({ prompt, onSave, isSaved, onRemove, onMarkWritten, isWritte
         {prompt.dbId && (
           isWritten ? (
             <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap' }}>
-              <button style={{ background:'#F0F7ED', border:'1px solid #6BAF72', color:'#3A7040', borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'default' }}>✓ Written!</button>
+              <button style={{ background:B.sandMid, border:`1px solid ${B.sandDeep}`, color:B.inkMid, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'default' }}>✓ Written!</button>
               {isPremium && (
                 <button onClick={() => onAddStory(prompt)} style={{ background:B.seaDeep, border:'none', color:B.white, borderRadius:'8px', padding:'0.35rem 0.9rem', fontSize:'0.75rem', fontFamily:"'DM Sans', sans-serif", fontWeight:500, cursor:'pointer' }}>📄 {prompt.hasStory ? 'Edit story' : 'Add story'}</button>
               )}
@@ -325,7 +336,7 @@ Respond ONLY with a JSON array, no markdown, no explanation:
       <div style={{ maxWidth:640, margin:'0 auto' }}>
 
         {assignSuccess && (
-          <div style={{ background:'#F0F7ED', border:'1px solid #6BAF72', borderRadius:'10px', color:'#3A7040', padding:'0.75rem 1rem', marginBottom:'1rem', fontSize:'0.88rem', fontFamily:"'DM Sans', sans-serif" }}>
+          <div style={{ background:B.sandMid, border:`1px solid ${B.sandDeep}`, borderRadius:'10px', color:B.inkMid, padding:'0.75rem 1rem', marginBottom:'1rem', fontSize:'0.88rem', fontFamily:"'DM Sans', sans-serif" }}>
             ✓ Assignment created! Students will see it on their dashboard.
           </div>
         )}
