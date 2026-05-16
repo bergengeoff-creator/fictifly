@@ -350,7 +350,7 @@ async function createRubric(req, res) {
   console.log('=== CREATE RUBRIC ===');
   console.log('User:', user);
   console.log('Body:', req.body);
-  
+
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   const { name, description, categories } = req.body;
@@ -372,27 +372,9 @@ async function createRubric(req, res) {
       .single();
 
     if (rubricError) {
-      console.log('Rubric insert error:', rubricError);  // ADD THIS LINE
+      console.log('Rubric insert error:', rubricError);
       throw rubricError;
     }
-
-  if (!name || !categories || categories.length === 0) {
-    return res.status(400).json({ error: 'Name and categories required' });
-  }
-
-  try {
-    const { data: rubric, error: rubricError } = await supabase
-      .from('rubrics')
-      .insert({
-        teacher_id: user.id,
-        name,
-        description: description || null,
-        is_from_library: false,
-      })
-      .select()
-      .single();
-
-    if (rubricError) throw rubricError;
 
     const categoriesData = categories.map((cat, index) => ({
       rubric_id: rubric.id,
