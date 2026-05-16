@@ -58,8 +58,6 @@ export default function CreateAssignmentForm({
   const [loadingPrompts, setLoadingPrompts] = useState(false);
   const [loadingRubrics, setLoadingRubrics] = useState(false);
   const [error, setError] = useState(null);
-  const [showCreateAssignmentModal, setShowCreateAssignmentModal] = useState(false);
-
 
   // Load saved prompts on mount
   useEffect(() => {
