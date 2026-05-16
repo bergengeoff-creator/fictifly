@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 import FictiflyLogo from '../components/FictiflyLogo';
+import CreateAssignmentForm from '../components/CreateAssignmentForm';
 import TeacherFeedbackModal from '../components/TeacherFeedbackModal';
 import RubricBuilder from '../components/RubricBuilder';
 import CommentTemplateManager from '../components/CommentTemplateManager';
@@ -31,13 +32,14 @@ export default function ClassroomDashboard() {
   const navigate = useNavigate();
 
   const [classes, setClasses] = useState([]);
-  const [resetRequestCounts, setResetRequestCounts] = useState({}); // classId -> count
+  const [resetRequestCounts, setResetRequestCounts] = useState({});
   const [selectedClass, setSelectedClass] = useState(null);
   const [classMembers, setClassMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('classes');
   const [classDetailTab, setClassDetailTab] = useState('students');
   const [showCreateClass, setShowCreateClass] = useState(false);
+  const [showCreateAssignmentModal, setShowCreateAssignmentModal] = useState(false);
   const [showBulkGenerate, setShowBulkGenerate] = useState(false);
   const [newClassName, setNewClassName] = useState('');
   const [newClassGrade, setNewClassGrade] = useState('');
@@ -49,12 +51,10 @@ export default function ClassroomDashboard() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // Passcode reset requests
   const [resetRequests, setResetRequests] = useState([]);
   const [approvingReset, setApprovingReset] = useState({});
-  const [approvedPasscodes, setApprovedPasscodes] = useState({}); // requestId -> newPasscode
+  const [approvedPasscodes, setApprovedPasscodes] = useState({});
 
-  // Assignments
   const [assignments, setAssignments] = useState([]);
   const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [assignmentTitle, setAssignmentTitle] = useState('');
@@ -70,16 +70,13 @@ export default function ClassroomDashboard() {
   const [assignmentStudentId, setAssignmentStudentId] = useState('');
   const [savingAssignment, setSavingAssignment] = useState(false);
 
-  // Submission review (MODIFIED)
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [assignmentSubmissions, setAssignmentSubmissions] = useState([]);
   
-  // NEW: Teacher quality-of-life features
   const [feedbackSubmissionIndex, setFeedbackSubmissionIndex] = useState(null);
   const [showRubricBuilder, setShowRubricBuilder] = useState(false);
   const [showTemplateManager, setShowTemplateManager] = useState(false);
 
-  // Edit assignment
   const [editingAssignment, setEditingAssignment] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editGenre, setEditGenre] = useState('');
@@ -90,7 +87,6 @@ export default function ClassroomDashboard() {
   const [editDueDate, setEditDueDate] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
 
-  // Class management
   const [showEditClass, setShowEditClass] = useState(false);
   const [editClassName, setEditClassName] = useState('');
   const [editClassGrade, setEditClassGrade] = useState('');
@@ -108,7 +104,6 @@ export default function ClassroomDashboard() {
       .order('created_at', { ascending: false });
     setClasses(data || []);
 
-    // Fetch reset request counts per class
     if (data && data.length > 0) {
       const counts = {};
       await Promise.all(data.map(async cls => {
@@ -166,11 +161,10 @@ export default function ClassroomDashboard() {
     setAssignments(withCounts);
   };
 
-  // MODIFIED: Fetch all submissions for batch grading
-const fetchAssignmentSubmissions = async (assignment) => {
+  const fetchAssignmentSubmissions = async (assignment) => {
     setSelectedAssignment(assignment);
     setEditingAssignment(false);
-    setFeedbackSubmissionIndex(null); // Reset feedback index
+    setFeedbackSubmissionIndex(null);
     
     const { data: subs } = await supabase
       .from('submissions')
@@ -207,19 +201,13 @@ const fetchAssignmentSubmissions = async (assignment) => {
       const data = await response.json();
       if (!data.success) throw new Error(data.error);
 
-      // Mark request as resolved
       await supabase
         .from('passcode_reset_requests')
         .update({ status: 'resolved', new_passcode: newPasscode })
         .eq('id', request.id);
 
-      // Show the new passcode to the teacher
       setApprovedPasscodes(prev => ({ ...prev, [request.id]: { username: request.username, passcode: newPasscode } }));
-
-      // Remove from pending list
       setResetRequests(prev => prev.filter(r => r.id !== request.id));
-
-      // Update class list badge count
       setResetRequestCounts(prev => ({ ...prev, [selectedClass.id]: Math.max(0, (prev[selectedClass.id] || 1) - 1) }));
     } catch (e) {
       setError('Failed to reset passcode. Please try again.');
@@ -268,7 +256,6 @@ const fetchAssignmentSubmissions = async (assignment) => {
     setTimeout(() => setSuccess(null), 3000);
   };
 
-  // Fun username generator
   const ADJECTIVES = ['Amber','Arctic','Bold','Brave','Bright','Bronze','Calm','Clever','Cosmic','Crisp','Crystal','Cunning','Daring','Dawn','Dusty','Echo','Epic','Fabled','Fierce','Fiery','Frosty','Gilded','Golden','Grand','Gritty','Hidden','Hollow','Icy','Indigo','Jade','Keen','Lofty','Lucky','Lunar','Maple','Marble','Misty','Mystic','Noble','Olive','Onyx','Ornate','Phantom','Plum','Polar','Quick','Quiet','Radiant','Rapid','Raven','Royal','Ruby','Rustic','Sandy','Scarlet','Shadow','Sharp','Silent','Silver','Slate','Smoky','Solar','Stark','Steel','Stormy','Swift','Tawny','Thunder','Timber','Twilight','Velvet','Vivid','Wild','Winter','Zephyr'];
   const NOUNS = ['Author','Bard','Blade','Brook','Cloud','Comet','Craft','Creek','Crown','Dusk','Echo','Falcon','Fern','Flame','Flash','Flint','Fox','Frost','Grove','Hawk','Horizon','Hound','Ink','Isle','Jade','Leaf','Legend','Light','Lore','Lynx','Mage','Maple','Mist','Moon','Myth','Peak','Pen','Pine','Plot','Prose','Quest','Quill','Raven','Reed','Ridge','River','Rock','Rogue','Sage','Scout','Scribe','Scroll','Shade','Shore','Sketch','Sky','Spark','Star','Stone','Storm','Stream','Tale','Tide','Token','Tome','Trail','Vale','Verse','Voice','Wave','Wind','Wolf','Word','Writer','Yarn'];
   const funUsername = (prefix) => {
@@ -424,29 +411,28 @@ const fetchAssignmentSubmissions = async (assignment) => {
 
         {view === 'classes' && (
           <div>
-<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-  <div>
-    <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.4rem' }}>Educator</div>
-    <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>My Classes</h1>
-  </div>
-  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-    <button 
-      onClick={() => setShowCreateAssignmentModal(true)} 
-      style={btnPrimary}>
-      + New Assignment
-    </button>
-    <button onClick={() => {
-      if (classes.length >= 1 && profile.account_type !== 'premium') {
-        setError('Free accounts are limited to 1 class. Contact us to upgrade for unlimited classes.');
-        return;
-      }
-      setError(null);
-      setShowCreateClass(true);
-    }} style={btnPrimary}>+ New Class</button>
-  </div>
-</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.4rem' }}>Educator</div>
+                <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>My Classes</h1>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button 
+                  onClick={() => setShowCreateAssignmentModal(true)} 
+                  style={btnPrimary}>
+                  + New Assignment
+                </button>
+                <button onClick={() => {
+                  if (classes.length >= 1 && profile.account_type !== 'premium') {
+                    setError('Free accounts are limited to 1 class. Contact us to upgrade for unlimited classes.');
+                    return;
+                  }
+                  setError(null);
+                  setShowCreateClass(true);
+                }} style={btnPrimary}>+ New Class</button>
+              </div>
+            </div>
 
-            {/* Global reset request alert */}
             {totalPendingResets > 0 && (
               <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '10px', padding: '0.85rem 1.1rem', marginBottom: '1.25rem', fontSize: '0.88rem', color: '#9A6830', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ fontSize: '1rem' }}>🔑</span>
@@ -583,7 +569,6 @@ const fetchAssignmentSubmissions = async (assignment) => {
               </div>
             </div>
 
-            {/* Edit class form */}
             {showEditClass && (
               <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '12px', padding: '1.25rem', marginBottom: '1rem' }}>
                 <div style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.9rem' }}>Edit class</div>
@@ -616,7 +601,6 @@ const fetchAssignmentSubmissions = async (assignment) => {
               </div>
             )}
 
-            {/* Delete confirmation */}
             {showDeleteConfirm && (
               <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '12px', padding: '1.25rem', marginBottom: '1rem' }}>
                 <div style={{ fontWeight: 600, color: '#B56840', marginBottom: '0.5rem' }}>Archive this class?</div>
@@ -658,7 +642,6 @@ const fetchAssignmentSubmissions = async (assignment) => {
 
             {classDetailTab === 'students' && (
               <div>
-                {/* Passcode reset requests */}
                 {resetRequests.length > 0 && (
                   <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1rem' }}>
                     <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#9A6830', marginBottom: '0.75rem' }}>
@@ -685,7 +668,6 @@ const fetchAssignmentSubmissions = async (assignment) => {
                   </div>
                 )}
 
-                {/* Approved passcodes to hand out */}
                 {Object.keys(approvedPasscodes).length > 0 && (
                   <div style={{ background: '#F0F7ED', border: '1px solid #6BAF72', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1rem' }}>
                     <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#3A7040', marginBottom: '0.75rem' }}>
@@ -800,18 +782,6 @@ const fetchAssignmentSubmissions = async (assignment) => {
                           {t === 'class' ? 'Whole class' : 'Individual student'}
                         </button>
                       ))}
-                      {showCreateAssignmentModal && (
-  <CreateAssignmentForm
-    availableClasses={classes}
-    onClose={() => setShowCreateAssignmentModal(false)}
-    onAssignmentCreated={(assignments) => {
-      setShowCreateAssignmentModal(false);
-      setSuccess('Assignment created successfully!');
-      setTimeout(() => setSuccess(null), 3000);
-      // Optionally refresh assignments if needed
-    }}
-  />
-)}
                     </div>
                     {assignmentTarget === 'student' && (
                       <label style={labelStyle}>Select student
@@ -848,7 +818,7 @@ const fetchAssignmentSubmissions = async (assignment) => {
                       </select>
                     </label>
                     <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '1rem', marginBottom: '0.75rem' }}>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>Prompt ingredients (optional)</div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>Prompt ingredients (optional)</div>
                       <div style={{ fontSize: '0.78rem', color: '#9A8878', marginBottom: '0.75rem' }}>Leave blank to let students generate their own ingredients.</div>
                       {assignmentPromptType === 'microfiction' ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -1023,7 +993,8 @@ const fetchAssignmentSubmissions = async (assignment) => {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {assignmentSubmissions.map((sub, index) => (
-                  <div key={sub.id} onClick={() => setFeedbackSubmissionIndex(index)} style={{ ...sectionStyle, marginBottom: 0, cursor: 'pointer' }}                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.1)'}
+                      <div key={sub.id} onClick={() => setFeedbackSubmissionIndex(index)} style={{ ...sectionStyle, marginBottom: 0, cursor: 'pointer' }}
+                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.1)'}
                         onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                           <div>
@@ -1066,7 +1037,7 @@ const fetchAssignmentSubmissions = async (assignment) => {
         )}
       </div>
 
-      {/* NEW: Teacher Quality-of-Life Feature Modals */}
+      {/* Teacher Quality-of-Life Feature Modals */}
       {showRubricBuilder && (
         <RubricBuilder
           onClose={() => setShowRubricBuilder(false)}
@@ -1082,6 +1053,20 @@ const fetchAssignmentSubmissions = async (assignment) => {
       {showTemplateManager && (
         <CommentTemplateManager
           onClose={() => setShowTemplateManager(false)}
+        />
+      )}
+
+      {/* NEW: CreateAssignmentForm Modal (Multi-class) */}
+      {showCreateAssignmentModal && (
+        <CreateAssignmentForm
+          availableClasses={classes}
+          onClose={() => setShowCreateAssignmentModal(false)}
+          onAssignmentCreated={(assignments) => {
+            setShowCreateAssignmentModal(false);
+            setSuccess('Assignment created successfully!');
+            setTimeout(() => setSuccess(null), 3000);
+            // Optionally refresh assignments if needed
+          }}
         />
       )}
     </div>
