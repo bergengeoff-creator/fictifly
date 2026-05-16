@@ -53,9 +53,7 @@ export default function TeacherFeedbackModal({
   const [error, setError] = useState(null);
   const [currentRubric, setCurrentRubric] = useState(null);
   const [rubricCategories, setRubricCategories] = useState([]);
-  const [loadingRubric, setLoadingRubric] = useState(false);
   const [commentTemplates, setCommentTemplates] = useState([]);
-  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   // Load existing feedback if available
   useEffect(() => {
@@ -105,7 +103,6 @@ export default function TeacherFeedbackModal({
     }
 
     const fetchRubric = async () => {
-      setLoadingRubric(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
@@ -123,8 +120,6 @@ export default function TeacherFeedbackModal({
         setRubricCategories(rubric.categories || []);
       } catch (err) {
         console.error('Failed to load rubric:', err);
-      } finally {
-        setLoadingRubric(false);
       }
     };
 
@@ -134,7 +129,6 @@ export default function TeacherFeedbackModal({
   // Load comment templates
   useEffect(() => {
     const fetchTemplates = async () => {
-      setLoadingTemplates(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
@@ -151,8 +145,6 @@ export default function TeacherFeedbackModal({
       } catch (err) {
         console.error('Failed to load templates:', err);
         setCommentTemplates([]);
-      } finally {
-        setLoadingTemplates(false);
       }
     };
 
