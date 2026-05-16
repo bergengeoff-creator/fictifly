@@ -2,6 +2,7 @@
 // /api/teacher-features.js
 // Teacher Quality-of-Life Features API
 // Handles: comment templates, rubrics, batch grading, submission tracking
+// Phase 1.5: Added rubric cloning, soft delete, resubmission deadline, feedback summary
 // ============================================================================
 
 import { createClient } from '@supabase/supabase-js';
@@ -83,6 +84,10 @@ export default async function handler(req, res) {
         if (method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
         return await getRubricWithCategories(req, res);
 
+      case 'checkRubricUsage':
+        if (method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+        return await checkRubricUsage(req, res);
+
       // ========== RUBRIC CATEGORIES ==========
       case 'addRubricCategory':
         if (method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -117,6 +122,29 @@ export default async function handler(req, res) {
       case 'completeBatchSession':
         if (method !== 'PUT') return res.status(405).json({ error: 'Method not allowed' });
         return await completeBatchSession(req, res);
+
+      // ========== ASSIGNMENTS (Phase 1.5) ==========
+      case 'createAssignment':
+        if (method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+        return await createAssignment(req, res);
+
+      case 'updateAssignmentRubric':
+        if (method !== 'PUT') return res.status(405).json({ error: 'Method not allowed' });
+        return await updateAssignmentRubric(req, res);
+
+      // ========== FEEDBACK (Phase 1.5) ==========
+      case 'saveFeedback':
+        if (method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+        return await saveFeedback(req, res);
+
+      // ========== PEER REVIEW SETTINGS (Phase 2) ==========
+      case 'createPeerReviewSettings':
+        if (method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+        return await createPeerReviewSettings(req, res);
+
+      case 'updatePeerReviewSettings':
+        if (method !== 'PUT') return res.status(405).json({ error: 'Method not allowed' });
+        return await updatePeerReviewSettings(req, res);
 
       default:
         return res.status(400).json({ error: 'Invalid action' });
@@ -297,10 +325,11 @@ async function getRubrics(req, res) {
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
+    // Phase 1.5: Exclude soft-deleted rubrics
     const { data: rubrics, error } = await supabase
       .from('rubrics')
       .select('*')
-      .or(`teacher_id.eq.${user.id},is_from_library.eq.true`)
+      .or(`and(teacher_id.eq.${user.id},is_deleted.eq.false),and(is_from_library.eq.true,is_deleted.eq.false)`)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -342,7 +371,7 @@ async function getRubricWithCategories(req, res) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    res.status(200).json({ rubric });
+    res.status(200).json(rubric);
   } catch (error) {
     console.error('Error fetching rubric:', error);
     res.status(500).json({ error: error.message });
@@ -372,6 +401,7 @@ async function createRubric(req, res) {
         name,
         description: description || null,
         is_from_library: false,
+        is_deleted: false,
       })
       .select()
       .single();
@@ -414,7 +444,7 @@ async function createRubric(req, res) {
 
     if (fetchError) throw fetchError;
 
-    res.status(201).json({ rubric: fullRubric });
+    res.status(201).json(fullRubric);
   } catch (error) {
     console.error('Error creating rubric:', error);
     res.status(500).json({ error: error.message });
@@ -452,7 +482,7 @@ async function updateRubric(req, res) {
 
     if (error) throw error;
 
-    res.status(200).json({ rubric: updated });
+    res.status(200).json(updated);
   } catch (error) {
     console.error('Error updating rubric:', error);
     res.status(500).json({ error: error.message });
@@ -476,14 +506,53 @@ async function deleteRubric(req, res) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const { error } = await supabase
-      .from('rubrics')
-      .delete()
-      .eq('id', rubricId);
+    // Phase 1.5: Check if rubric is in use, soft delete if yes
+    const { data: assignmentsUsingRubric } = await supabase
+      .from('assignments')
+      .select('id, title')
+      .eq('rubric_id', rubricId);
 
-    if (error) throw error;
+    const usageCount = assignmentsUsingRubric?.length || 0;
 
-    res.status(200).json({ success: true });
+    if (usageCount > 0) {
+      // Soft delete if in use
+      const { data, error } = await supabase
+        .from('rubrics')
+        .update({
+          is_deleted: true,
+          deleted_at: new Date().toISOString(),
+        })
+        .eq('id', rubricId)
+        .eq('teacher_id', user.id)
+        .select()
+        .single();
+
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: `Rubric soft-deleted. Still referenced by ${usageCount} assignment(s).`,
+        usageCount,
+      });
+    } else {
+      // Hard delete if not used
+      const { error } = await supabase
+        .from('rubrics')
+        .delete()
+        .eq('id', rubricId)
+        .eq('teacher_id', user.id);
+
+      if (error) {
+        return res.status(400).json({ error: error.message });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Rubric permanently deleted.',
+      });
+    }
   } catch (error) {
     console.error('Error deleting rubric:', error);
     res.status(500).json({ error: error.message });
@@ -494,7 +563,11 @@ async function duplicateRubric(req, res) {
   const user = await getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { rubricId } = req.query;
+  const { sourceRubricId, newName } = req.body;
+
+  if (!sourceRubricId) {
+    return res.status(400).json({ error: 'sourceRubricId is required' });
+  }
 
   try {
     const { data: original, error: fetchError } = await supabase
@@ -510,7 +583,7 @@ async function duplicateRubric(req, res) {
           position
         )
       `)
-      .eq('id', rubricId)
+      .eq('id', sourceRubricId)
       .single();
 
     if (fetchError) throw fetchError;
@@ -520,9 +593,10 @@ async function duplicateRubric(req, res) {
       .from('rubrics')
       .insert({
         teacher_id: user.id,
-        name: `${original.name} (Copy)`,
+        name: newName || `${original.name} (Copy)`,
         description: original.description,
         is_from_library: false,
+        is_deleted: false,
       })
       .select()
       .single();
@@ -562,10 +636,41 @@ async function duplicateRubric(req, res) {
 
     if (fetchError2) throw fetchError2;
 
-    res.status(201).json({ rubric: fullRubric });
+    res.status(201).json(fullRubric);
   } catch (error) {
     console.error('Error duplicating rubric:', error);
     res.status(500).json({ error: error.message });
+  }
+}
+
+async function checkRubricUsage(req, res) {
+  const user = await getUserFromToken(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { rubricId } = req.query;
+
+  if (!rubricId) {
+    return res.status(400).json({ error: 'rubricId is required' });
+  }
+
+  try {
+    const { data: assignments, error } = await supabase
+      .from('assignments')
+      .select('id, title')
+      .eq('rubric_id', rubricId);
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    return res.status(200).json({
+      rubricId,
+      usageCount: assignments?.length || 0,
+      assignments: assignments || [],
+    });
+  } catch (err) {
+    console.error('Error in checkRubricUsage:', err);
+    return res.status(500).json({ error: err.message });
   }
 }
 
@@ -617,7 +722,7 @@ async function addRubricCategory(req, res) {
 
     if (error) throw error;
 
-    res.status(201).json({ category });
+    res.status(201).json(category);
   } catch (error) {
     console.error('Error adding category:', error);
     res.status(500).json({ error: error.message });
@@ -665,7 +770,7 @@ async function updateRubricCategory(req, res) {
 
     if (error) throw error;
 
-    res.status(200).json({ category: updated });
+    res.status(200).json(updated);
   } catch (error) {
     console.error('Error updating category:', error);
     res.status(500).json({ error: error.message });
@@ -735,7 +840,7 @@ async function recordSubmissionView(req, res) {
 
     if (error) throw error;
 
-    res.status(200).json({ status });
+    res.status(200).json(status);
   } catch (error) {
     console.error('Error recording view:', error);
     res.status(500).json({ error: error.message });
@@ -757,7 +862,7 @@ async function getSubmissionStatus(req, res) {
 
     if (error) throw error;
 
-    res.status(200).json({ statuses: statuses || [] });
+    res.status(200).json(statuses || []);
   } catch (error) {
     console.error('Error fetching status:', error);
     res.status(500).json({ error: error.message });
@@ -785,7 +890,7 @@ async function updateSubmissionStatus(req, res) {
 
     if (error) throw error;
 
-    res.status(200).json({ status: updated });
+    res.status(200).json(updated);
   } catch (error) {
     console.error('Error updating status:', error);
     res.status(500).json({ error: error.message });
@@ -810,7 +915,7 @@ async function createBatchSession(req, res) {
 
     if (error) throw error;
 
-    res.status(201).json({ session });
+    res.status(201).json(session);
   } catch (error) {
     console.error('Error creating batch session:', error);
     res.status(500).json({ error: error.message });
@@ -838,9 +943,248 @@ async function completeBatchSession(req, res) {
 
     if (error) throw error;
 
-    res.status(200).json({ session });
+    res.status(200).json(session);
   } catch (error) {
     console.error('Error completing batch session:', error);
     res.status(500).json({ error: error.message });
+  }
+}
+
+// ============================================================================
+// ASSIGNMENTS (Phase 1.5)
+// ============================================================================
+
+async function createAssignment(req, res) {
+  const user = await getUserFromToken(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const {
+    courseId,
+    title,
+    description,
+    genre,
+    promptType,
+    dueDate,
+    rubricId,
+  } = req.body;
+
+  if (!courseId || !title) {
+    return res.status(400).json({ error: 'courseId and title are required' });
+  }
+
+  try {
+    const newAssignment = {
+      course_id: courseId,
+      teacher_id: user.id,
+      title: title.trim(),
+      description: description?.trim() || null,
+      genre: genre || null,
+      prompt_type: promptType || null,
+      due_date: dueDate || null,
+      rubric_id: rubricId || null,
+      status: 'draft',
+      created_at: new Date().toISOString(),
+    };
+
+    const { data: assignment, error } = await supabase
+      .from('assignments')
+      .insert([newAssignment])
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    return res.status(201).json(assignment);
+  } catch (err) {
+    console.error('Error in createAssignment:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+async function updateAssignmentRubric(req, res) {
+  const user = await getUserFromToken(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { assignmentId, newRubricId } = req.body;
+
+  if (!assignmentId) {
+    return res.status(400).json({ error: 'assignmentId is required' });
+  }
+
+  try {
+    const { data: assignment } = await supabase
+      .from('assignments')
+      .select('teacher_id')
+      .eq('id', assignmentId)
+      .single();
+
+    if (!assignment || assignment.teacher_id !== user.id) {
+      return res.status(403).json({ error: 'Not authorized to update this assignment' });
+    }
+
+    const { data: updated, error } = await supabase
+      .from('assignments')
+      .update({ rubric_id: newRubricId || null })
+      .eq('id', assignmentId)
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    return res.status(200).json(updated);
+  } catch (err) {
+    console.error('Error in updateAssignmentRubric:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+// ============================================================================
+// FEEDBACK (Phase 1.5)
+// ============================================================================
+
+async function saveFeedback(req, res) {
+  const user = await getUserFromToken(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const {
+    submissionId,
+    assignmentId,
+    feedbackText,
+    feedbackSummary,
+    grade,
+    visibleToStudent,
+    requestResubmission,
+    resubmissionDeadline,
+    rubricScores,
+    totalRubricScore,
+    rubricMaxScore,
+  } = req.body;
+
+  if (!submissionId || !assignmentId) {
+    return res.status(400).json({ error: 'submissionId and assignmentId are required' });
+  }
+
+  try {
+    const feedbackData = {
+      submission_id: submissionId,
+      assignment_id: assignmentId,
+      teacher_id: user.id,
+      feedback_text: feedbackText || null,
+      feedback_summary: feedbackSummary || null,
+      grade: grade || null,
+      visible_to_student: visibleToStudent !== false,
+      request_resubmission: requestResubmission || false,
+      resubmission_deadline: resubmissionDeadline || null,
+      rubric_scores: rubricScores && Object.keys(rubricScores).length > 0 ? rubricScores : null,
+      total_rubric_score: totalRubricScore || null,
+      rubric_max_score: rubricMaxScore || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: existingFeedback } = await supabase
+      .from('assignment_feedback')
+      .select('id')
+      .eq('submission_id', submissionId)
+      .single();
+
+    let result;
+    if (existingFeedback) {
+      const { data, error } = await supabase
+        .from('assignment_feedback')
+        .update(feedbackData)
+        .eq('id', existingFeedback.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      result = data;
+    } else {
+      const { data, error } = await supabase
+        .from('assignment_feedback')
+        .insert([feedbackData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      result = data;
+    }
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('Error in saveFeedback:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+// ============================================================================
+// PEER REVIEW SETTINGS (Phase 2 - Placeholder)
+// ============================================================================
+
+async function createPeerReviewSettings(req, res) {
+  const user = await getUserFromToken(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { assignmentId, enabled, reviewerCount } = req.body;
+
+  if (!assignmentId) {
+    return res.status(400).json({ error: 'assignmentId is required' });
+  }
+
+  try {
+    const { data: settings, error } = await supabase
+      .from('peer_review_settings')
+      .insert({
+        assignment_id: assignmentId,
+        enabled: enabled || false,
+        reviewer_count: reviewerCount || 2,
+        enable_upvotes: true,
+        enable_comments: true,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    return res.status(201).json(settings);
+  } catch (err) {
+    console.error('Error in createPeerReviewSettings:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+async function updatePeerReviewSettings(req, res) {
+  const user = await getUserFromToken(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { settingsId } = req.query;
+  const { enabled, reviewerCount, enableUpvotes, enableComments } = req.body;
+
+  try {
+    const { data: updated, error } = await supabase
+      .from('peer_review_settings')
+      .update({
+        enabled,
+        reviewer_count: reviewerCount,
+        enable_upvotes: enableUpvotes,
+        enable_comments: enableComments,
+      })
+      .eq('id', settingsId)
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    return res.status(200).json(updated);
+  } catch (err) {
+    console.error('Error in updatePeerReviewSettings:', err);
+    return res.status(500).json({ error: err.message });
   }
 }
