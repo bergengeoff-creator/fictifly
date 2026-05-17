@@ -1,1006 +1,1081 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
-import StoryModal from '../components/StoryModal';
-import TheWell from '../utils/TheWell';
-import WellModal from '../components/WellModal';
+import { useAuth } from '../context/AuthContext';
 import FictiflyLogo from '../components/FictiflyLogo';
-import Account from './Account'; // NEW: Import Account tab
+import CreateAssignmentForm from '../components/CreateAssignmentForm';
+import TeacherFeedbackModal from '../components/TeacherFeedbackModal';
+import RubricBuilder from '../components/RubricBuilder';
+import CommentTemplateManager from '../components/CommentTemplateManager';
 
-const isStudentAccount = (profile) =>
-  profile && (profile.account_type === 'minor' || profile.account_type === 'student');
+const GRADE_LEVELS = ['Elementary (K-5)', 'Middle School (6-8)', 'High School (9-12)', 'Other'];
+const GENRES = [
+  'Action/Adventure','Comedy','Crime Caper','Drama','Fairy Tale','Fantasy',
+  'Ghost Story','Historical Fiction','Horror','Mystery','Political Satire',
+  'Romance','Romantic Comedy','Sci-Fi','Spy','Suspense','Thriller','Open Genre',
+];
 
-export default function Dashboard() {
-  const { user, profile, signOut } = useAuth();
+const generatePasscode = () => Math.floor(100000 + Math.random() * 900000).toString();
+const generateClassCode = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+};
+
+const sectionStyle = { background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', marginBottom: '1rem' };
+const inputStyle = { width: '100%', background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#3A3226', fontFamily: 'sans-serif', fontSize: '0.95rem', padding: '0.6rem 0.9rem', outline: 'none', boxSizing: 'border-box' };
+const labelStyle = { fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.5rem' };
+const btnPrimary = { background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.6rem 1.25rem', fontWeight: 600, fontSize: '0.88rem', cursor: 'pointer' };
+const btnSecondary = { background: 'transparent', color: '#6B5D4E', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.6rem 1.25rem', fontWeight: 500, fontSize: '0.88rem', cursor: 'pointer' };
+
+export default function ClassroomDashboard() {
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
 
-  // NEW: Tab state
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [classes, setClasses] = useState([]);
+  const [resetRequestCounts, setResetRequestCounts] = useState({});
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [classMembers, setClassMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState('classes');
+  const [classDetailTab, setClassDetailTab] = useState('students');
+  const [showCreateClass, setShowCreateClass] = useState(false);
+  const [showCreateAssignmentModal, setShowCreateAssignmentModal] = useState(false);
+  const [showBulkGenerate, setShowBulkGenerate] = useState(false);
+  const [newClassName, setNewClassName] = useState('');
+  const [newClassGrade, setNewClassGrade] = useState('');
+  const [newClassNotes, setNewClassNotes] = useState('');
+  const [bulkPrefix, setBulkPrefix] = useState('');
+  const [bulkCount, setBulkCount] = useState(5);
+  const [generatedAccounts, setGeneratedAccounts] = useState([]);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
 
-  // Redirect to onboarding if profile not complete — only on initial load
-  useEffect(() => {
-    if (user && profile && profile.profile_complete === false) {
-      navigate('/onboarding', { replace: true });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const [savedPrompts, setSavedPrompts] = useState([]);
-  const [totalPromptsGenerated, setTotalPromptsGenerated] = useState(0);
-  const [currentStreak, setCurrentStreak] = useState(0);
-  const [badgeCount, setBadgeCount] = useState(0);
-  const [earnedBadges, setEarnedBadges] = useState([]);
-  const [storiesWritten, setStoriesWritten] = useState(0);
-  const [writtenPromptIds, setWrittenPromptIds] = useState([]);
+  const [resetRequests, setResetRequests] = useState([]);
+  const [approvingReset, setApprovingReset] = useState({});
+  const [approvedPasscodes, setApprovedPasscodes] = useState({});
 
-  // Daily prompt
-  const [dailyPrompt, setDailyPrompt] = useState(null);
-  const [dailyPromptLoading, setDailyPromptLoading] = useState(true);
-  const [dailyWritten, setDailyWritten] = useState(false);
-  const [savedCharacters, setSavedCharacters] = useState([]);
-  const [activeCharacter, setActiveCharacter] = useState(null); // null = use daily generated char
-  const [showCharacterSwap, setShowCharacterSwap] = useState(false);
-
-  // Assignments (students only)
   const [assignments, setAssignments] = useState([]);
-  const [submittedAssignmentIds, setSubmittedAssignmentIds] = useState([]);
-  const [assignmentFeedback, setAssignmentFeedback] = useState({});
-  const [storyModalData, setStoryModalData] = useState(null);
-  const [showWellModal, setShowWellModal] = useState(false);
+  const [showCreateAssignment, setShowCreateAssignment] = useState(false);
+  const [assignmentTitle, setAssignmentTitle] = useState('');
+  const [assignmentPromptType, setAssignmentPromptType] = useState('microfiction');
+  const [assignmentWordCount, setAssignmentWordCount] = useState(100);
+  const [assignmentGenre, setAssignmentGenre] = useState('');
+  const [assignmentAction, setAssignmentAction] = useState('');
+  const [assignmentWord, setAssignmentWord] = useState('');
+  const [assignmentLocation, setAssignmentLocation] = useState('');
+  const [assignmentObject, setAssignmentObject] = useState('');
+  const [assignmentDueDate, setAssignmentDueDate] = useState('');
+  const [assignmentTarget, setAssignmentTarget] = useState('class');
+  const [assignmentStudentId, setAssignmentStudentId] = useState('');
+  const [savingAssignment, setSavingAssignment] = useState(false);
+
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [assignmentSubmissions, setAssignmentSubmissions] = useState([]);
+  
+  const [feedbackSubmissionIndex, setFeedbackSubmissionIndex] = useState(null);
+  const [showRubricBuilder, setShowRubricBuilder] = useState(false);
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
+
+  const [editingAssignment, setEditingAssignment] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editGenre, setEditGenre] = useState('');
+  const [editAction, setEditAction] = useState('');
+  const [editWord, setEditWord] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editObject, setEditObject] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const [showEditClass, setShowEditClass] = useState(false);
+  const [editClassName, setEditClassName] = useState('');
+  const [editClassGrade, setEditClassGrade] = useState('');
+  const [editClassNotes, setEditClassNotes] = useState('');
+  const [savingClassEdit, setSavingClassEdit] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingClass, setDeletingClass] = useState(false);
+
+  const fetchClasses = useCallback(async () => {
+    if (!user || !user.id) return;
+    setLoading(true);
+    const { data } = await supabase
+      .from('classes')
+      .select('*')
+      .eq('teacher_id', user.id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+    setClasses(data || []);
+
+    if (data && data.length > 0) {
+      const counts = {};
+      await Promise.all(data.map(async cls => {
+        const { count } = await supabase
+          .from('passcode_reset_requests')
+          .select('id', { count: 'exact', head: true })
+          .eq('class_id', cls.id)
+          .eq('status', 'pending');
+        counts[cls.id] = count || 0;
+      }));
+      setResetRequestCounts(counts);
+    }
+
+    setLoading(false);
+  }, [user]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return;
+    // Only check auth if profile is loaded
+    if (profile === null) return; // Profile loading
+    if (profile && profile.account_type !== 'teacher') {
+      navigate('/dashboard');
+      return;
+    }
+    // If profile exists and is teacher, fetch classes
+    if (user && user.id) {
+      fetchClasses();
+    }
+  }, [profile, user, navigate, fetchClasses]);
 
-      const { data: saved } = await supabase
-        .from('saved_prompts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      setSavedPrompts(saved || []);
+  const fetchClassMembers = async (classId) => {
+    const { data } = await supabase
+      .from('class_members')
+      .select('*, users!class_members_student_id_fkey(*)')
+      .eq('class_id', classId);
+    setClassMembers((data || []).filter(m => m.users));
+  };
 
-      const { data: usage } = await supabase
-        .from('prompt_usage')
-        .select('count')
-        .eq('user_id', user.id);
-      const total = usage ? usage.reduce((sum, row) => sum + row.count, 0) : 0;
-      setTotalPromptsGenerated(total);
+  const fetchResetRequests = async (classId) => {
+    const { data } = await supabase
+      .from('passcode_reset_requests')
+      .select('*')
+      .eq('class_id', classId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    setResetRequests(data || []);
+  };
 
-      const { data: streakData } = await supabase
-        .from('streaks')
-        .select('current_streak')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      setCurrentStreak(streakData ? streakData.current_streak : 0);
-
-      const { data: submissionsData } = await supabase
+  const fetchAssignments = async (classId) => {
+    const { data } = await supabase
+      .from('assignments')
+      .select('*')
+      .eq('class_id', classId)
+      .order('created_at', { ascending: false });
+    if (!data) { setAssignments([]); return; }
+    const withCounts = await Promise.all(data.map(async (a) => {
+      const { count } = await supabase
         .from('submissions')
-        .select('id, prompt_id, assignment_id, submitted_to_teacher, teacher_feedback, feedback_at, daily_prompt_id')
-        .eq('user_id', user.id);
-      setStoriesWritten(submissionsData ? submissionsData.length : 0);
-      setWrittenPromptIds(submissionsData ? submissionsData.map(s => s.prompt_id) : []);
+        .select('id', { count: 'exact', head: true })
+        .eq('assignment_id', a.id)
+        .eq('submitted_to_teacher', true);
+      return { ...a, submissionCount: count || 0 };
+    }));
+    setAssignments(withCounts);
+  };
 
-      const submittedIds = submissionsData
-        ? submissionsData
-            .filter(s => s.submitted_to_teacher && s.assignment_id)
-            .map(s => s.assignment_id)
-        : [];
-      setSubmittedAssignmentIds(submittedIds);
+  const fetchAssignmentSubmissions = async (assignment) => {
+    setSelectedAssignment(assignment);
+    setEditingAssignment(false);
+    setFeedbackSubmissionIndex(null);
+    
+    const { data: subs } = await supabase
+      .from('submissions')
+      .select('*, users!submissions_user_id_fkey(id, username, display_name)')
+      .eq('assignment_id', assignment.id)
+      .eq('submitted_to_teacher', true);
+    
+    setAssignmentSubmissions(subs || []);
+  };
 
-      const fmap = {};
-      (submissionsData || []).forEach(s => {
-        if (s.assignment_id && s.teacher_feedback) {
-          fmap[s.assignment_id] = {
-            feedback: s.teacher_feedback,
-            feedback_at: s.feedback_at,
-          };
-        }
+  const handleSelectClass = async (cls) => {
+    setSelectedClass(cls);
+    setView('class-detail');
+    setClassDetailTab('students');
+    setSelectedAssignment(null);
+    setEditingAssignment(false);
+    setApprovedPasscodes({});
+    setFeedbackSubmissionIndex(null);
+    await fetchClassMembers(cls.id);
+    await fetchResetRequests(cls.id);
+    await fetchAssignments(cls.id);
+  };
+
+  const handleApproveReset = async (request) => {
+    setApprovingReset(prev => ({ ...prev, [request.id]: true }));
+    const newPasscode = generatePasscode();
+
+    try {
+      const response = await fetch('/api/reset-passcode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId: request.student_id, newPasscode }),
       });
-      setAssignmentFeedback(fmap);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error);
 
-      const { data: userBadgeData } = await supabase
-        .from('user_badges')
-        .select('id, badge_id, earned_at')
-        .eq('user_id', user.id);
-      if (userBadgeData && userBadgeData.length > 0) {
-        const badgeIds = userBadgeData.map(ub => ub.badge_id);
-        const { data: badgeDetails } = await supabase
-          .from('badges')
-          .select('*')
-          .in('id', badgeIds);
-        const merged = userBadgeData.map(ub => ({
-          ...ub,
-          badges: badgeDetails ? badgeDetails.find(b => b.id === ub.badge_id) : null
-        })).filter(ub => ub.badges);
-        setEarnedBadges(merged);
-        setBadgeCount(merged.length);
-      } else {
-        setEarnedBadges([]);
-        setBadgeCount(0);
-      }
-      if (profile && isStudentAccount(profile)) {
-        const { data: memberships } = await supabase
-          .from('class_members')
-          .select('class_id')
-          .eq('student_id', user.id);
-        const classIds = memberships ? memberships.map(m => m.class_id) : [];
-        const today = new Date().toISOString().split('T')[0];
-        let allAssignments = [];
+      await supabase
+        .from('passcode_reset_requests')
+        .update({ status: 'resolved', new_passcode: newPasscode })
+        .eq('id', request.id);
 
-        if (classIds.length > 0) {
-          const { data: classAssignments } = await supabase
-            .from('assignments')
-            .select('*')
-            .in('class_id', classIds)
-            .gte('due_date', today)
-            .order('due_date', { ascending: true });
-          allAssignments = [...(classAssignments || [])];
-        }
-
-        const { data: individualAssignments } = await supabase
-          .from('assignments')
-          .select('*')
-          .eq('student_id', user.id)
-          .gte('due_date', today)
-          .order('due_date', { ascending: true });
-          
-        allAssignments = [...allAssignments, ...(individualAssignments || [])];
-
-        const seen = new Set();
-        const unique = allAssignments.filter(a => {
-          if (seen.has(a.id)) return false;
-          seen.add(a.id);
-          return true;
-        });
-        setAssignments(unique);
-      }
-    };
-    fetchData();
-  }, [user, profile]);
-
-  // Fetch daily prompt separately
-  useEffect(() => {
-    const fetchDailyPrompt = async () => {
-      setDailyPromptLoading(true);
-      try {
-        const response = await fetch('/api/daily-prompt');
-        const data = await response.json();
-        if (data && data.id) {
-          setDailyPrompt(data);
-          // Check if user already wrote today's prompt
-          const { data: existing } = await supabase
-            .from('submissions')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('daily_prompt_id', data.id)
-            .maybeSingle();
-          setDailyWritten(!!existing);
-        }
-      } catch (e) {
-        console.error('Failed to fetch daily prompt:', e);
-      }
-      setDailyPromptLoading(false);
-    };
-    if (user) fetchDailyPrompt();
-  }, [user]);
-
-  // Badge refresh — re-fetch when user returns to tab (catches badges earned in generators)
-  const fetchBadges = async () => {
-    if (!user) return;
-    const { data: userBadgeData } = await supabase
-      .from('user_badges')
-      .select('id, badge_id, earned_at')
-      .eq('user_id', user.id);
-    if (userBadgeData && userBadgeData.length > 0) {
-      const badgeIds = userBadgeData.map(ub => ub.badge_id);
-      const { data: badgeDetails } = await supabase
-        .from('badges')
-        .select('*')
-        .in('id', badgeIds);
-      const merged = userBadgeData.map(ub => ({
-        ...ub,
-        badges: badgeDetails ? badgeDetails.find(b => b.id === ub.badge_id) : null
-      })).filter(ub => ub.badges);
-      setEarnedBadges(merged);
-      setBadgeCount(merged.length);
-    } else {
-      setEarnedBadges([]);
-      setBadgeCount(0);
+      setApprovedPasscodes(prev => ({ ...prev, [request.id]: { username: request.username, passcode: newPasscode } }));
+      setResetRequests(prev => prev.filter(r => r.id !== request.id));
+      setResetRequestCounts(prev => ({ ...prev, [selectedClass.id]: Math.max(0, (prev[selectedClass.id] || 1) - 1) }));
+    } catch (e) {
+      setError('Failed to reset passcode. Please try again.');
     }
+    setApprovingReset(prev => ({ ...prev, [request.id]: false }));
   };
 
-  useEffect(() => {
-    if (!user) return;
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') fetchBadges();
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  // Fetch saved characters for premium users (character day swap)
-  useEffect(() => {
-    const fetchSavedChars = async () => {
-      if (!user || !profile) return;
-      const trialActive = profile.premium_expires_at
-        ? new Date(profile.premium_expires_at) > new Date()
-        : false;
-      if (!profile.is_premium && !trialActive && profile.account_type !== 'teacher') return;
-      const { data } = await supabase
-        .from('saved_characters')
-        .select('id, character_data, summary, genre')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-      setSavedCharacters(data || []);
-    };
-    fetchSavedChars();
-  }, [user, profile]);
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/login');
+  const handleStartEdit = (assignment) => {
+    setEditTitle(assignment.title);
+    setEditGenre(assignment.genre || '');
+    setEditAction(assignment.action || '');
+    setEditWord(assignment.word || '');
+    setEditLocation(assignment.location || '');
+    setEditObject(assignment.object || '');
+    setEditDueDate(assignment.due_date || '');
+    setEditingAssignment(true);
+    setError(null);
   };
 
-  const handleOpenSubmission = (assignment) => {
-    const prompt = {
-      id: null,
-      dbId: null,
-      prompt_type: assignment.prompt_type,
-      word_count: assignment.word_count,
-      wordCount: assignment.word_count,
-      genre: assignment.genre,
-      action: assignment.action,
-      word: assignment.word,
-      location: assignment.location,
-      object: assignment.object,
+  const handleSaveEdit = async () => {
+    if (!editTitle.trim()) { setError('Please enter a title.'); return; }
+    if (!editDueDate) { setError('Please set a due date.'); return; }
+    setSavingEdit(true);
+    setError(null);
+    const updates = {
+      title: editTitle.trim(),
+      genre: editGenre || null,
+      action: (selectedAssignment.prompt_type === 'microfiction' || (selectedAssignment.prompt_type === 'flash-fiction' && selectedAssignment.word_count === 500)) ? (editAction || null) : null,
+      word: selectedAssignment.prompt_type === 'microfiction' ? (editWord || null) : null,
+      location: selectedAssignment.prompt_type === 'flash-fiction' && selectedAssignment.word_count === 1000 ? (editLocation || null) : null,
+      object: selectedAssignment.prompt_type === 'flash-fiction' ? (editObject || null) : null,
+      due_date: editDueDate,
     };
-    setStoryModalData({ prompt, assignmentId: assignment.id });
+    const { data, error: updateError } = await supabase
+      .from('assignments')
+      .update(updates)
+      .eq('id', selectedAssignment.id)
+      .select().single();
+    if (updateError) { setError('Failed to save: ' + updateError.message); setSavingEdit(false); return; }
+    const updated = { ...selectedAssignment, ...data };
+    setSelectedAssignment(updated);
+    setAssignments(prev => prev.map(a => a.id === updated.id ? { ...updated, submissionCount: a.submissionCount } : a));
+    setEditingAssignment(false);
+    setSavingEdit(false);
+    setSuccess('Assignment updated!');
+    setTimeout(() => setSuccess(null), 3000);
   };
 
-  const handleOpenDailyPrompt = () => {
-    if (!dailyPrompt) return;
-    const isCharacterDay = dailyPrompt.challenge_type === 'character';
-    const characterToUse = activeCharacter || (isCharacterDay ? dailyPrompt.character_data : null);
-    const prompt = {
-      id: null,
-      dbId: null,
-      prompt_type: 'microfiction',
-      word_count: dailyPrompt.word_count,
-      wordCount: dailyPrompt.word_count,
-      genre: dailyPrompt.genre,
-      action: dailyPrompt.action,
-      word: dailyPrompt.word,
-      characterContext: characterToUse || null,
-    };
-    setStoryModalData({ prompt, dailyPromptId: dailyPrompt.id });
+  const ADJECTIVES = ['Amber','Arctic','Bold','Brave','Bright','Bronze','Calm','Clever','Cosmic','Crisp','Crystal','Cunning','Daring','Dawn','Dusty','Echo','Epic','Fabled','Fierce','Fiery','Frosty','Gilded','Golden','Grand','Gritty','Hidden','Hollow','Icy','Indigo','Jade','Keen','Lofty','Lucky','Lunar','Maple','Marble','Misty','Mystic','Noble','Olive','Onyx','Ornate','Phantom','Plum','Polar','Quick','Quiet','Radiant','Rapid','Raven','Royal','Ruby','Rustic','Sandy','Scarlet','Shadow','Sharp','Silent','Silver','Slate','Smoky','Solar','Stark','Steel','Stormy','Swift','Tawny','Thunder','Timber','Twilight','Velvet','Vivid','Wild','Winter','Zephyr'];
+  const NOUNS = ['Author','Bard','Blade','Brook','Cloud','Comet','Craft','Creek','Crown','Dusk','Echo','Falcon','Fern','Flame','Flash','Flint','Fox','Frost','Grove','Hawk','Horizon','Hound','Ink','Isle','Jade','Leaf','Legend','Light','Lore','Lynx','Mage','Maple','Mist','Moon','Myth','Peak','Pen','Pine','Plot','Prose','Quest','Quill','Raven','Reed','Ridge','River','Rock','Rogue','Sage','Scout','Scribe','Scroll','Shade','Shore','Sketch','Sky','Spark','Star','Stone','Storm','Stream','Tale','Tide','Token','Tome','Trail','Vale','Verse','Voice','Wave','Wind','Wolf','Word','Writer','Yarn'];
+  const funUsername = (prefix) => {
+    const adj  = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+    const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+    const num  = Math.floor(10 + Math.random() * 90);
+    return prefix ? `${prefix}_${adj}${noun}${num}` : `${adj}${noun}${num}`;
   };
 
-  const isNewUser = profile && !profile.bio && !profile.avatar_url && !profile.avatar_preset;
+  const handleEditClass = async () => {
+    if (!editClassName.trim()) { setError('Class name cannot be empty'); return; }
+    setSavingClassEdit(true);
+    const { error: err } = await supabase
+      .from('classes')
+      .update({ name: editClassName.trim(), grade_level: editClassGrade || null, notes: editClassNotes.trim() || null })
+      .eq('id', selectedClass.id);
+    setSavingClassEdit(false);
+    if (err) { setError(err.message); return; }
+    setSelectedClass({ ...selectedClass, name: editClassName.trim(), grade_level: editClassGrade || null, notes: editClassNotes.trim() || null });
+    setClasses(prev => prev.map(c => c.id === selectedClass.id ? { ...c, name: editClassName.trim(), grade_level: editClassGrade || null, notes: editClassNotes.trim() || null } : c));
+    setShowEditClass(false);
+    setSuccess('Class updated.');
+    setTimeout(() => setSuccess(null), 3000);
+  };
 
-  const stats = [
-    { label: 'Prompts Generated', value: totalPromptsGenerated },
-    { label: 'Stories Written', value: storiesWritten },
-    { label: 'Day Streak', value: currentStreak },
-    { label: 'Badges Earned', value: badgeCount },
-  ];
+  const handleDeleteClass = async () => {
+    setDeletingClass(true);
+    const { error: err } = await supabase
+      .from('classes')
+      .update({ is_active: false })
+      .eq('id', selectedClass.id);
+    setDeletingClass(false);
+    if (err) { setError(err.message); return; }
+    setClasses(prev => prev.filter(c => c.id !== selectedClass.id));
+    setView('classes');
+    setSelectedClass(null);
+    setShowDeleteConfirm(false);
+  };
 
-  const generators = [
-    { title: 'Microfiction', desc: '100, 200, or 300 words', color: '#D4845A', path: '/generators/microfiction' },
-    { title: 'Flash Fiction', desc: '500 or 1,000 words', color: '#2E6DA4', path: '/generators/flash-fiction' },
-    { title: 'Character Generator', desc: 'Build a character, field by field', color: '#D4845A', path: '/generators/character', new: true },
-  ];
+  const handleCreateClass = async () => {
+    if (!newClassName.trim()) { setError('Please enter a class name.'); return; }
+    const classCode = generateClassCode();
+    const { data, error: insertError } = await supabase
+      .from('classes')
+      .insert({ teacher_id: user.id, name: newClassName.trim(), grade_level: newClassGrade || null, notes: newClassNotes.trim() || null, class_code: classCode })
+      .select().single();
+    if (insertError) { setError('Failed to create class: ' + insertError.message); return; }
+    setClasses(prev => [data, ...prev]);
+    setShowCreateClass(false);
+    setNewClassName('');
+    setNewClassGrade('');
+    setNewClassNotes('');
+    setSuccess('Class created successfully!');
+    setTimeout(() => setSuccess(null), 3000);
+  };
 
-  const BETA_FEATURES = [];
-
-  const pendingAssignments = assignments.filter(a => !submittedAssignmentIds.includes(a.id));
-  const submittedAssignments = assignments.filter(a => submittedAssignmentIds.includes(a.id));
-
-  // Account label — minor accounts are writers, student accounts are classroom students
-  const accountLabel =
-    profile && profile.account_type === 'teacher'
-      ? 'Educator account'
-      : profile && profile.account_type === 'student'
-      ? 'Student account'
-      : 'Writer account';
-
-  // Premium trial state — standard accounts only
-  const now = new Date();
-  const trialExpiry = profile && profile.premium_expires_at
-    ? new Date(profile.premium_expires_at)
-    : null;
-  const trialActive = trialExpiry && trialExpiry > now;
-  const trialExpired = trialExpiry && trialExpiry <= now && !profile.is_premium;
-  const daysLeft = trialActive
-    ? Math.ceil((trialExpiry - now) / (1000 * 60 * 60 * 24))
-    : 0;
-  const showTrialWelcome = trialActive && daysLeft === 14;
-  const showTrialWarning = trialActive && daysLeft <= 7;
-  const isPremium = profile && (profile.is_premium || trialActive);
-  const isTeacher = profile && profile.account_type === 'teacher';
-  const canAccessBeta = isPremium || isTeacher;
-
-  const [betaFeatures, setBetaFeatures] = useState({});
-  const [joiningBeta, setJoiningBeta] = useState(null);
-
-  useEffect(() => {
-    if (profile && profile.beta_features) {
-      setBetaFeatures(profile.beta_features);
+  const handleBulkGenerate = async () => {
+    if (!bulkPrefix.trim()) { setError('Please enter a username prefix.'); return; }
+    if (bulkCount < 1 || bulkCount > 30) { setError('Please generate between 1 and 30 accounts.'); return; }
+    if (classMembers.length + bulkCount > 30 && profile.account_type !== 'premium') {
+      setError('Free accounts are limited to 30 students per class. Contact us at upgrade@fictifly.com to add more.');
+      return;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile]);
-
-  const joinBeta = async (featureKey) => {
-    setJoiningBeta(featureKey);
-    const updated = { ...betaFeatures, [featureKey]: true };
-    const { error } = await supabase
-      .from('users')
-      .update({ beta_features: updated })
-      .eq('id', user.id);
-    if (!error) setBetaFeatures(updated);
-    setJoiningBeta(null);
+    setGenerating(true);
+    setError(null);
+    const accounts = Array.from({ length: bulkCount }, () => ({
+      username: funUsername(bulkPrefix.trim()),
+      passcode: generatePasscode(),
+    }));
+    try {
+      const response = await fetch('/api/create-students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accounts, classId: selectedClass.id }),
+      });
+      const data = await response.json();
+      const successful = data.results.filter(r => r.success);
+      setGeneratedAccounts(successful);
+      await fetchClassMembers(selectedClass.id);
+    } catch (e) {
+      setError('Something went wrong generating accounts. Please try again.');
+    }
+    setGenerating(false);
   };
 
-  const TRIAL_BENEFITS = [
-    { text: 'Unlimited prompt generation', sub: 'Free accounts get 6/day' },
-    { text: 'Submit and share your full story text', sub: null },
-    { text: 'Access to the Writer Directory', sub: null },
-    { text: 'Appear in the Writer Directory', sub: null },
-    { text: 'Community upvotes on your stories', sub: 'Coming soon', soon: true },
-    { text: 'Early access to new generators', sub: 'Coming soon', soon: true },
-  ];
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write('<html><head><title>Student Account Cards - ' + selectedClass.name + '</title>');
+    printWindow.document.write('<style>body{font-family:sans-serif;padding:20px;} .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;} .card{border:2px solid #D9C9B0;border-radius:8px;padding:16px;text-align:center;background:#FFFCF8;} .class-name{font-size:11px;color:#9A8878;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;} .username{font-size:14px;font-weight:700;color:#3A3226;margin-bottom:6px;} .passcode{font-size:20px;font-weight:700;color:#2E6DA4;letter-spacing:0.2em;margin-bottom:6px;} .label{font-size:10px;color:#9A8878;} @media print{.no-print{display:none;}}</style>');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write('<h2 style="color:#3A3226;margin-bottom:20px;">Student Login Cards — ' + selectedClass.name + '</h2>');
+    printWindow.document.write('<div class="grid">');
+    generatedAccounts.forEach(acc => {
+      printWindow.document.write('<div class="card"><div class="class-name">' + selectedClass.name + '</div><div class="label">Username</div><div class="username">' + acc.username + '</div><div class="label">Passcode</div><div class="passcode">' + acc.passcode + '</div><div style="font-size:10px;color:#9A8878;margin-top:8px;">fictifly.com</div></div>');
+    });
+    printWindow.document.write('</div></body></html>');
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const handleCreateAssignment = async () => {
+    if (!assignmentTitle.trim()) { setError('Please enter an assignment title.'); return; }
+    if (!assignmentDueDate) { setError('Please set a due date.'); return; }
+    if (assignmentTarget === 'student' && !assignmentStudentId) { setError('Please select a student.'); return; }
+    setSavingAssignment(true);
+    setError(null);
+    const payload = {
+      teacher_id: user.id,
+      class_id: assignmentTarget === 'class' ? selectedClass.id : null,
+      student_id: assignmentTarget === 'student' ? assignmentStudentId : null,
+      title: assignmentTitle.trim(),
+      prompt_type: assignmentPromptType,
+      word_count: assignmentWordCount,
+      genre: assignmentGenre || null,
+      action: (assignmentPromptType === 'microfiction' || (assignmentPromptType === 'flash-fiction' && assignmentWordCount === 500)) ? (assignmentAction || null) : null,
+      word: assignmentPromptType === 'microfiction' ? (assignmentWord || null) : null,
+      location: assignmentPromptType === 'flash-fiction' && assignmentWordCount === 1000 ? (assignmentLocation || null) : null,
+      object: assignmentPromptType === 'flash-fiction' ? (assignmentObject || null) : null,
+      due_date: assignmentDueDate,
+    };
+    const { data, error: insertError } = await supabase
+      .from('assignments')
+      .insert(payload)
+      .select().single();
+    if (insertError) { setError('Failed to create assignment: ' + insertError.message); setSavingAssignment(false); return; }
+    setAssignments(prev => [{ ...data, submissionCount: 0 }, ...prev]);
+    setShowCreateAssignment(false);
+    setAssignmentTitle(''); setAssignmentGenre(''); setAssignmentAction('');
+    setAssignmentWord(''); setAssignmentLocation(''); setAssignmentObject('');
+    setAssignmentDueDate(''); setAssignmentTarget('class'); setAssignmentStudentId('');
+    setSavingAssignment(false);
+    setSuccess('Assignment created!');
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  const wordCountOptions = assignmentPromptType === 'microfiction' ? [100, 200, 300] : [500, 1000];
+  const totalPendingResets = Object.values(resetRequestCounts).reduce((sum, n) => sum + n, 0);
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: '#F5EFE6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', color: '#9A8878', fontStyle: 'italic' }}>Loading...</div>
+  );
 
   return (
     <div style={{ minHeight: '100vh', background: '#F5EFE6', fontFamily: 'sans-serif', color: '#3A3226', padding: '0 1.25rem 5rem' }}>
-      {/* HEADER / NAV — UPDATED */}
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #D9C9B0', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #D9C9B0', marginBottom: '2.5rem' }}>
+        <Link to="/dashboard" style={{ color: '#6B5D4E', textDecoration: 'none', fontSize: '0.85rem' }}>← Dashboard</Link>
         <Link to="/dashboard" style={{ textDecoration: 'none', display: 'block' }}>
           <FictiflyLogo />
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {/* Writers button — premium/teacher only */}
-          {profile && (isPremium || profile.account_type === 'teacher') && (
-            <button
-              onClick={() => navigate('/writers')}
-              style={{
-                background: 'transparent',
-                border: '1px solid #D9C9B0',
-                borderRadius: '8px',
-                color: '#6B5D4E',
-                fontSize: '0.82rem',
-                padding: '0.4rem 0.9rem',
-                cursor: 'pointer',
-                textDecoration: 'none',
-              }}
-            >
-              Writers
-            </button>
-          )}
-
-          {/* My Classes button — teacher only */}
-          {profile && profile.account_type === 'teacher' && (
-            <button
-              onClick={() => navigate('/classroom')}
-              style={{
-                background: 'transparent',
-                border: '1px solid #D9C9B0',
-                borderRadius: '8px',
-                color: '#6B5D4E',
-                fontSize: '0.82rem',
-                padding: '0.4rem 0.9rem',
-                cursor: 'pointer',
-              }}
-            >
-              My Classes
-            </button>
-          )}
-
-          {/* My Profile button */}
-          <button
-            onClick={() => navigate('/profile')}
-            style={{
-              background: 'transparent',
-              border: '1px solid #D9C9B0',
-              borderRadius: '8px',
-              color: '#6B5D4E',
-              fontSize: '0.82rem',
-              padding: '0.4rem 0.9rem',
-              cursor: 'pointer',
-            }}
-          >
-            My Profile
-          </button>
-
-          {/* Account button — NEW */}
-          <button
-            onClick={() => setActiveTab('account')}
-            style={{
-              background: activeTab === 'account' ? '#3A3226' : 'transparent',
-              border: activeTab === 'account' ? 'none' : '1px solid #D9C9B0',
-              borderRadius: '8px',
-              color: activeTab === 'account' ? '#FFFCF8' : '#6B5D4E',
-              fontSize: '0.82rem',
-              padding: '0.4rem 0.9rem',
-              cursor: 'pointer',
-              fontWeight: activeTab === 'account' ? 600 : 400,
-            }}
-          >
-            Account
-          </button>
-
-          {/* Sign out button */}
-          <button
-            onClick={handleSignOut}
-            style={{
-              background: 'transparent',
-              border: '1px solid #D9C9B0',
-              borderRadius: '8px',
-              color: '#6B5D4E',
-              fontSize: '0.82rem',
-              padding: '0.4rem 0.9rem',
-              cursor: 'pointer',
-            }}
-          >
-            Sign out
-          </button>
-        </div>
       </div>
 
-      {/* ACCOUNT TAB — NEW */}
-      {activeTab === 'account' && (
-        <Account profile={profile} isPremium={isPremium} isTeacher={isTeacher} />
-      )}
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
 
-      {/* DASHBOARD TAB (default) */}
-      {activeTab === 'dashboard' && (
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.6rem' }}>Dashboard</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <div
-              onClick={() => setShowWellModal(true)}
-              style={{ cursor: 'pointer' }}
-              title="What is The Well?"
-            >
-              <TheWell size="icon" darkBg={true} />
-            </div>
-            <h1 style={{ fontSize: '2.2rem', fontWeight: 700, margin: 0 }}>
-              {isNewUser ? 'Welcome, ' : 'Welcome back, '}
-              <span style={{ color: '#2E6DA4', fontStyle: 'italic', fontWeight: 500 }}>
-                {profile ? (profile.display_name || profile.username) : 'Writer'}
-              </span>
-            </h1>
-          </div>
-
-          {showWellModal && <WellModal onClose={() => setShowWellModal(false)}/>}
-          <p style={{ color: '#6B5D4E', fontSize: '0.95rem', marginBottom: '2rem' }}>
-            {accountLabel}
-          </p>
-
-          {(isNewUser || showTrialWelcome) && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-              {/* Static simplified Well for dashboard — no animation */}
-              <svg width="120" height="120" viewBox="145 137 238 224" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '0.75rem' }}>
-                <circle cx="264.45" cy="241.23" r="129.02" fill="#231f20"/>
-                <circle cx="264.34" cy="240.27" r="91.38" fill="none" stroke="#b49041" strokeDasharray="3.99 2.99" strokeWidth=".75" strokeMiterlimit="10" opacity=".5"/>
-                <circle cx="264.21" cy="241.62" r="119.08" transform="translate(-93.47 257.6) rotate(-45)" fill="none" stroke="#b49041" strokeWidth="3" strokeMiterlimit="10"/>
-                <rect x="260.44" y="357.71" width="6.79" height="6.79" transform="translate(332.63 -80.8) rotate(45)" fill="#c1a14c"/>
-                <rect x="141.77" y="236.02" width="6.79" height="6.79" transform="translate(211.81 -32.52) rotate(45)" fill="#c1a14c"/>
-                <rect x="379.61" y="236.28" width="6.79" height="6.79" transform="translate(281.67 -200.63) rotate(45)" fill="#c1a14c"/>
-                <rect x="260.61" y="119.55" width="6.79" height="6.79" transform="translate(164.27 -150.68) rotate(45)" fill="#c1a14c"/>
-                <circle cx="264" cy="241.05" r="66.8" fill="#20466d" stroke="#3b6297" strokeWidth=".75" strokeMiterlimit="10"/>
-                <ellipse cx="262.7" cy="236.12" rx="28.24" ry="30.49" fill="#2d6ea4"/>
-                <ellipse cx="260.15" cy="232.61" rx="13.65" ry="14.56" fill="#4d90bd"/>
-                <ellipse cx="257.96" cy="229.44" rx="6.04" ry="7.44" fill="#7fb1d3"/>
-                <ellipse cx="256.06" cy="228.75" rx="2.87" ry="3.86" fill="#cbe6f8"/>
-                <circle cx="266.66" cy="235.03" r="46.07" fill="none" stroke="#c1a14c" strokeWidth="5" strokeMiterlimit="10"/>
-                <circle cx="266.81" cy="234.69" r="43.19" fill="none" stroke="#e4c89c" strokeWidth="2" strokeMiterlimit="10"/>
-                {/* Flor de Barcelona — static at top position */}
-                <g transform="translate(264.36,149.59)">
-                  <circle r="11.09" transform="translate(-0.13,0.2) rotate(-37.29)" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                  <path d="M11.38,0.44c4.03.95,7.03,4.57,7.03,8.89,0,5.05-4.09,9.14-9.14,9.14-4.23,0-7.79-2.87-8.83-6.77" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                  <path d="M-10.85,0.01c-4.16-.85-7.3-4.54-7.3-8.95,0-5.05,4.09-9.14,9.14-9.14,4.39,0,8.06,3.1,8.94,7.22" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                  <path d="M-0.39,12.39c-1.26,3.54-4.64,6.08-8.61,6.08-5.05,0-9.14-4.09-9.14-9.14,0-4.04,2.63-7.47,6.27-8.68" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                  <path d="M0.38,-11.05c.95-4.03,4.57-7.03,8.89-7.03,5.05,0,9.14,4.09,9.14,9.14,0,4.39-3.1,8.06-7.22,8.94" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                  <circle r="11.19" fill="#0098c0" opacity=".72"/>
-                  <ellipse cx="-4.14" cy="-5.93" rx="1.2" ry=".89" transform="rotate(-25.31)" fill="#cbe6f8" opacity=".85"/>
-                </g>
-              </svg>
-              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                <div style={{ fontFamily: "'Fraunces', serif", fontSize: '1.1rem', fontStyle: 'italic', color: '#6B5D4E', marginBottom: '0.3rem' }}>Welcome to The Well</div>
-                <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>Where every story begins</div>
+        {view === 'classes' && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.4rem' }}>Educator</div>
+                <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>My Classes</h1>
               </div>
-              <div style={{ background: '#EAF4FB', border: '1px solid #5B9EC9', borderRadius: '12px', padding: '1rem 1.25rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <div>
-                  <div style={{ fontWeight: 600, color: '#2E6DA4', marginBottom: '0.2rem' }}>Complete your profile</div>
-                  <div style={{ fontSize: '0.85rem', color: '#6B5D4E' }}>Add a bio, avatar, and favourite genres to personalise your experience.</div>
-                </div>
-                <button onClick={() => navigate('/profile')} style={{ background: '#2E6DA4', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Complete profile</button>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button 
+                  onClick={() => setShowCreateAssignmentModal(true)} 
+                  style={btnPrimary}>
+                  + New Assignment
+                </button>
+                <button onClick={() => {
+                  if (classes.length >= 1 && profile.account_type !== 'premium') {
+                    setError('Free accounts are limited to 1 class. Contact us to upgrade for unlimited classes.');
+                    return;
+                  }
+                  setError(null);
+                  setShowCreateClass(true);
+                }} style={btnPrimary}>+ New Class</button>
               </div>
             </div>
-          )}
 
-          {/* Premium trial — welcome banner (day 1 only) */}
-          {profile && profile.account_type === 'standard' && showTrialWelcome && (
-            <div style={{ background: '#FFFCF8', border: '1px solid #D4845A', borderRadius: '14px', padding: '1.5rem', marginBottom: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', borderLeft: '4px solid #D4845A' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.6rem' }}>
-                <span style={{ fontSize: '1.4rem' }}>🎉</span>
-                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A' }}>Welcome to Fictifly</div>
+            {totalPendingResets > 0 && (
+              <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '10px', padding: '0.85rem 1.1rem', marginBottom: '1.25rem', fontSize: '0.88rem', color: '#9A6830', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1rem' }}>🔑</span>
+                <span><strong>{totalPendingResets}</strong> student{totalPendingResets !== 1 ? 's have' : ' has'} requested a passcode reset. Click the class below to approve.</span>
               </div>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#3A3226', marginBottom: '0.4rem' }}>
-                Thanks for joining, {profile.display_name || profile.username}!
-              </h2>
-              <p style={{ fontSize: '0.88rem', color: '#6B5D4E', lineHeight: 1.65, marginBottom: '1rem' }}>
-                We're so glad you're here. To give you the best possible start, we're gifting you a free 14-day Premium trial — no card required, no strings attached. Dive in and make it your own.
-              </p>
-              <div style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.5rem' }}>Your trial includes</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
-                {TRIAL_BENEFITS.map(b => (
-                  <div key={b.text} style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', fontSize: '0.85rem' }}>
-                    <span style={{ color: '#D4845A', fontWeight: 700, flexShrink: 0 }}>✓</span>
-                    <span style={{ color: b.soon ? '#9A8878' : '#3A3226' }}>
-                      {b.text}
-                      {b.sub && <span style={{ fontSize: '0.75rem', color: '#9A8878', marginLeft: '0.4rem' }}>— {b.sub}</span>}
-                    </span>
-                  </div>
+            )}
+
+            {error && !showCreateClass && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', color: '#B56840', padding: '0.85rem 1.1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>{error}</div>}
+            {success && <div style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', borderRadius: '10px', color: '#6B5D4E', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>{success}</div>}
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Writing tools</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.65rem' }}>
+                {[
+                  { title: 'Microfiction', desc: '100–300 words', color: '#D4845A', path: '/generators/microfiction' },
+                  { title: 'Flash Fiction', desc: '500–1,000 words', color: '#2E6DA4', path: '/generators/flash-fiction' },
+                  { title: 'Character Generator', desc: 'Build a character', color: '#D4845A', path: '/generators/character', isNew: true },
+                ].map(g => (
+                  <Link key={g.title} to={g.path} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '3px solid ' + g.color, borderRadius: '10px', padding: '0.85rem 1.1rem', textDecoration: 'none', display: 'block', transition: 'box-shadow 0.18s, transform 0.18s' }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.09)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#3A3226' }}>{g.title}</span>
+                      {g.isNew && <span style={{ fontSize: '0.58rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#EDE3D4', color: '#6B5D4E', border: '1px solid #D9C9B0', borderRadius: '20px', padding: '0.12rem 0.45rem' }}>New</span>}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#9A8878' }}>{g.desc}</div>
+                  </Link>
                 ))}
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#9A8878', fontStyle: 'italic' }}>
-                Your trial runs for 14 days. Happy writing — we can't wait to read what you create. ✍️
-              </div>
-            </div>
-          )}
-
-          {/* Premium trial — countdown warning (7 days or less) */}
-          {profile && profile.account_type === 'standard' && showTrialWarning && (
-            <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <div>
-                <div style={{ fontWeight: 600, color: '#9A6830', marginBottom: '0.2rem', fontSize: '0.95rem' }}>
-                  ⏳ {daysLeft === 1 ? 'Last day' : `${daysLeft} days`} left on your Premium trial
-                </div>
-                <div style={{ fontSize: '0.82rem', color: '#9A6830', lineHeight: 1.5 }}>
-                  After your trial you'll revert to 6 prompts/day and lose story submission and directory access.
-                </div>
-              </div>
-              <a href="mailto:fictifly@gmail.com?subject=Premium Upgrade&body=Hi! I'd like to keep my Premium access after my trial ends."
-                style={{ background: '#D4845A', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                Keep my Premium access
-              </a>
-            </div>
-          )}
-
-          {/* Premium trial — expired */}
-          {profile && profile.account_type === 'standard' && trialExpired && (
-            <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <div>
-                <div style={{ fontWeight: 600, color: '#B56840', marginBottom: '0.2rem', fontSize: '0.95rem' }}>
-                  Your Premium trial has ended
-                </div>
-                <div style={{ fontSize: '0.82rem', color: '#B56840', lineHeight: 1.5 }}>
-                  You're back on the free plan — 6 prompts/day, no story submission or directory access.
-                </div>
-              </div>
-              <a href="mailto:fictifly@gmail.com?subject=Premium Upgrade&body=Hi! I'd like to upgrade to Premium."
-                style={{ background: '#D4845A', color: '#FFFCF8', borderRadius: '8px', padding: '0.5rem 1.1rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                Keep my Premium access
-              </a>
-            </div>
-          )}
-
-          {/* Daily prompt */}
-          <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginBottom: '2rem', borderLeft: '4px solid #D4845A' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.25rem' }}>
-                  {dailyPrompt?.challenge_type === 'character' ? "Today's Character Challenge" : "Today's Challenge"}
-                </div>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0 }}>
-                  {dailyPrompt?.challenge_type === 'character' ? 'Character Day' : 'Daily Prompt'}
-                </h2>
-              </div>
-              {dailyPrompt && (
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <span style={{ background: '#D4845A', color: '#FFFCF8', fontSize: '0.82rem', fontWeight: 700, letterSpacing: '0.04em', padding: '0.3rem 0.85rem', borderRadius: '20px' }}>
-                    {dailyPrompt.word_count} words
-                  </span>
-                  <span style={{ background: '#EDE3D4', color: '#3A3226', fontSize: '0.82rem', fontWeight: 600, padding: '0.3rem 0.85rem', borderRadius: '20px' }}>
-                    {dailyPrompt.genre}
-                  </span>
-                  {dailyPrompt.challenge_type === 'character' && (
-                    <span style={{ background: '#F5EDF5', color: '#7A4A90', border: '1px solid #B07AC0', fontSize: '0.82rem', fontWeight: 600, padding: '0.3rem 0.85rem', borderRadius: '20px' }}>
-                      ✦ Character day
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
 
-            {dailyPromptLoading ? (
-              <div style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>Loading today's prompt...</div>
-            ) : dailyPrompt ? (
-              <div>
-                {dailyPrompt.challenge_type === 'character' ? (
-                  // ── Character day card ────────────────────────────────────────
-                  <div>
-                    {/* Active character display */}
-                    {(() => {
-                      const char = activeCharacter || dailyPrompt.character_data;
-                      return char ? (
-                        <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '1rem 1.1rem', marginBottom: '1rem' }}>
-                          {char.name && (
-                            <div style={{ fontFamily: "'Fraunces', serif", fontSize: '1.05rem', fontWeight: 600, color: '#3A3226', marginBottom: '0.5rem' }}>{char.name}</div>
-                          )}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                            {[
-                              { label: 'Profession', val: char.profession },
-                              { label: 'Background', val: char.background },
-                              { label: 'Personality', val: char.personality },
-                              { label: 'Flaw', val: char.flaw },
-                              { label: 'Motivation', val: char.motivation },
-                            ].filter(r => r.val).map(r => (
-                              <div key={r.label} style={{ display: 'flex', gap: '0.6rem', alignItems: 'baseline' }}>
-                                <span style={{ fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9A8878', minWidth: 72, flexShrink: 0 }}>{r.label}</span>
-                                <span style={{ fontFamily: "'Fraunces', serif", fontSize: '0.92rem', color: '#3A3226', lineHeight: 1.5 }}>{r.val}</span>
-                              </div>
-                            ))}
-                          </div>
-                          {char.writing_prompt && (
-                            <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid #D9C9B0', fontFamily: "'Fraunces', serif", fontSize: '0.95rem', fontStyle: 'italic', color: '#6B5D4E', lineHeight: 1.6 }}>
-                              {char.writing_prompt}
-                            </div>
-                          )}
-                        </div>
-                      ) : null;
-                    })()}
-
-                    {/* Premium swap — saved character */}
-                    {isPremium && savedCharacters.length > 0 && (
-                      <div style={{ marginBottom: '1rem' }}>
-                        <button
-                          onClick={() => setShowCharacterSwap(s => !s)}
-                          style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.78rem', fontWeight: 500, color: '#6B5D4E', cursor: 'pointer' }}
-                        >
-                          {activeCharacter ? '↺ Change character' : '☆ Use a saved character'}
-                        </button>
-                        {activeCharacter && (
-                          <button
-                            onClick={() => { setActiveCharacter(null); setShowCharacterSwap(false); }}
-                            style={{ background: 'transparent', border: 'none', fontSize: '0.78rem', color: '#9A8878', cursor: 'pointer', marginLeft: '0.5rem' }}
-                          >
-                            Reset to today's character
-                          </button>
-                        )}
-                        {showCharacterSwap && (
-                          <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: 200, overflowY: 'auto' }}>
-                            {savedCharacters.map(c => {
-                              const name = c.character_data?.name;
-                              const profession = c.character_data?.profession;
-                              const label = [name, profession].filter(Boolean).join(' — ') || 'Unnamed character';
-                              return (
-                                <button
-                                  key={c.id}
-                                  onClick={() => { setActiveCharacter(c.character_data); setShowCharacterSwap(false); }}
-                                  style={{ textAlign: 'left', background: activeCharacter === c.character_data ? '#EAF4FB' : '#F5EFE6', border: `1px solid ${activeCharacter === c.character_data ? '#5B9EC9' : '#D9C9B0'}`, borderRadius: '8px', padding: '0.5rem 0.85rem', fontSize: '0.82rem', color: '#3A3226', cursor: 'pointer' }}
-                                >
-                                  {label}
-                                  {c.genre && <span style={{ color: '#9A8878', marginLeft: '0.5rem', fontSize: '0.75rem' }}>{c.genre}</span>}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Non-premium upsell banner */}
-                    {!isPremium && (
-                      <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '8px', padding: '0.65rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.82rem', color: '#9A6830' }}>
-                          ✦ <strong>Premium</strong> — use your own saved characters on character days
-                        </span>
-                        <a href="mailto:fictifly@gmail.com?subject=Premium Upgrade"
-                          style={{ fontSize: '0.78rem', fontWeight: 600, color: '#B56840', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                          Upgrade →
-                        </a>
-                      </div>
-                    )}
-
-                    {/* Write button */}
-                    {dailyWritten ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
-                        <button onClick={handleOpenDailyPrompt} style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer' }}>Edit story</button>
-                      </div>
-                    ) : (
-                      <button onClick={handleOpenDailyPrompt} style={{ background: '#D4845A', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
-                        Write this character's story →
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  // ── Standard day card ─────────────────────────────────────────
-                  <div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', minWidth: 52 }}>Action</span>
-                        <span style={{ fontSize: '1.15rem', fontWeight: 500, color: '#3A3226', fontStyle: 'italic' }}>{dailyPrompt.action}</span>
-                      </div>
-                      <div style={{ height: '1px', background: '#EDE3D4' }} />
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9A8878', minWidth: 52 }}>Word</span>
-                        <span style={{ fontSize: '1.15rem', fontWeight: 500, color: '#2E6DA4', fontStyle: 'italic' }}>{dailyPrompt.word}</span>
-                      </div>
-                    </div>
-                    {dailyWritten ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
-                        <button onClick={handleOpenDailyPrompt} style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer' }}>Edit story</button>
-                      </div>
-                    ) : (
-                      <button onClick={handleOpenDailyPrompt} style={{ background: '#D4845A', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
-                        Write today's story →
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>Today's prompt is on its way — check back shortly.</div>
-            )}
-          </div>
-
-          {/* Assignments — students only */}
-          {profile && isStudentAccount(profile) && assignments.length > 0 && (
-            <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginBottom: '2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
-                <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Assignments</h2>
-                {pendingAssignments.length > 0 && (
-                  <span style={{ background: '#D4845A', color: '#FFFCF8', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.55rem', borderRadius: '20px' }}>
-                    {pendingAssignments.length} due
-                  </span>
-                )}
-              </div>
-
-              {pendingAssignments.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: submittedAssignments.length > 0 ? '1.25rem' : 0 }}>
-                  {pendingAssignments.map(a => {
-                    const dueDate = new Date(a.due_date);
-                    const daysUntilDue = Math.ceil((dueDate - new Date()) / (1000 * 60 * 60 * 24));
-                    const isDueSoon = daysUntilDue <= 2;
-                    return (
-                      <div key={a.id} style={{ background: '#F5EFE6', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', border: `1px solid ${isDueSoon ? '#D4845A' : 'transparent'}` }}>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#3A3226', marginBottom: '0.2rem' }}>{a.title}</div>
-                          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>
-                            {a.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {a.word_count} words{a.genre ? ` · ${a.genre}` : ''}
-                          </div>
-                          {(a.action || a.word || a.location || a.object) && (
-                            <div style={{ fontSize: '0.78rem', color: '#6B5D4E', marginBottom: '0.2rem' }}>
-                              {[
-                                a.action && `Action: ${a.action}`,
-                                a.word && `Word: ${a.word}`,
-                                a.location && `Location: ${a.location}`,
-                                a.object && `Object: ${a.object}`,
-                              ].filter(Boolean).join(' · ')}
-                            </div>
-                          )}
-                          <div style={{ fontSize: '0.72rem', color: isDueSoon ? '#B56840' : '#9A8878', fontWeight: isDueSoon ? 600 : 400 }}>
-                            Due {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            {daysUntilDue === 0 ? ' · Due today!' : isDueSoon ? ` · ${daysUntilDue} day${daysUntilDue !== 1 ? 's' : ''} left` : ''}
-                          </div>
-                        </div>
-                        <button onClick={() => handleOpenSubmission(a)}
-                          style={{ background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                          Submit story
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {submittedAssignments.length > 0 && (
-                <div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.5rem' }}>Submitted ✓</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {submittedAssignments.map(a => {
-                      const fb = assignmentFeedback[a.id];
-                      return (
-                        <div key={a.id} style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.85rem 1rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: fb ? '0.75rem' : 0 }}>
-                            <div>
-                              <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#3A3226' }}>{a.title}</div>
-                              <div style={{ fontSize: '0.72rem', color: '#D4845A', fontWeight: 600, marginTop: '0.15rem' }}>Submitted ✓</div>
-                            </div>
-                            <button onClick={() => handleOpenSubmission(a)}
-                              style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer' }}>
-                              Edit submission
-                            </button>
-                          </div>
-                          {fb && (
-                            <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.75rem 1rem' }}>
-                              <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2E6DA4', marginBottom: '0.4rem' }}>
-                                💬 Teacher feedback
-                              </div>
-                              <p style={{ fontSize: '0.88rem', color: '#3A3226', lineHeight: 1.6, margin: 0 }}>{fb.feedback}</p>
-                              {fb.feedback_at && (
-                                <div style={{ fontSize: '0.7rem', color: '#9A8878', marginTop: '0.4rem' }}>
-                                  {new Date(fb.feedback_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
-            {stats.map((stat) => (
-              <div key={stat.label} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
-                <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#3A3226' }}>{stat.value}</div>
-                <div style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.25rem' }}>{stat.label}</div>
-              </div>
-            ))}
-          </div>
-
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '1rem' }}>Start writing</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-            {generators.map((g) => (
-              <button key={g.title} onClick={() => navigate(g.path)} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '4px solid ' + g.color, borderRadius: '12px', padding: '1.25rem 1.5rem', cursor: 'pointer', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', textAlign: 'left', textDecoration: 'none', display: 'block' }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(58,50,38,0.1)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(58,50,38,0.05)'; }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#3A3226' }}>{g.title}</span>
-                  {g.new && <span style={{ fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#EDE3D4', color: '#6B5D4E', border: '1px solid #D9C9B0', borderRadius: '20px', padding: '0.15rem 0.5rem' }}>New</span>}
-                </div>
-                <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>{g.desc}</div>
-              </button>
-            ))}
-          </div>
-
-          {canAccessBeta && BETA_FEATURES.length > 0 && (
             <div style={{ marginBottom: '2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginBottom: '1rem' }}>
-                <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Beta features</h2>
-                <span style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', background: '#EAF4FB', color: '#2E6DA4', border: '1px solid #5B9EC9', borderRadius: '20px', padding: '0.2rem 0.6rem' }}>Premium</span>
+              <h3 style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Feedback tools</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.65rem' }}>
+                {[
+                  { title: 'Quick Comments', desc: 'Template library', color: '#D4845A', action: () => setShowTemplateManager(true) },
+                  { title: 'Rubrics', desc: 'Scoring guides', color: '#D4845A', action: () => setShowRubricBuilder(true) },
+                ].map(t => (
+                  <button key={t.title} onClick={t.action} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderLeft: '3px solid ' + t.color, borderRadius: '10px', padding: '0.85rem 1.1rem', textDecoration: 'none', display: 'block', transition: 'box-shadow 0.18s, transform 0.18s', cursor: 'pointer', fontFamily: 'sans-serif', textAlign: 'left', fontSize: 'inherit', color: 'inherit' }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.09)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#3A3226' }}>{t.title}</span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#9A8878' }}>{t.desc}</div>
+                  </button>
+                ))}
               </div>
+            </div>
+
+            {showCreateClass && (
+              <div style={sectionStyle}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Create a new class</h3>
+                <label style={labelStyle}>Class name
+                  <input type="text" value={newClassName} onChange={(e) => setNewClassName(e.target.value)} placeholder="e.g. Period 1 Creative Writing" style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
+                </label>
+                <label style={labelStyle}>Grade level <span style={{ fontWeight: 400, color: '#9A8878' }}>(optional)</span>
+                  <select value={newClassGrade} onChange={(e) => setNewClassGrade(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem', appearance: 'none' }}>
+                    <option value="">Select grade level...</option>
+                    {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </label>
+                <label style={labelStyle}>Notes <span style={{ fontWeight: 400, color: '#9A8878' }}>(optional)</span>
+                  <textarea value={newClassNotes} onChange={(e) => setNewClassNotes(e.target.value)}
+                    placeholder="e.g. 10th grade creative writing, fall semester. Focus on short fiction."
+                    rows={3}
+                    style={{ ...inputStyle, marginTop: '0.4rem', resize: 'vertical', lineHeight: 1.6 }}/>
+                </label>
+                {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginBottom: '0.75rem', fontSize: '0.85rem' }}>{error}</div>}
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                  <button onClick={handleCreateClass} style={btnPrimary}>Create class</button>
+                  <button onClick={() => { setShowCreateClass(false); setError(null); }} style={btnSecondary}>Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {classes.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '4rem 0', color: '#9A8878', fontStyle: 'italic' }}>No classes yet — create your first class to get started.</div>
+            ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {BETA_FEATURES.map(f => {
-                  const isEnabled = betaFeatures[f.key];
-                  const isJoining = joiningBeta === f.key;
+                {classes.map(cls => {
+                  const pendingCount = resetRequestCounts[cls.id] || 0;
                   return (
-                    <div key={f.key} style={{ background: '#FFFCF8', border: `1px solid ${isEnabled ? '#D4845A' : '#D9C9B0'}`, borderLeft: `4px solid ${isEnabled ? '#D4845A' : '#D9C9B0'}`, borderRadius: '12px', padding: '1.1rem 1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', boxShadow: '0 2px 12px rgba(58,50,38,0.04)', transition: 'border-color 0.2s' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                    <div key={cls.id} onClick={() => handleSelectClass(cls)}
+                      style={{ ...sectionStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: 0, borderColor: pendingCount > 0 ? '#C8A060' : '#D9C9B0' }}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.1)'}
+                      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                      <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                          <span style={{ fontSize: '1rem', fontWeight: 600, color: '#3A3226' }}>{f.title}</span>
-                          {isEnabled && <span style={{ fontSize: '0.58rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#EDE3D4', color: '#6B5D4E', border: '1px solid #D9C9B0', borderRadius: '20px', padding: '0.12rem 0.45rem' }}>Active</span>}
+                          <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>{cls.name}</div>
+                          {pendingCount > 0 && (
+                            <span style={{ background: '#C8A060', color: '#FFFCF8', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.5rem', borderRadius: '20px' }}>
+                              🔑 {pendingCount} reset{pendingCount !== 1 ? 's' : ''} pending
+                            </span>
+                          )}
                         </div>
-                        <div style={{ fontSize: '0.82rem', color: '#9A8878', lineHeight: 1.5 }}>{f.desc}</div>
+                        <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>{cls.grade_level || 'No grade level set'}</div>
                       </div>
-                      {isEnabled ? (
-                        <button onClick={() => navigate(f.path)} style={{ background: '#2E6DA4', color: '#FFFCF8', border: 'none', borderRadius: '9px', padding: '0.5rem 1.1rem', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.82rem', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0, cursor: 'pointer' }}>
-                          Open →
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => joinBeta(f.key)}
-                          disabled={isJoining}
-                          style={{ background: isJoining ? '#D9C9B0' : '#3A3226', color: '#FFFCF8', border: 'none', borderRadius: '9px', padding: '0.5rem 1.1rem', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.82rem', cursor: isJoining ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'background 0.18s' }}
-                          onMouseEnter={e => { if (!isJoining) e.currentTarget.style.background = '#6B5D4E'; }}
-                          onMouseLeave={e => { if (!isJoining) e.currentTarget.style.background = '#3A3226'; }}
-                        >
-                          {isJoining ? 'Enabling…' : 'Enable beta access'}
-                        </button>
-                      )}
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#9A8878', marginBottom: '0.25rem' }}>Class code</div>
+                        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#2E6DA4', letterSpacing: '0.15em' }}>{cls.class_code}</div>
+                      </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        )}
 
-          <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Saved Prompts</h2>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={() => navigate('/generators/microfiction')} style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>Microfiction</button>
-                <span style={{ color: '#9A8878', fontSize: '0.78rem' }}>·</span>
-                <button onClick={() => navigate('/generators/flash-fiction')} style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>Flash Fiction</button>
+        {view === 'class-detail' && selectedClass && (
+          <div>
+            <button onClick={() => { setView('classes'); setSelectedClass(null); setGeneratedAccounts([]); setShowBulkGenerate(false); setSelectedAssignment(null); setEditingAssignment(false); setFeedbackSubmissionIndex(null); }} style={{ ...btnSecondary, marginBottom: '1.5rem' }}>← Back to classes</button>
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.4rem' }}>Class</div>
+                <h1 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '0.25rem' }}>{selectedClass.name}</h1>
+                <div style={{ fontSize: '0.85rem', color: '#9A8878' }}>{selectedClass.grade_level || 'No grade level'}</div>
+                <div style={{ marginTop: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#EAF4FB', border: '1px solid #5B9EC9', borderRadius: '8px', padding: '0.35rem 0.75rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#9A8878' }}>Class code:</span>
+                  <span style={{ fontWeight: 700, color: '#2E6DA4', letterSpacing: '0.15em' }}>{selectedClass.class_code}</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <button onClick={() => { setEditClassName(selectedClass.name); setEditClassGrade(selectedClass.grade_level || ''); setEditClassNotes(selectedClass.notes || ''); setShowEditClass(true); setShowDeleteConfirm(false); }}
+                  style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.45rem 0.9rem', fontSize: '0.82rem', fontWeight: 500, color: '#6B5D4E', cursor: 'pointer', fontFamily: 'sans-serif' }}>
+                  Edit class
+                </button>
+                <button onClick={() => { setShowDeleteConfirm(true); setShowEditClass(false); }}
+                  style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', padding: '0.45rem 0.9rem', fontSize: '0.82rem', fontWeight: 500, color: '#B56840', cursor: 'pointer', fontFamily: 'sans-serif' }}>
+                  Delete class
+                </button>
               </div>
             </div>
 
-            {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).length === 0 ? (
-              <p style={{ color: '#9A8878', fontSize: '0.9rem', fontStyle: 'italic', marginBottom: '1rem' }}>No unwritten prompts — great work!</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
-                {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).slice(0, 3).map(p => (
-                  <div key={p.id} style={{ background: '#F5EFE6', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <div>
-                      <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>{p.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {p.word_count} words</div>
-                      <div style={{ fontSize: '0.88rem', color: '#3A3226', fontWeight: 500 }}>{p.genre}</div>
-                      <div style={{ fontSize: '0.82rem', color: '#6B5D4E' }}>{p.action || p.location} · {p.word || p.object}</div>
+            {showEditClass && (
+              <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '12px', padding: '1.25rem', marginBottom: '1rem' }}>
+                <div style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.9rem' }}>Edit class</div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.35rem' }}>Class name</label>
+                <input value={editClassName} onChange={e => setEditClassName(e.target.value)}
+                  style={{ ...inputStyle, marginBottom: '0.75rem' }} placeholder="Class name"/>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.35rem' }}>Grade level</label>
+                <select value={editClassGrade} onChange={e => setEditClassGrade(e.target.value)}
+                  style={{ ...inputStyle, marginBottom: '0.75rem', appearance: 'none' }}>
+                  <option value="">No grade level</option>
+                  {['Elementary (K-5)','Middle School (6-8)','High School (9-12)','College / University','Other'].map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.35rem' }}>Notes <span style={{ fontWeight: 400, color: '#9A8878' }}>(optional)</span></label>
+                <textarea value={editClassNotes} onChange={e => setEditClassNotes(e.target.value)}
+                  placeholder="e.g. 10th grade creative writing, fall semester"
+                  rows={3}
+                  style={{ ...inputStyle, marginBottom: '1rem', resize: 'vertical', lineHeight: 1.6 }}/>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={handleEditClass} disabled={savingClassEdit}
+                    style={{ background: '#D4845A', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', opacity: savingClassEdit ? 0.6 : 1 }}>
+                    {savingClassEdit ? 'Saving...' : 'Save changes'}
+                  </button>
+                  <button onClick={() => setShowEditClass(false)}
+                    style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', color: '#9A8878', cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {showDeleteConfirm && (
+              <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '12px', padding: '1.25rem', marginBottom: '1rem' }}>
+                <div style={{ fontWeight: 600, color: '#B56840', marginBottom: '0.5rem' }}>Archive this class?</div>
+                <p style={{ fontSize: '0.85rem', color: '#6B5D4E', marginBottom: '1rem', lineHeight: 1.6 }}>
+                  The class will be archived and removed from your dashboard. Student accounts are preserved and can still be managed. This cannot be undone.
+                </p>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={handleDeleteClass} disabled={deletingClass}
+                    style={{ background: '#B56840', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', opacity: deletingClass ? 0.6 : 1 }}>
+                    {deletingClass ? 'Archiving...' : 'Yes, archive class'}
+                  </button>
+                  <button onClick={() => setShowDeleteConfirm(false)}
+                    style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem', color: '#9A8878', cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {classMembers.length >= 30 && profile.account_type !== 'premium' && (
+              <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', padding: '0.85rem 1.1rem', fontSize: '0.85rem', color: '#B56840', marginBottom: '1rem' }}>
+                You have reached the 30 student limit. <a href="mailto:upgrade@fictifly.com" style={{ color: '#D4845A', fontWeight: 600 }}>Contact us to upgrade.</a>
+              </div>
+            )}
+
+            {success && <div style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', borderRadius: '10px', color: '#6B5D4E', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.88rem' }}>{success}</div>}
+            {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', color: '#B56840', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>{error}</div>}
+
+            <div style={{ display: 'flex', background: '#EDE3D4', borderRadius: '12px', padding: '4px', gap: '2px', marginBottom: '1.5rem' }}>
+              {['students', 'assignments'].map(t => (
+                <button key={t} onClick={() => { setClassDetailTab(t); setSelectedAssignment(null); setShowBulkGenerate(false); setShowCreateAssignment(false); setEditingAssignment(false); setFeedbackSubmissionIndex(null); setError(null); }}
+                  style={{ flex: 1, background: classDetailTab === t ? '#FFFCF8' : 'transparent', border: 'none', borderRadius: '9px', color: classDetailTab === t ? '#3A3226' : '#9A8878', fontFamily: 'sans-serif', fontWeight: classDetailTab === t ? 600 : 400, fontSize: '0.85rem', padding: '0.5rem 1rem', cursor: 'pointer', transition: 'all 0.18s', boxShadow: classDetailTab === t ? '0 1px 4px rgba(58,50,38,0.1)' : 'none', position: 'relative' }}>
+                  {t === 'students'
+                    ? `Students (${classMembers.length})${resetRequests.length > 0 ? ` 🔑` : ''}`
+                    : `Assignments (${assignments.length})`}
+                </button>
+              ))}
+            </div>
+
+            {classDetailTab === 'students' && (
+              <div>
+                {resetRequests.length > 0 && (
+                  <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1rem' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#9A6830', marginBottom: '0.75rem' }}>
+                      🔑 Passcode reset requests ({resetRequests.length})
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      {profile && isStudentAccount(profile) && (
-                        <button
-                          onClick={() => setStoryModalData({ prompt: { ...p, wordCount: p.word_count, dbId: p.id }, assignmentId: null })}
-                          style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.72rem', fontWeight: 500, padding: '0.3rem 0.7rem', cursor: 'pointer' }}>
-                          Submit
-                        </button>
-                      )}
-                      <button onClick={() => navigate(p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=saved' : '/generators/flash-fiction?tab=saved')} style={{ fontSize: '0.75rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>Write →</button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {resetRequests.map(req => (
+                        <div key={req.id} style={{ background: '#FFFCF8', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#3A3226' }}>{req.username}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#9A8878', marginTop: '0.1rem' }}>
+                              Requested {new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleApproveReset(req)}
+                            disabled={approvingReset[req.id]}
+                            style={{ background: '#C8A060', color: '#FFFCF8', border: 'none', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 600, cursor: approvingReset[req.id] ? 'not-allowed' : 'pointer', opacity: approvingReset[req.id] ? 0.6 : 1 }}>
+                            {approvingReset[req.id] ? 'Resetting...' : 'Approve reset'}
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-                {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).length > 3 && (
-                  <p style={{ fontSize: '0.82rem', color: '#9A8878', textAlign: 'center' }}>And {savedPrompts.filter(p => !writtenPromptIds.includes(p.id)).length - 3} more — view all in the generators above.</p>
+                )}
+
+                {Object.keys(approvedPasscodes).length > 0 && (
+                  <div style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1rem' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#6B5D4E', marginBottom: '0.75rem' }}>
+                      ✓ New passcodes — give these to your students
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {Object.values(approvedPasscodes).map((item, i) => (
+                        <div key={i} style={{ background: '#FFFCF8', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#3A3226' }}>{item.username}</div>
+                          <div style={{ fontWeight: 700, fontSize: '1.2rem', color: '#2E6DA4', letterSpacing: '0.2em' }}>{item.passcode}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                  <button onClick={() => setShowBulkGenerate(!showBulkGenerate)} style={btnPrimary}>Generate student accounts</button>
+                </div>
+
+                {showBulkGenerate && (
+                  <div style={sectionStyle}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>Bulk generate student accounts</h3>
+                    <p style={{ fontSize: '0.85rem', color: '#9A8878', marginBottom: '1rem' }}>Accounts will be automatically linked to this class. <strong style={{ color: '#B56840' }}>Print or save the login cards immediately</strong> — passcodes cannot be retrieved later.</p>
+                    <label style={labelStyle}>Username prefix
+                      <input type="text" value={bulkPrefix} onChange={(e) => setBulkPrefix(e.target.value.replace(/\s/g, ''))} placeholder="e.g. MrsSmith_P1" style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.35rem' }} />
+                    </label>
+                    <div style={{ fontSize: '0.75rem', color: '#9A8878', marginBottom: '0.75rem' }}>Usernames will look like: <strong>{bulkPrefix ? `${bulkPrefix}_CleverFox42` : 'CleverFox42'}</strong></div>
+                    <label style={labelStyle}>Number of accounts (max 50)
+                      <input type="number" value={bulkCount} onChange={(e) => setBulkCount(Math.min(50, Math.max(1, parseInt(e.target.value) || 1)))} min={1} max={50} style={{ ...inputStyle, marginTop: '0.4rem' }} />
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                      <button onClick={handleBulkGenerate} disabled={generating} style={{ ...btnPrimary, opacity: generating ? 0.6 : 1 }}>{generating ? 'Generating...' : 'Generate accounts'}</button>
+                      <button onClick={() => { setShowBulkGenerate(false); setGeneratedAccounts([]); setError(null); }} style={btnSecondary}>Cancel</button>
+                    </div>
+                    {generatedAccounts.length > 0 && (
+                      <div style={{ marginTop: '1.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div style={{ fontWeight: 600, color: '#3A7040' }}>{generatedAccounts.length} accounts created</div>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button onClick={handlePrint} style={btnPrimary}>🖨 Print login cards</button>
+                            <button onClick={() => {
+                              const csv = 'Username,Passcode\n' + generatedAccounts.map(a => `${a.username},${a.passcode}`).join('\n');
+                              const blob = new Blob([csv], { type: 'text/csv' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url; a.download = `${selectedClass.name.replace(/\s+/g,'_')}_logins.csv`; a.click();
+                              URL.revokeObjectURL(url);
+                            }} style={btnSecondary}>⬇ Download CSV</button>
+                          </div>
+                        </div>
+                        <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '8px', padding: '0.6rem 0.85rem', fontSize: '0.78rem', color: '#9A6830', marginBottom: '0.75rem' }}>
+                          ⚠ Save these now — passcodes won't be shown again after you leave this page.
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
+                          {generatedAccounts.map((acc, i) => (
+                            <div key={i} style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.75rem', textAlign: 'center' }}>
+                              <div style={{ fontSize: '0.7rem', color: '#9A8878', marginBottom: '0.25rem' }}>Username</div>
+                              <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#3A3226', marginBottom: '0.5rem' }}>{acc.username}</div>
+                              <div style={{ fontSize: '0.7rem', color: '#9A8878', marginBottom: '0.25rem' }}>Passcode</div>
+                              <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#2E6DA4', letterSpacing: '0.15em' }}>{acc.passcode}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div style={sectionStyle}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>
+                    Students ({classMembers.length}{profile.account_type !== 'premium' ? '/30' : ''})
+                  </h3>
+                  {classMembers.length === 0 ? (
+                    <p style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>No students yet. Generate accounts or share the class code <strong style={{ color: '#2E6DA4' }}>{selectedClass.class_code}</strong> with your students.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {classMembers.map((member) => (
+                        <div key={member.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#F5EFE6', borderRadius: '8px' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{member.users.display_name || member.users.username}</div>
+                            <div style={{ fontSize: '0.78rem', color: '#9A8878' }}>@{member.users.username}</div>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#9A8878' }}>
+                            {member.users.account_type === 'student' ? 'Class account' : 'Self-registered'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {classDetailTab === 'assignments' && !selectedAssignment && !feedbackSubmissionIndex && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                  <button onClick={() => { setShowCreateAssignment(!showCreateAssignment); setError(null); }} style={btnPrimary}>+ New Assignment</button>
+                </div>
+
+                {showCreateAssignment && (
+                  <div style={sectionStyle}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Create assignment</h3>
+                    <label style={labelStyle}>Title
+                      <input type="text" value={assignmentTitle} onChange={e => setAssignmentTitle(e.target.value)} placeholder="e.g. Week 3 Horror Challenge" style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
+                    </label>
+                    <label style={{ ...labelStyle, marginBottom: '0.4rem' }}>Assign to</label>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      {['class', 'student'].map(t => (
+                        <button key={t} onClick={() => setAssignmentTarget(t)}
+                          style={{ ...btnSecondary, background: assignmentTarget === t ? '#D4845A' : 'transparent', color: assignmentTarget === t ? '#FFFCF8' : '#6B5D4E', borderColor: assignmentTarget === t ? '#D4845A' : '#D9C9B0' }}>
+                          {t === 'class' ? 'Whole class' : 'Individual student'}
+                        </button>
+                      ))}
+                    </div>
+                    {assignmentTarget === 'student' && (
+                      <label style={labelStyle}>Select student
+                        <select value={assignmentStudentId} onChange={e => setAssignmentStudentId(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem', appearance: 'none' }}>
+                          <option value="">Choose a student...</option>
+                          {classMembers.map(m => (
+                            <option key={m.student_id} value={m.student_id}>{m.users.display_name || m.users.username}</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    <label style={{ ...labelStyle, marginBottom: '0.4rem' }}>Generator type</label>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      {[{ value: 'microfiction', label: 'Microfiction' }, { value: 'flash-fiction', label: 'Flash Fiction' }].map(opt => (
+                        <button key={opt.value} onClick={() => { setAssignmentPromptType(opt.value); setAssignmentWordCount(opt.value === 'microfiction' ? 100 : 500); }}
+                          style={{ ...btnSecondary, background: assignmentPromptType === opt.value ? '#D4845A' : 'transparent', color: assignmentPromptType === opt.value ? '#FFFCF8' : '#6B5D4E', borderColor: assignmentPromptType === opt.value ? '#D4845A' : '#D9C9B0' }}>
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                    <label style={{ ...labelStyle, marginBottom: '0.4rem' }}>Word count</label>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      {wordCountOptions.map(n => (
+                        <button key={n} onClick={() => setAssignmentWordCount(n)}
+                          style={{ ...btnSecondary, background: assignmentWordCount === n ? '#D4845A' : 'transparent', color: assignmentWordCount === n ? '#FFFCF8' : '#6B5D4E', borderColor: assignmentWordCount === n ? '#D4845A' : '#D9C9B0' }}>
+                          {n} words
+                        </button>
+                      ))}
+                    </div>
+                    <label style={labelStyle}>Genre (optional)
+                      <select value={assignmentGenre} onChange={e => setAssignmentGenre(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem', appearance: 'none' }}>
+                        <option value="">Random / student's choice</option>
+                        {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                      </select>
+                    </label>
+                    <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '1rem', marginBottom: '0.75rem' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>Prompt ingredients (optional)</div>
+                      <div style={{ fontSize: '0.78rem', color: '#9A8878', marginBottom: '0.75rem' }}>Leave blank to let students generate their own ingredients.</div>
+                      {assignmentPromptType === 'microfiction' ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <label style={labelStyle}>Action (gerund, e.g. "Wandering")
+                            <input type="text" value={assignmentAction} onChange={e => setAssignmentAction(e.target.value)} placeholder="e.g. Unraveling" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                          </label>
+                          <label style={labelStyle}>Word (single evocative word)
+                            <input type="text" value={assignmentWord} onChange={e => setAssignmentWord(e.target.value)} placeholder="e.g. Courage" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                          </label>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {assignmentWordCount === 500 && (
+                            <label style={labelStyle}>Action (gerund)
+                              <input type="text" value={assignmentAction} onChange={e => setAssignmentAction(e.target.value)} placeholder="e.g. Warning" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                            </label>
+                          )}
+                          {assignmentWordCount === 1000 && (
+                            <label style={labelStyle}>Location
+                              <input type="text" value={assignmentLocation} onChange={e => setAssignmentLocation(e.target.value)} placeholder="e.g. A pawnshop" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                            </label>
+                          )}
+                          <label style={labelStyle}>Object
+                            <input type="text" value={assignmentObject} onChange={e => setAssignmentObject(e.target.value)} placeholder="e.g. A compass" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                    <label style={labelStyle}>Due date
+                      <input type="date" value={assignmentDueDate} onChange={e => setAssignmentDueDate(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
+                    </label>
+                    {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginBottom: '0.75rem', fontSize: '0.85rem' }}>{error}</div>}
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={handleCreateAssignment} disabled={savingAssignment} style={{ ...btnPrimary, opacity: savingAssignment ? 0.6 : 1 }}>{savingAssignment ? 'Saving...' : 'Create assignment'}</button>
+                      <button onClick={() => { setShowCreateAssignment(false); setError(null); }} style={btnSecondary}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+
+                {assignments.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem 0', color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>
+                    No assignments yet — create one to get your students writing.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {assignments.map(a => {
+                      const isOverdue = a.due_date && new Date(a.due_date) < new Date();
+                      return (
+                        <div key={a.id} style={{ ...sectionStyle, marginBottom: 0, cursor: 'pointer' }}
+                          onClick={() => fetchAssignmentSubmissions(a)}
+                          onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.1)'}
+                          onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>{a.title}</div>
+                              <div style={{ fontSize: '0.8rem', color: '#9A8878', marginBottom: '0.4rem' }}>
+                                {a.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {a.word_count} words{a.genre ? ` · ${a.genre}` : ''}
+                              </div>
+                              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                {a.action && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Action: {a.action}</span>}
+                                {a.word && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Word: {a.word}</span>}
+                                {a.location && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Location: {a.location}</span>}
+                                {a.object && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Object: {a.object}</span>}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#2E6DA4', marginBottom: '0.25rem' }}>{a.submissionCount} submitted</div>
+                              <div style={{ fontSize: '0.72rem', color: isOverdue ? '#B56840' : '#9A8878' }}>
+                                Due {new Date(a.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                {isOverdue ? ' · Overdue' : ''}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             )}
 
-            {writtenPromptIds.length > 0 && (
+            {classDetailTab === 'assignments' && selectedAssignment && !feedbackSubmissionIndex && (
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878' }}>Written ✓</div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button onClick={() => navigate('/generators/microfiction?tab=written')} style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>Microfiction</button>
-                    <span style={{ color: '#9A8878', fontSize: '0.78rem' }}>·</span>
-                    <button onClick={() => navigate('/generators/flash-fiction?tab=written')} style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>Flash Fiction</button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {savedPrompts.filter(p => writtenPromptIds.includes(p.id)).slice(0, 3).map(p => (
-                    <div key={p.id} style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      <div>
-                        <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#6B5D4E', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>{p.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {p.word_count} words ✓</div>
-                        <div style={{ fontSize: '0.88rem', color: '#3A3226', fontWeight: 500 }}>{p.genre}</div>
-                        <div style={{ fontSize: '0.82rem', color: '#6B5D4E' }}>{p.action || p.location} · {p.word || p.object}</div>
-                      </div>
-                      <button onClick={() => navigate(p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=written' : '/generators/flash-fiction?tab=written')} style={{ fontSize: '0.75rem', color: '#6B5D4E', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>View →</button>
+                <button onClick={() => { setSelectedAssignment(null); setEditingAssignment(false); }} style={{ ...btnSecondary, marginBottom: '1.5rem' }}>← Back to assignments</button>
+
+                <div style={sectionStyle}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem', gap: '1rem' }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#D4845A' }}>Assignment</div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {!editingAssignment && (
+                        <button onClick={() => handleStartEdit(selectedAssignment)} style={{ ...btnSecondary, fontSize: '0.78rem', padding: '0.3rem 0.8rem' }}>Edit</button>
+                      )}
+                      <button onClick={() => setShowTemplateManager(true)} style={{ ...btnSecondary, fontSize: '0.78rem', padding: '0.3rem 0.8rem' }}>📝 Comment Templates</button>
+                      <button onClick={() => setShowRubricBuilder(true)} style={{ ...btnSecondary, fontSize: '0.78rem', padding: '0.3rem 0.8rem' }}>✓ Create Rubric</button>
                     </div>
-                  ))}
+                  </div>
+
+                  {!editingAssignment ? (
+                    <div>
+                      <h2 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.5rem' }}>{selectedAssignment.title}</h2>
+                      <div style={{ fontSize: '0.82rem', color: '#9A8878', marginBottom: '0.5rem' }}>
+                        {selectedAssignment.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {selectedAssignment.word_count} words{selectedAssignment.genre ? ` · ${selectedAssignment.genre}` : ''}
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: '#9A8878', marginBottom: '0.5rem' }}>
+                        Due {new Date(selectedAssignment.due_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        {selectedAssignment.action && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Action: {selectedAssignment.action}</span>}
+                        {selectedAssignment.word && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Word: {selectedAssignment.word}</span>}
+                        {selectedAssignment.location && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Location: {selectedAssignment.location}</span>}
+                        {selectedAssignment.object && <span style={{ fontSize: '0.72rem', background: '#EDE3D4', color: '#6B5D4E', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>Object: {selectedAssignment.object}</span>}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label style={labelStyle}>Title
+                        <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
+                      </label>
+                      <label style={labelStyle}>Genre (optional)
+                        <select value={editGenre} onChange={e => setEditGenre(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem', appearance: 'none' }}>
+                          <option value="">Random / student's choice</option>
+                          {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                      </label>
+                      <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '1rem', marginBottom: '0.75rem' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9A8878', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.75rem' }}>Prompt ingredients</div>
+                        {selectedAssignment.prompt_type === 'microfiction' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <label style={labelStyle}>Action
+                              <input type="text" value={editAction} onChange={e => setEditAction(e.target.value)} placeholder="e.g. Unraveling" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                            </label>
+                            <label style={labelStyle}>Word
+                              <input type="text" value={editWord} onChange={e => setEditWord(e.target.value)} placeholder="e.g. Courage" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                            </label>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {selectedAssignment.word_count === 500 && (
+                              <label style={labelStyle}>Action
+                                <input type="text" value={editAction} onChange={e => setEditAction(e.target.value)} placeholder="e.g. Warning" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                              </label>
+                            )}
+                            {selectedAssignment.word_count === 1000 && (
+                              <label style={labelStyle}>Location
+                                <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="e.g. A pawnshop" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                              </label>
+                            )}
+                            <label style={labelStyle}>Object
+                              <input type="text" value={editObject} onChange={e => setEditObject(e.target.value)} placeholder="e.g. A compass" style={{ ...inputStyle, marginTop: '0.3rem' }} />
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                      <label style={labelStyle}>Due date
+                        <input type="date" value={editDueDate} onChange={e => setEditDueDate(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
+                      </label>
+                      {error && <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '8px', color: '#B56840', padding: '0.75rem', marginBottom: '0.75rem', fontSize: '0.85rem' }}>{error}</div>}
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={handleSaveEdit} disabled={savingEdit} style={{ ...btnPrimary, opacity: savingEdit ? 0.6 : 1 }}>{savingEdit ? 'Saving...' : 'Save changes'}</button>
+                        <button onClick={() => { setEditingAssignment(false); setError(null); }} style={btnSecondary}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#3A3226', marginBottom: '0.75rem' }}>
+                  {assignmentSubmissions.length} submission{assignmentSubmissions.length !== 1 ? 's' : ''}
+                </div>
+
+                {assignmentSubmissions.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2.5rem 0', color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>No submissions yet.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {assignmentSubmissions.map((sub, index) => (
+                      <div key={sub.id} onClick={() => setFeedbackSubmissionIndex(index)} style={{ ...sectionStyle, marginBottom: 0, cursor: 'pointer' }}
+                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(58,50,38,0.1)'}
+                        onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{sub.users?.display_name || sub.users?.username}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#9A8878' }}>
+                              Submitted {new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </div>
+                          </div>
+                          {sub.title && <div style={{ fontSize: '0.85rem', fontStyle: 'italic', color: '#6B5D4E' }}>"{sub.title}"</div>}
+                          <button style={{ ...btnPrimary, fontSize: '0.78rem', padding: '0.3rem 0.8rem' }} onClick={(e) => { e.stopPropagation(); setFeedbackSubmissionIndex(index); }}>Grade ✏</button>
+                        </div>
+                        {sub.content && (
+                          <div style={{ background: '#F5EFE6', borderRadius: '10px', padding: '0.75rem', marginBottom: '0.75rem', fontSize: '0.9rem', color: '#3A3226', lineHeight: 1.6, maxHeight: '150px', overflow: 'hidden' }}>
+                            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{sub.content}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
-          </div>
 
-          {earnedBadges.length > 0 && (
-            <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginTop: '1rem' }}>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '1rem' }}>Badges</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-                {earnedBadges.filter(ub => ub.badges).map((ub) => (
-                  <div key={ub.id} title={ub.badges?.description} style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 500, color: '#3A3226' }}>
-                    <span style={{ fontSize: '1.3rem' }}>{ub.badges.icon}</span>
-                    {ub.badges.name}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+            {classDetailTab === 'assignments' && selectedAssignment && feedbackSubmissionIndex !== null && (
+              <TeacherFeedbackModal
+                assignment={selectedAssignment}
+                submission={assignmentSubmissions[feedbackSubmissionIndex]}
+                submissions={assignmentSubmissions}
+                submissionIndex={feedbackSubmissionIndex}
+                onNavigate={(newIndex) => setFeedbackSubmissionIndex(newIndex)}
+                onClose={() => setFeedbackSubmissionIndex(null)}
+                onSubmit={() => {
+                  setFeedbackSubmissionIndex(null);
+                  setSuccess('All submissions graded!');
+                  setTimeout(() => setSuccess(null), 3000);
+                }}
+              />
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Teacher Quality-of-Life Feature Modals */}
+      {showRubricBuilder && (
+        <RubricBuilder
+          onClose={() => setShowRubricBuilder(false)}
+          onSave={(rubric) => {
+            console.log('Rubric created:', rubric);
+            setShowRubricBuilder(false);
+            setSuccess('Rubric created!');
+            setTimeout(() => setSuccess(null), 3000);
+          }}
+        />
       )}
 
-      {storyModalData && (
-        <StoryModal
-          prompt={storyModalData.prompt}
-          assignmentId={storyModalData.assignmentId}
-          dailyPromptId={storyModalData.dailyPromptId}
-          isStudentSubmission={isStudentAccount(profile)}
-          onClose={() => setStoryModalData(null)}
-          onSaved={() => {
-            if (storyModalData.assignmentId) {
-              setSubmittedAssignmentIds(prev => [...prev, storyModalData.assignmentId]);
-            }
-            if (storyModalData.dailyPromptId) {
-              setDailyWritten(true);
-            }
-            setStoryModalData(null);
+      {showTemplateManager && (
+        <CommentTemplateManager
+          onClose={() => setShowTemplateManager(false)}
+        />
+      )}
+
+      {/* NEW: CreateAssignmentForm Modal (Multi-class) */}
+      {showCreateAssignmentModal && (
+        <CreateAssignmentForm
+          availableClasses={classes}
+          onClose={() => setShowCreateAssignmentModal(false)}
+          onAssignmentCreated={(assignments) => {
+            setShowCreateAssignmentModal(false);
+            setSuccess('Assignment created successfully!');
+            setTimeout(() => setSuccess(null), 3000);
+            // Optionally refresh assignments if needed
           }}
         />
       )}
