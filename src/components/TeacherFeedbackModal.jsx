@@ -7,14 +7,16 @@ import { supabase } from '../supabase';
  * Modal for teachers to provide feedback on student submissions.
  * 
  * Features:
- * - Load assignment's rubric (if exists) with categories for scoring
+ * - Load assignment's rubric (if exists) with point-level descriptors
+ * - Display criteria for each point level (Excellent, Good, Fair, Poor, Incomplete)
+ * - Score rubric categories with detailed guidance
  * - Enter feedback text + brief summary
  * - Set resubmission deadline
  * - Quick comment templates
  * - Auto-save feedback
  * - Previous/Next navigation between submissions
  * - Mark as graded
- * - Rubric category scoring
+ * - Rubric category scoring with descriptors
  * 
  * Auth: Uses Bearer token for API calls
  */
@@ -54,6 +56,7 @@ export default function TeacherFeedbackModal({
   const [currentRubric, setCurrentRubric] = useState(null);
   const [rubricCategories, setRubricCategories] = useState([]);
   const [commentTemplates, setCommentTemplates] = useState([]);
+  const [expandedCategory, setExpandedCategory] = useState(null);
 
   // Load existing feedback if available
   useEffect(() => {
@@ -117,7 +120,7 @@ export default function TeacherFeedbackModal({
         if (!response.ok) throw new Error('Failed to fetch rubric');
         const rubric = await response.json();
         setCurrentRubric(rubric);
-        setRubricCategories(rubric.categories || []);
+        setRubricCategories(rubric.rubric_categories || rubric.categories || []);
       } catch (err) {
         console.error('Failed to load rubric:', err);
       }
@@ -349,7 +352,7 @@ export default function TeacherFeedbackModal({
               fontSize: '0.9rem',
               marginBottom: '1.5rem',
             }}>
-              ⚠️ {error}
+              {error}
             </div>
           )}
 
@@ -377,7 +380,7 @@ export default function TeacherFeedbackModal({
             </p>
           </div>
 
-          {/* RUBRIC SCORING */}
+          {/* ENHANCED RUBRIC SCORING WITH CRITERIA DESCRIPTORS */}
           {currentRubric && rubricCategories.length > 0 && (
             <div style={{
               padding: '1rem',
@@ -393,7 +396,7 @@ export default function TeacherFeedbackModal({
                 marginTop: 0,
                 marginBottom: '1rem',
               }}>
-                📋 Rubric Scoring: {currentRubric.name}
+                Rubric Scoring: {currentRubric.name}
               </h4>
 
               {rubricCategories.map((category) => (
@@ -402,43 +405,115 @@ export default function TeacherFeedbackModal({
                   paddingBottom: '1rem',
                   borderBottom: `1px solid ${B.borderLight}`,
                 }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    color: B.darkBrown,
-                    marginBottom: '0.5rem',
+                  {/* Category Header with Score Input */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '0.75rem',
                   }}>
-                    {category.name}
-                    {category.max_points && ` (0–${category.max_points})`}
-                  </label>
+                    <div>
+                      <label style={{
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        color: B.darkBrown,
+                      }}>
+                        {category.name}
+                      </label>
+                      {category.description && (
+                        <p style={{
+                          fontSize: '0.8rem',
+                          color: B.textMuted,
+                          margin: '0.25rem 0 0 0',
+                          fontStyle: 'italic',
+                        }}>
+                          {category.description}
+                        </p>
+                      )}
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      max={category.max_points || undefined}
+                      value={rubricScores[category.id] || ''}
+                      onChange={(e) => handleRubricCategoryScore(category.id, parseInt(e.target.value) || 0)}
+                      placeholder={`0–${category.max_points || 'N/A'}`}
+                      style={{
+                        width: '80px',
+                        padding: '0.5rem',
+                        border: `1px solid ${B.borderLight}`,
+                        borderRadius: '4px',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        textAlign: 'center',
+                      }}
+                    />
+                  </div>
 
-                  <input
-                    type="number"
-                    min="0"
-                    max={category.max_points || undefined}
-                    value={rubricScores[category.id] || ''}
-                    onChange={(e) => handleRubricCategoryScore(category.id, parseInt(e.target.value) || 0)}
-                    placeholder={`0 to ${category.max_points || 'N/A'}`}
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: `1px solid ${B.borderLight}`,
+                  {/* Point-Level Criteria (Expandable) */}
+                  {category.rubric_criteria_levels && category.rubric_criteria_levels.length > 0 && (
+                    <div style={{
+                      backgroundColor: '#fff',
                       borderRadius: '4px',
-                      fontSize: '0.9rem',
-                      marginBottom: '0.25rem',
-                    }}
-                  />
-
-                  {category.description && (
-                    <p style={{
-                      fontSize: '0.8rem',
-                      color: B.textMuted,
-                      margin: 0,
-                      fontStyle: 'italic',
+                      border: `1px solid ${B.borderLight}`,
+                      overflow: 'hidden',
                     }}>
-                      {category.description}
-                    </p>
+                      <button
+                        onClick={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          backgroundColor: expandedCategory === category.id ? '#f0f0f0' : '#fafafa',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          color: B.darkBrown,
+                          textAlign: 'left',
+                        }}
+                      >
+                        {expandedCategory === category.id ? '▼' : '▶'} Show Point Levels
+                      </button>
+
+                      {expandedCategory === category.id && (
+                        <div style={{ padding: '0.5rem' }}>
+                          {category.rubric_criteria_levels
+                            .sort((a, b) => b.points - a.points)
+                            .map((criterion) => (
+                              <div
+                                key={`${category.id}-${criterion.points}`}
+                                style={{
+                                  padding: '0.5rem',
+                                  marginBottom: '0.5rem',
+                                  backgroundColor: rubricScores[category.id] === criterion.points ? '#f9f9f9' : '#fafafa',
+                                  borderLeft: rubricScores[category.id] === criterion.points ? `3px solid ${B.brown}` : '3px solid transparent',
+                                  borderRadius: '3px',
+                                  cursor: 'pointer',
+                                }}
+                                onClick={() => handleRubricCategoryScore(category.id, criterion.points)}
+                              >
+                                <div style={{
+                                  fontWeight: 600,
+                                  fontSize: '0.85rem',
+                                  color: B.darkBrown,
+                                  marginBottom: '0.25rem',
+                                }}>
+                                  {criterion.points} pt{criterion.points !== 1 ? 's' : ''} – {criterion.label || ''}
+                                </div>
+                                {criterion.descriptor && (
+                                  <div style={{
+                                    fontSize: '0.8rem',
+                                    color: B.textMuted,
+                                    lineHeight: '1.4',
+                                  }}>
+                                    {criterion.descriptor}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
@@ -671,7 +746,7 @@ export default function TeacherFeedbackModal({
                   fontSize: '0.85rem',
                 }}
               >
-                ← Previous
+                Previous
               </button>
             )}
             {showNext && (
@@ -686,7 +761,7 @@ export default function TeacherFeedbackModal({
                   fontSize: '0.85rem',
                 }}
               >
-                Next →
+                Next
               </button>
             )}
           </div>

@@ -1,125 +1,122 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '../supabase';
 
 /**
- * RubricBuilder
+ * Enhanced RubricBuilder Component
  * 
- * Allows teachers to:
- * - Create new rubrics from scratch
- * - Edit existing rubrics
- * - Add/remove/reorder categories
- * - Set max points per category
- * - Duplicate pre-built templates
- * - Use in assignments
+ * Creates rubrics with point-level descriptors
+ * Example: "Excellent (5 pts): Clear, compelling narrative..."
+ *          "Good (4 pts): Well-developed story..."
+ *          "Fair (3 pts): Story is present but..."
  */
 
-const B = {
-  sand: '#F5EFE6', sandMid: '#EDE3D4', sandDeep: '#D9C9B0',
-  terra: '#D4845A', terraDark: '#B56840', seaMid: '#5B9EC9', seaDeep: '#2E6DA4',
-  ink: '#3A3226', inkMid: '#6B5D4E', inkLight: '#9A8878', white: '#FFFCF8',
-};
-
-const inputStyle = {
-  width: '100%',
-  boxSizing: 'border-box',
-  padding: '0.6rem',
-  border: `1px solid ${B.sandDeep}`,
-  borderRadius: '6px',
-  fontSize: '0.9rem',
-  fontFamily: 'sans-serif',
-  color: B.ink,
-  background: B.sand,
-};
-
-export default function RubricBuilder({ onClose, onSave, initialRubric = null, mode = 'create' }) {
-  const [name, setName] = useState(initialRubric?.name || '');
-  const [description, setDescription] = useState(initialRubric?.description || '');
-  const [categories, setCategories] = useState(initialRubric?.rubric_categories || []);
+export default function RubricBuilder({ onRubricCreated, onClose, prefilledData }) {
+  const [rubricName, setRubricName] = useState(prefilledData?.name || '');
+  const [rubricDescription, setRubricDescription] = useState(prefilledData?.description || '');
+  const [categories, setCategories] = useState(
+    prefilledData?.categories || [
+      {
+        id: 'cat-1',
+        name: '',
+        description: '',
+        maxPoints: 5,
+        criteria: [
+          { points: 5, label: 'Excellent', descriptor: '' },
+          { points: 4, label: 'Good', descriptor: '' },
+          { points: 3, label: 'Fair', descriptor: '' },
+          { points: 2, label: 'Poor', descriptor: '' },
+          { points: 1, label: 'Incomplete', descriptor: '' },
+        ],
+      },
+    ]
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [templates, setTemplates] = useState([]);
-  const [showTemplates, setShowTemplates] = useState(false);
 
-useEffect(() => {
-  if (categories.length === 0 && mode === 'create') {
-    // Start with one empty category
-    setCategories([{ name: '', description: '', max_points: 5, position: 0 }]);
-  }
-  fetchTemplates();
-}, [mode, categories.length]);
-
-  const fetchTemplates = async () => {
-    try {
-      const { data } = await supabase
-        .from('rubrics')
-        .select(`
-          *,
-          rubric_categories (*)
-        `)
-        .eq('is_from_library', true)
-        .limit(5);
-
-      setTemplates(data || []);
-    } catch (err) {
-      console.error('Error fetching templates:', err);
-    }
-  };
-
+  // Add new category
   const handleAddCategory = () => {
-    const newCategory = {
-      id: `temp-${Date.now()}`,
-      name: '',
-      description: '',
-      max_points: 5,
-      position: categories.length,
-    };
-    setCategories([...categories, newCategory]);
+    setCategories([
+      ...categories,
+      {
+        id: `cat-${Date.now()}`,
+        name: '',
+        description: '',
+        maxPoints: 5,
+        criteria: [
+          { points: 5, label: 'Excellent', descriptor: '' },
+          { points: 4, label: 'Good', descriptor: '' },
+          { points: 3, label: 'Fair', descriptor: '' },
+          { points: 2, label: 'Poor', descriptor: '' },
+          { points: 1, label: 'Incomplete', descriptor: '' },
+        ],
+      },
+    ]);
   };
 
-  const handleRemoveCategory = (index) => {
-    setCategories(categories.filter((_, i) => i !== index));
-  };
-
-  const handleUpdateCategory = (index, field, value) => {
-    const updated = [...categories];
-    updated[index] = { ...updated[index], [field]: value };
-    setCategories(updated);
-  };
-
-  const handleMoveCategory = (index, direction) => {
-    if ((direction === 'up' && index === 0) || (direction === 'down' && index === categories.length - 1)) {
+  // Remove category
+  const handleRemoveCategory = (id) => {
+    if (categories.length === 1) {
+      setError('Rubric must have at least one category');
       return;
     }
-
-    const updated = [...categories];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    [updated[index], updated[targetIndex]] = [updated[targetIndex], updated[index]];
-
-    updated.forEach((cat, i) => (cat.position = i));
-    setCategories(updated);
+    setCategories(categories.filter(cat => cat.id !== id));
   };
 
-  const handleUseTemplate = (template) => {
-    setName(template.name);
-    setDescription(template.description || '');
-    setCategories(template.rubric_categories || []);
-    setShowTemplates(false);
+  // Update category field
+  const handleUpdateCategory = (id, field, value) => {
+    setCategories(
+      categories.map(cat =>
+        cat.id === id ? { ...cat, [field]: value } : cat
+      )
+    );
   };
 
-  const handleSave = async () => {
-    if (!name.trim()) {
+  // Update criteria descriptor
+  const handleUpdateCriteria = (categoryId, points, value) => {
+    setCategories(
+      categories.map(cat =>
+        cat.id === categoryId
+          ? {
+              ...cat,
+              criteria: cat.criteria.map(crit =>
+                crit.points === points ? { ...crit, descriptor: value } : crit
+              ),
+            }
+          : cat
+      )
+    );
+  };
+
+  // Update criteria label
+  const handleUpdateCriteriaLabel = (categoryId, points, value) => {
+    setCategories(
+      categories.map(cat =>
+        cat.id === categoryId
+          ? {
+              ...cat,
+              criteria: cat.criteria.map(crit =>
+                crit.points === points ? { ...crit, label: value } : crit
+              ),
+            }
+          : cat
+      )
+    );
+  };
+
+  // Create rubric
+  const handleCreateRubric = async () => {
+    if (!rubricName.trim()) {
       setError('Rubric name is required');
       return;
     }
 
-    if (categories.length === 0) {
-      setError('Add at least one category');
+    if (categories.some(cat => !cat.name.trim())) {
+      setError('All categories must have a name');
       return;
     }
 
-    // Validate all categories have names
-    if (categories.some(cat => !cat.name.trim())) {
-      setError('All categories must have names');
+    if (categories.some(cat => cat.criteria.some(crit => !crit.descriptor.trim()))) {
+      setError('All criteria must have descriptors');
       return;
     }
 
@@ -127,282 +124,334 @@ useEffect(() => {
     setError(null);
 
     try {
-    const { data: { session } } = await supabase.auth.getSession();
-if (!session) {
-  setError('Not authenticated');
-  setLoading(false);
-  return;
-}
+      const { data: { session } } = await supabase.auth.getSession();
 
-const response = await fetch('/api/teacher-features?action=createRubric', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${session.access_token}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-          name: name.trim(),
-          description: description.trim() || null,
-          categories: categories.map(cat => ({
-            name: cat.name.trim(),
-            description: cat.description.trim() || null,
-            max_points: Number(cat.max_points) || 5,
+      // POST to create rubric
+      const response = await fetch('/api/teacher-features?action=createRubric', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          name: rubricName,
+          description: rubricDescription,
+          categories: categories.map((cat, index) => ({
+            name: cat.name,
+            description: cat.description,
+            max_points: cat.maxPoints,
+            weight: 1.0,
+            position: index,
+            criteria: cat.criteria, // Pass full criteria with descriptors
           })),
         }),
       });
 
-let data;
-try {
-  data = await response.json();
-} catch (e) {
-  setError(`API Error: ${response.statusText || response.status}`);
-  setLoading(false);
-  return;
-}
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create rubric');
+      }
 
-if (!response.ok) {
-  setError(data.error || `Error: ${response.status}`);
-  setLoading(false);
-  return;
-}
+      const rubric = await response.json();
 
-      onSave?.(data.rubric);
-      onClose();
+      if (onRubricCreated) {
+        onRubricCreated(rubric);
+      }
+
+      if (onClose) {
+        onClose();
+      }
     } catch (err) {
+      console.error('Error creating rubric:', err);
       setError(err.message);
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-      <div style={{ background: B.white, borderRadius: '14px', padding: '2rem', width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
-        
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && onClose) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: '#fff',
+          borderRadius: '12px',
+          padding: '2rem',
+          maxWidth: '900px',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+        }}
+      >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: B.ink, margin: 0 }}>
-            {mode === 'create' ? 'Create Rubric' : 'Edit Rubric'}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#3A3226', margin: 0 }}>
+            Create Grading Rubric
           </h2>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: B.inkLight }}>×</button>
+          <p style={{ fontSize: '0.9rem', color: '#666', margin: '0.5rem 0 0 0' }}>
+            Define categories and point-level descriptors for consistent grading
+          </p>
         </div>
 
-        {/* Basic Info */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: B.inkMid, display: 'block', marginBottom: '0.4rem' }}>Rubric Name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="e.g., Story Structure"
-            style={inputStyle}
-          />
-        </div>
-
-        <div style={{ marginBottom: '1.5rem' }}>
-          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: B.inkMid, display: 'block', marginBottom: '0.4rem' }}>Description (optional)</label>
-          <textarea
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            placeholder="Describe what this rubric measures..."
-            style={{ ...inputStyle, minHeight: '70px', resize: 'vertical' }}
-          />
-        </div>
-
-        {/* Template Selector */}
-        {mode === 'create' && templates.length > 0 && (
-          <div style={{ marginBottom: '1.5rem', padding: '1rem', background: B.sand, borderRadius: '8px' }}>
-            <button
-              onClick={() => setShowTemplates(!showTemplates)}
-              style={{
-                width: '100%',
-                padding: '0.6rem',
-                background: B.seaDeep,
-                color: B.white,
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                marginBottom: '0.5rem',
-              }}>
-              {showTemplates ? 'Hide Templates' : 'Start from Template'}
-            </button>
-            {showTemplates && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {templates.map(template => (
-                  <button
-                    key={template.id}
-                    onClick={() => handleUseTemplate(template)}
-                    style={{
-                      padding: '0.6rem',
-                      background: B.white,
-                      border: `1px solid ${B.sandDeep}`,
-                      borderRadius: '6px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      color: B.ink,
-                    }}>
-                    <strong>{template.name}</strong>
-                    {template.description && <div style={{ fontSize: '0.75rem', color: B.inkLight }}>{template.description}</div>}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Categories */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: B.ink, margin: 0 }}>Scoring Categories</h3>
-            <button
-              onClick={handleAddCategory}
-              style={{
-                padding: '0.5rem 1rem',
-                background: B.terra,
-                color: B.white,
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}>
-              + Add Category
-            </button>
-          </div>
-
-          {categories.map((cat, index) => (
-            <div key={cat.id || index} style={{ padding: '1rem', background: B.sand, borderRadius: '8px', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                {/* Move up/down */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <button
-                    onClick={() => handleMoveCategory(index, 'up')}
-                    disabled={index === 0}
-                    style={{
-                      padding: '0.3rem 0.4rem',
-                      background: index === 0 ? B.sandDeep : B.white,
-                      border: `1px solid ${B.sandDeep}`,
-                      borderRadius: '3px',
-                      cursor: index === 0 ? 'not-allowed' : 'pointer',
-                      fontSize: '0.75rem',
-                      opacity: index === 0 ? 0.5 : 1,
-                    }}>
-                    ↑
-                  </button>
-                  <button
-                    onClick={() => handleMoveCategory(index, 'down')}
-                    disabled={index === categories.length - 1}
-                    style={{
-                      padding: '0.3rem 0.4rem',
-                      background: index === categories.length - 1 ? B.sandDeep : B.white,
-                      border: `1px solid ${B.sandDeep}`,
-                      borderRadius: '3px',
-                      cursor: index === categories.length - 1 ? 'not-allowed' : 'pointer',
-                      fontSize: '0.75rem',
-                      opacity: index === categories.length - 1 ? 0.5 : 1,
-                    }}>
-                    ↓
-                  </button>
-                </div>
-
-                {/* Fields */}
-                <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.5rem' }}>
-                  <input
-                    type="text"
-                    value={cat.name}
-                    onChange={e => handleUpdateCategory(index, 'name', e.target.value)}
-                    placeholder="Category name"
-                    style={{ ...inputStyle, background: B.white }}
-                  />
-                  <input
-                    type="number"
-                    value={cat.max_points}
-                    onChange={e => handleUpdateCategory(index, 'max_points', e.target.value)}
-                    min="1"
-                    max="100"
-                    style={{ ...inputStyle, background: B.white }}
-                  />
-                  <button
-                    onClick={() => handleRemoveCategory(index)}
-                    style={{
-                      padding: '0.6rem',
-                      background: B.terraDark,
-                      color: B.white,
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                    }}>
-                    Remove
-                  </button>
-                </div>
-              </div>
-
-              {/* Description */}
-              <textarea
-                value={cat.description || ''}
-                onChange={e => handleUpdateCategory(index, 'description', e.target.value)}
-                placeholder="Describe this category (optional)"
-                style={{
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  minHeight: '50px',
-                  padding: '0.5rem',
-                  background: B.white,
-                  border: `1px solid ${B.sandDeep}`,
-                  borderRadius: '6px',
-                  fontSize: '0.8rem',
-                  fontFamily: 'sans-serif',
-                  color: B.ink,
-                  resize: 'vertical',
-                }}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Error */}
+        {/* Error message */}
         {error && (
-          <div style={{ padding: '0.75rem', background: '#FDF0E8', border: `1px solid ${B.terra}`, borderRadius: '8px', color: B.terraDark, fontSize: '0.85rem', marginBottom: '1rem' }}>
+          <div
+            style={{
+              backgroundColor: '#FDF0E8',
+              border: '1px solid #D4845A',
+              borderRadius: '6px',
+              padding: '1rem',
+              marginBottom: '1rem',
+              color: '#B56840',
+              fontSize: '0.9rem',
+            }}
+          >
             {error}
           </div>
         )}
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <button
-            onClick={onClose}
+        {/* Rubric name & description */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', color: '#3A3226' }}>
+            Rubric Name *
+          </label>
+          <input
+            type="text"
+            placeholder="e.g., Creative Writing Rubric"
+            value={rubricName}
+            onChange={(e) => setRubricName(e.target.value)}
             style={{
-              flex: 1,
+              width: '100%',
               padding: '0.75rem',
-              background: 'transparent',
-              border: `1px solid ${B.sandDeep}`,
-              borderRadius: '8px',
-              color: B.inkMid,
-              fontSize: '0.9rem',
+              border: '1px solid #E8DDD3',
+              borderRadius: '6px',
+              fontSize: '0.95rem',
+              marginBottom: '1rem',
+              boxSizing: 'border-box',
+            }}
+          />
+
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', color: '#3A3226' }}>
+            Description (optional)
+          </label>
+          <textarea
+            placeholder="Brief description of this rubric's purpose"
+            value={rubricDescription}
+            onChange={(e) => setRubricDescription(e.target.value)}
+            rows={2}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              border: '1px solid #E8DDD3',
+              borderRadius: '6px',
+              fontSize: '0.95rem',
+              fontFamily: 'inherit',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
+
+        {/* Categories */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#3A3226', marginTop: 0, marginBottom: '1rem' }}>
+            Grading Categories
+          </h3>
+
+          {categories.map((category, catIndex) => (
+            <div
+              key={category.id}
+              style={{
+                backgroundColor: '#F5F1ED',
+                border: '1px solid #E8DDD3',
+                borderRadius: '8px',
+                padding: '1.25rem',
+                marginBottom: '1.5rem',
+              }}
+            >
+              {/* Category header */}
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#666' }}>Category {catIndex + 1}</span>
+                {categories.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCategory(category.id)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#D4845A',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+
+              {/* Category name */}
+              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem', color: '#3A3226' }}>
+                Category Name *
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., Story Structure, Dialogue, Grammar"
+                value={category.name}
+                onChange={(e) => handleUpdateCategory(category.id, 'name', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  border: '1px solid #E8DDD3',
+                  borderRadius: '4px',
+                  fontSize: '0.9rem',
+                  marginBottom: '1rem',
+                  boxSizing: 'border-box',
+                }}
+              />
+
+              {/* Max points */}
+              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem', color: '#3A3226' }}>
+                Max Points
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={category.maxPoints}
+                onChange={(e) => handleUpdateCategory(category.id, 'maxPoints', parseInt(e.target.value) || 5)}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  border: '1px solid #E8DDD3',
+                  borderRadius: '4px',
+                  fontSize: '0.9rem',
+                  marginBottom: '1rem',
+                  boxSizing: 'border-box',
+                }}
+              />
+
+              {/* Criteria descriptors */}
+              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.75rem', color: '#3A3226' }}>
+                Point Levels & Descriptors *
+              </label>
+
+              {category.criteria.map((crit) => (
+                <div key={crit.points} style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                    <input
+                      type="text"
+                      placeholder="Label (e.g., Excellent)"
+                      value={crit.label}
+                      onChange={(e) => handleUpdateCriteriaLabel(category.id, crit.points, e.target.value)}
+                      style={{
+                        width: '120px',
+                        padding: '0.5rem',
+                        border: '1px solid #E8DDD3',
+                        borderRadius: '4px',
+                        fontSize: '0.85rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <span style={{ padding: '0.5rem 0.75rem', backgroundColor: '#fff', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 600, color: '#666', minWidth: '50px', textAlign: 'center' }}>
+                      {crit.points} pts
+                    </span>
+                  </div>
+
+                  <textarea
+                    placeholder={`Describe what ${crit.points} points looks like for "${category.name}"`}
+                    value={crit.descriptor}
+                    onChange={(e) => handleUpdateCriteria(category.id, crit.points, e.target.value)}
+                    rows={2}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #E8DDD3',
+                      borderRadius: '4px',
+                      fontSize: '0.85rem',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box',
+                      resize: 'vertical',
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Add category button */}
+        <button
+          type="button"
+          onClick={handleAddCategory}
+          style={{
+            display: 'inline-block',
+            padding: '0.75rem 1.5rem',
+            backgroundColor: '#fff',
+            border: '2px solid #8B6F47',
+            borderRadius: '6px',
+            color: '#8B6F47',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            marginBottom: '1.5rem',
+          }}
+        >
+          + Add Category
+        </button>
+
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#f0f0f0',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: loading ? 'not-allowed' : 'pointer',
               fontWeight: 600,
-              cursor: 'pointer',
-            }}>
+              fontSize: '0.9rem',
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
             Cancel
           </button>
           <button
-            onClick={handleSave}
+            type="button"
+            onClick={handleCreateRubric}
             disabled={loading}
             style={{
-              flex: 1,
-              padding: '0.75rem',
-              background: loading ? B.sandDeep : B.seaDeep,
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#8B6F47',
+              color: '#fff',
               border: 'none',
-              borderRadius: '8px',
-              color: B.white,
-              fontSize: '0.9rem',
-              fontWeight: 600,
+              borderRadius: '6px',
               cursor: loading ? 'not-allowed' : 'pointer',
+              fontWeight: 600,
+              fontSize: '0.9rem',
               opacity: loading ? 0.7 : 1,
-            }}>
+            }}
+          >
             {loading ? 'Creating...' : 'Create Rubric'}
           </button>
         </div>

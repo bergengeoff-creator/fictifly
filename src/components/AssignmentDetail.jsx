@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
+import RubricShare from './RubricShare';
 
 /**
  * AssignmentDetail
@@ -7,12 +8,16 @@ import { supabase } from '../supabase';
  * Displays assignment information including:
  * - Assignment metadata (title, description, due date)
  * - Rubric info (if assigned) with edit button
+ * - Rubric sharing & download for teachers
+ * - Rubric view button for students
  * - Submissions list
  * - Open TeacherFeedbackModal for grading
  * 
  * Handles:
  * - Rubric cloning (when editing shared rubric)
  * - Soft delete (if rubric is deleted, still shows reference)
+ * - Rubric sharing with students
+ * - Rubric viewing (modal popup)
  */
 
 const B = {
@@ -27,6 +32,7 @@ const B = {
 
 export default function AssignmentDetail({
   assignment,
+  isTeacher = false,
   onEditRubric,
   onSubmissionsRefresh,
 }) {
@@ -34,11 +40,14 @@ export default function AssignmentDetail({
   const [loadingRubric, setLoadingRubric] = useState(false);
   const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [usageCount, setUsageCount] = useState(0);
+  const [rubricShareId, setRubricShareId] = useState(null);
+  const [showRubricModal, setShowRubricModal] = useState(false);
 
   // Load rubric info if assignment has rubric_id
   useEffect(() => {
     if (!assignment?.rubric_id) {
       setRubricInfo(null);
+      setRubricShareId(null);
       return;
     }
 
@@ -59,6 +68,20 @@ export default function AssignmentDetail({
         if (!response.ok) throw new Error('Failed to fetch rubric');
         const rubric = await response.json();
         setRubricInfo(rubric);
+
+        // Check if rubric is shared (for students)
+        if (!isTeacher) {
+          const { data: share } = await supabase
+            .from('public_rubric_shares')
+            .select('id')
+            .eq('rubric_id', assignment.rubric_id)
+            .eq('is_active', true)
+            .single();
+
+          if (share) {
+            setRubricShareId(share.id);
+          }
+        }
       } catch (err) {
         console.error('Failed to load rubric:', err);
         setRubricInfo(null);
@@ -68,7 +91,7 @@ export default function AssignmentDetail({
     };
 
     fetchRubric();
-  }, [assignment?.rubric_id]);
+  }, [assignment?.rubric_id, isTeacher]);
 
   const handleEditRubric = async () => {
     if (!assignment?.rubric_id) return;
@@ -149,6 +172,14 @@ export default function AssignmentDetail({
 
   return (
     <div style={{ padding: '1.5rem' }}>
+      {/* Rubric Modal - for students viewing */}
+      {showRubricModal && rubricShareId && (
+        <RubricShare 
+          shareId={rubricShareId}
+          onClose={() => setShowRubricModal(false)}
+        />
+      )}
+
       {/* Assignment Header */}
       <div style={{ marginBottom: '2rem' }}>
         <h2 style={{
@@ -195,7 +226,7 @@ export default function AssignmentDetail({
         </div>
       </div>
 
-      {/* RUBRIC INFO CARD - KEY ADDITION */}
+      {/* RUBRIC INFO CARD - ENHANCED WITH SHARING + VIEW */}
       {assignment?.rubric_id ? (
         <div style={{
           padding: '1rem',
@@ -210,14 +241,14 @@ export default function AssignmentDetail({
             alignItems: 'flex-start',
             gap: '1rem',
           }}>
-            <div>
+            <div style={{ flex: 1 }}>
               <p style={{
                 fontWeight: 600,
                 fontSize: '0.95rem',
                 color: B.darkBrown,
                 marginBottom: '0.25rem',
               }}>
-                📋 Grading Rubric
+                Grading Rubric
               </p>
               {loadingRubric ? (
                 <p style={{ fontSize: '0.85rem', color: B.textMuted }}>Loading rubric...</p>
@@ -240,17 +271,17 @@ export default function AssignmentDetail({
                       {rubricInfo.description}
                     </p>
                   )}
-                  {rubricInfo.categories && rubricInfo.categories.length > 0 && (
+                  {rubricInfo.rubric_categories && rubricInfo.rubric_categories.length > 0 && (
                     <div style={{
                       marginTop: '0.5rem',
                       fontSize: '0.8rem',
                       color: B.taupe,
                     }}>
-                      {rubricInfo.categories.length} categories
-                      {rubricInfo.categories.some(c => c.max_points) && (
+                      {rubricInfo.rubric_categories.length} categories
+                      {rubricInfo.rubric_categories.some(c => c.max_points) && (
                         <span>
                           {' '}
-                          • {rubricInfo.categories.reduce((sum, c) => sum + (c.max_points || 0), 0)} points total
+                          • {rubricInfo.rubric_categories.reduce((sum, c) => sum + (c.max_points || 0), 0)} points total
                         </span>
                       )}
                     </div>
@@ -263,27 +294,48 @@ export default function AssignmentDetail({
               )}
             </div>
 
-            {/* Edit button */}
-            {assignment.status === 'draft' && (
-              <button
-                onClick={handleEditRubric}
-                disabled={loadingRubric}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: '#fff',
-                  border: `1px solid ${B.borderLight}`,
-                  borderRadius: '4px',
-                  cursor: loadingRubric ? 'not-allowed' : 'pointer',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  color: B.brown,
-                  whiteSpace: 'nowrap',
-                  opacity: loadingRubric ? 0.6 : 1,
-                }}
-              >
-                Edit
-              </button>
-            )}
+            {/* Buttons - Teacher: Edit | Student: View (if shared) */}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {isTeacher && assignment.status === 'draft' && (
+                <button
+                  onClick={handleEditRubric}
+                  disabled={loadingRubric}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#fff',
+                    border: `1px solid ${B.borderLight}`,
+                    borderRadius: '4px',
+                    cursor: loadingRubric ? 'not-allowed' : 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    color: B.brown,
+                    whiteSpace: 'nowrap',
+                    opacity: loadingRubric ? 0.6 : 1,
+                  }}
+                >
+                  Edit
+                </button>
+              )}
+
+              {!isTeacher && rubricShareId && (
+                <button
+                  onClick={() => setShowRubricModal(true)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#fff',
+                    border: `1px solid ${B.borderLight}`,
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    color: B.brown,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  View Rubric
+                </button>
+              )}
+            </div>
           </div>
         </div>
       ) : (
@@ -328,7 +380,7 @@ export default function AssignmentDetail({
               color: B.darkBrown,
               marginBottom: '1rem',
             }}>
-              ⚠️ Rubric is Shared
+              Rubric is Shared
             </h3>
 
             <p style={{
