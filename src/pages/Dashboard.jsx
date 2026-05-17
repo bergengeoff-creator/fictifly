@@ -709,7 +709,7 @@ export default function Dashboard() {
                     {/* Write button */}
                     {dailyWritten ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{ background: '#F0F7ED', border: '1px solid #D4845A', color: '#3A7040', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
+                        <span style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
                         <button onClick={handleOpenDailyPrompt} style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer' }}>Edit story</button>
                       </div>
                     ) : (
@@ -734,7 +734,7 @@ export default function Dashboard() {
                     </div>
                     {dailyWritten ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{ background: '#F0F7ED', border: '1px solid #D4845A', color: '#3A7040', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
+                        <span style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
                         <button onClick={handleOpenDailyPrompt} style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer' }}>Edit story</button>
                       </div>
                     ) : (
@@ -807,14 +807,14 @@ export default function Dashboard() {
                     {submittedAssignments.map(a => {
                       const fb = assignmentFeedback[a.id];
                       return (
-                        <div key={a.id} style={{ background: '#F0F7ED', border: '1px solid #D4845A', borderRadius: '10px', padding: '0.85rem 1rem' }}>
+                        <div key={a.id} style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.85rem 1rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: fb ? '0.75rem' : 0 }}>
                             <div>
                               <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#3A3226' }}>{a.title}</div>
                               <div style={{ fontSize: '0.72rem', color: '#D4845A', fontWeight: 600, marginTop: '0.15rem' }}>Submitted ✓</div>
                             </div>
                             <button onClick={() => handleOpenSubmission(a)}
-                              style={{ background: 'transparent', border: '1px solid #D4845A', color: '#3A7040', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer' }}>
+                              style={{ background: 'transparent', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.35rem 0.85rem', fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer' }}>
                               Edit submission
                             </button>
                           </div>
@@ -956,13 +956,13 @@ export default function Dashboard() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {savedPrompts.filter(p => writtenPromptIds.includes(p.id)).slice(0, 3).map(p => (
-                    <div key={p.id} style={{ background: '#F0F7ED', border: '1px solid #D4845A', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div key={p.id} style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <div>
-                        <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#D4845A', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>{p.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {p.word_count} words ✓</div>
-                        <div style={{ fontSize: '0.88rem', color: '#3A3226', fontWeight: 500 }}>{p.genre}</div>
-                        <div style={{ fontSize: '0.82rem', color: '#6B5D4E' }}>{p.action || p.location} · {p.word || p.object}</div>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#6B5D4E', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>{p.prompt_type === 'microfiction' ? 'Microfiction' : 'Flash Fiction'} · {p.word_count} words ✓</div>
+                        <div style={{ fontSize: '0.88rem', color: '#3A3226', fontWeight: 500, display: 'inline-block', background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '6px', padding: '0.25rem 0.6rem' }}>{p.genre}</div>
+                        <div style={{ fontSize: '0.82rem', color: '#6B5D4E', marginTop: '0.3rem' }}>{p.action || p.location} · {p.word || p.object}</div>
                       </div>
-                      <button onClick={() => navigate(p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=written' : '/generators/flash-fiction?tab=written')} style={{ fontSize: '0.75rem', color: '#3A7040', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>View →</button>
+                      <button onClick={() => navigate(p.prompt_type === 'microfiction' ? '/generators/microfiction?tab=written' : '/generators/flash-fiction?tab=written')} style={{ fontSize: '0.75rem', color: '#6B5D4E', textDecoration: 'none', fontWeight: 500, background: 'transparent', border: 'none', cursor: 'pointer' }}>View →</button>
                     </div>
                   ))}
                 </div>
