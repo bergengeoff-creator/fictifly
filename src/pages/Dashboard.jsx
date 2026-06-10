@@ -30,8 +30,9 @@ export default function Dashboard() {
   const [savedPrompts, setSavedPrompts] = useState([]);
   const [totalPromptsGenerated, setTotalPromptsGenerated] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
-  const [badgeCount, setBadgeCount] = useState(0);
-  const [earnedBadges, setEarnedBadges] = useState([]);
+const [badgeCount, setBadgeCount] = useState(0);
+const [earnedBadges, setEarnedBadges] = useState([]);
+const [newBadges, setNewBadges] = useState([]);
   const [storiesWritten, setStoriesWritten] = useState(0);
   const [writtenPromptIds, setWrittenPromptIds] = useState([]);
 
@@ -978,12 +979,13 @@ export default function Dashboard() {
             </div>
           )}
             {newBadges && newBadges.length > 0 && (
+        {newBadges && newBadges.length > 0 && (
         <BadgeModal
           badges={newBadges}
           onDismiss={() => setNewBadges(prev => prev.slice(1))}
         />
       )}
- 
+
       {storyModalData && (
         <StoryModal
           prompt={storyModalData.prompt}
