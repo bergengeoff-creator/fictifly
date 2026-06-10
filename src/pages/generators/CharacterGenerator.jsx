@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../context/AuthContext';
-import BadgeToast from '../../components/BadgeToast';
+import BadgeModal from '../../components/BadgeModal';
 
 import { playAudioCue, playBadgeCue } from '../../utils/audioCue';
 import FictiflyLogo from '../../components/FictiflyLogo';
@@ -1073,7 +1073,12 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
         )}
       </div>
 
-      <BadgeToast badges={newBadges} onDismiss={() => setNewBadges([])} />
+      {newBadges && newBadges.length > 0 && (
+  <BadgeModal
+    badges={newBadges}
+    onDismiss={() => setNewBadges(prev => prev.slice(1))}
+  />
+)}
     </div>
   );
 }

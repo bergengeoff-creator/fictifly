@@ -7,6 +7,8 @@ import TheWell from '../utils/TheWell';
 import WellModal from '../components/WellModal';
 import FictiflyLogo from '../components/FictiflyLogo';
 import Account from './Account'; // NEW: Import Account tab
+import BadgeModal from '../components/BadgeModal';
+import BadgeShelf from '../components/BadgeShelf';
 
 const isStudentAccount = (profile) =>
   profile && (profile.account_type === 'minor' || profile.account_type === 'student');
@@ -971,21 +973,17 @@ export default function Dashboard() {
           </div>
 
           {earnedBadges.length > 0 && (
-            <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', marginTop: '1rem' }}>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '1rem' }}>Badges</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-                {earnedBadges.filter(ub => ub.badges).map((ub) => (
-                  <div key={ub.id} title={ub.badges?.description} style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 500, color: '#3A3226' }}>
-                    <span style={{ fontSize: '1.3rem' }}>{ub.badges.icon}</span>
-                    {ub.badges.name}
-                  </div>
-                ))}
-              </div>
+            <div style={{ marginTop: '1rem' }}>
+              <BadgeShelf earnedBadges={earnedBadges.filter(ub => ub.badges)} title="Badges" />
             </div>
           )}
-        </div>
+            {newBadges && newBadges.length > 0 && (
+        <BadgeModal
+          badges={newBadges}
+          onDismiss={() => setNewBadges(prev => prev.slice(1))}
+        />
       )}
-
+ 
       {storyModalData && (
         <StoryModal
           prompt={storyModalData.prompt}

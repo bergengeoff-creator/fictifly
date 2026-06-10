@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import BadgeToast from '../../components/BadgeToast';
+import BadgeModal from '../../components/BadgeModal';
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -498,7 +498,12 @@ Respond ONLY with a JSON array, no markdown, no explanation:
           onAssigned={handleAssigned}
         />
       )}
-      <BadgeToast badges={newBadges} onDismiss={() => setNewBadges([])} />
+      {newBadges && newBadges.length > 0 && (
+  <BadgeModal
+    badges={newBadges}
+    onDismiss={() => setNewBadges(prev => prev.slice(1))}
+  />
+)}
     </div>
   );
 }

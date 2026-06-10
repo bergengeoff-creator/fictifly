@@ -2,20 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import FictiflyLogo from '../components/FictiflyLogo';
+import BadgeShelf from '../components/BadgeShelf';
 
-const BADGE_COLORS = {
-  'First Spark': '#D4845A',
-  'Story Hoarder': '#2E6DA4',
-  'Dedicated Writer': '#E86A3A',
-  'Week Warrior': '#C8A060',
-  'Genre Explorer': '#6BAF72',
-  'Microfiction Master': '#B07AC0',
-  'Flash Fiction Fan': '#5B9EC9',
-  'Prolific Writer': '#F2C94C',
-  'First Draft': '#6BAF72',
-  'Storyteller': '#2E6DA4',
-  'Prolific Storyteller': '#B07AC0',
-};
 
 const StoryModal = ({ story, onClose }) => {
   useEffect(() => {
@@ -244,18 +232,8 @@ export default function PublicProfile() {
           </div>
         )}
 
-        {badges.length > 0 && (
-          <div style={sectionStyle}>
-            <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Badges</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {badges.map(ub => (
-                <div key={ub.id} title={ub.badges?.description} style={{ background: '#F5EFE6', border: `1px solid ${BADGE_COLORS[ub.badges?.name] || '#D9C9B0'}`, borderRadius: '10px', padding: '0.6rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', fontWeight: 500, color: '#3A3226' }}>
-                  <span style={{ fontSize: '1.1rem' }}>{ub.badges?.icon}</span>
-                  {ub.badges?.name}
-                </div>
-              ))}
-            </div>
-          </div>
+     {badges.length > 0 && (
+          <BadgeShelf earnedBadges={badges} title="Badges" />
         )}
 
         {stories.length > 0 && (

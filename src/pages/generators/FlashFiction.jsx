@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import BadgeToast from '../../components/BadgeToast';
+import BadgeModal from '../../components/BadgeModal';
 import StoryModal from '../../components/StoryModal';
 import AssignModal from '../../components/AssignModal';
 import { useState, useCallback, useEffect } from 'react';
@@ -525,7 +525,12 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
           onAssigned={handleAssigned}
         />
       )}
-      <BadgeToast badges={newBadges} onDismiss={() => setNewBadges([])} />
+      {newBadges && newBadges.length > 0 && (
+  <BadgeModal
+    badges={newBadges}
+    onDismiss={() => setNewBadges(prev => prev.slice(1))}
+  />
+)}
     </div>
   );
 }

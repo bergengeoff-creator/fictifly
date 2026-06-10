@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 import FictiflyLogo from '../components/FictiflyLogo';
+import BadgeShelf from '../components/BadgeShelf';
 
 const GENRES = [
   'Action/Adventure','Comedy','Crime Caper','Drama','Fairy Tale','Fantasy',
@@ -261,17 +262,7 @@ export default function Profile() {
             )}
 
             {earnedBadges.length > 0 && (
-              <div style={sectionStyle}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Badges</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  {earnedBadges.map((ub) => (
-                    <div key={ub.id} title={ub.badges?.description} style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '10px', padding: '0.6rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', fontWeight: 500, color: '#3A3226' }}>
-                      <span style={{ fontSize: '1.1rem' }}>{ub.badges?.icon}</span>
-                      {ub.badges?.name}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <BadgeShelf earnedBadges={earnedBadges} title="Badges" />
             )}
           </div>
         ) : (
