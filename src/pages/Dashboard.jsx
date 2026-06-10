@@ -6,7 +6,7 @@ import StoryModal from '../components/StoryModal';
 import TheWell from '../utils/TheWell';
 import WellModal from '../components/WellModal';
 import FictiflyLogo from '../components/FictiflyLogo';
-import Account from './Account'; // NEW: Import Account tab
+import Account from './Account';
 import BadgeModal from '../components/BadgeModal';
 import BadgeShelf from '../components/BadgeShelf';
 
@@ -17,34 +17,31 @@ export default function Dashboard() {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
 
-  // NEW: Tab state
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // Redirect to onboarding if profile not complete — only on initial load
   useEffect(() => {
     if (user && profile && profile.profile_complete === false) {
       navigate('/onboarding', { replace: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   const [savedPrompts, setSavedPrompts] = useState([]);
   const [totalPromptsGenerated, setTotalPromptsGenerated] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
-const [badgeCount, setBadgeCount] = useState(0);
-const [earnedBadges, setEarnedBadges] = useState([]);
-const [newBadges, setNewBadges] = useState([]);
+  const [badgeCount, setBadgeCount] = useState(0);
+  const [earnedBadges, setEarnedBadges] = useState([]);
+  const [newBadges, setNewBadges] = useState([]);
   const [storiesWritten, setStoriesWritten] = useState(0);
   const [writtenPromptIds, setWrittenPromptIds] = useState([]);
 
-  // Daily prompt
   const [dailyPrompt, setDailyPrompt] = useState(null);
   const [dailyPromptLoading, setDailyPromptLoading] = useState(true);
   const [dailyWritten, setDailyWritten] = useState(false);
   const [savedCharacters, setSavedCharacters] = useState([]);
-  const [activeCharacter, setActiveCharacter] = useState(null); // null = use daily generated char
+  const [activeCharacter, setActiveCharacter] = useState(null);
   const [showCharacterSwap, setShowCharacterSwap] = useState(false);
 
-  // Assignments (students only)
   const [assignments, setAssignments] = useState([]);
   const [submittedAssignmentIds, setSubmittedAssignmentIds] = useState([]);
   const [assignmentFeedback, setAssignmentFeedback] = useState({});
@@ -122,6 +119,7 @@ const [newBadges, setNewBadges] = useState([]);
         setEarnedBadges([]);
         setBadgeCount(0);
       }
+
       if (profile && isStudentAccount(profile)) {
         const { data: memberships } = await supabase
           .from('class_members')
@@ -147,7 +145,7 @@ const [newBadges, setNewBadges] = useState([]);
           .eq('student_id', user.id)
           .gte('due_date', today)
           .order('due_date', { ascending: true });
-          
+
         allAssignments = [...allAssignments, ...(individualAssignments || [])];
 
         const seen = new Set();
@@ -162,7 +160,6 @@ const [newBadges, setNewBadges] = useState([]);
     fetchData();
   }, [user, profile]);
 
-  // Fetch daily prompt separately
   useEffect(() => {
     const fetchDailyPrompt = async () => {
       setDailyPromptLoading(true);
@@ -171,7 +168,6 @@ const [newBadges, setNewBadges] = useState([]);
         const data = await response.json();
         if (data && data.id) {
           setDailyPrompt(data);
-          // Check if user already wrote today's prompt
           const { data: existing } = await supabase
             .from('submissions')
             .select('id')
@@ -188,7 +184,6 @@ const [newBadges, setNewBadges] = useState([]);
     if (user) fetchDailyPrompt();
   }, [user]);
 
-  // Badge refresh — re-fetch when user returns to tab (catches badges earned in generators)
   const fetchBadges = async () => {
     if (!user) return;
     const { data: userBadgeData } = await supabase
@@ -223,7 +218,6 @@ const [newBadges, setNewBadges] = useState([]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Fetch saved characters for premium users (character day swap)
   useEffect(() => {
     const fetchSavedChars = async () => {
       if (!user || !profile) return;
@@ -301,7 +295,6 @@ const [newBadges, setNewBadges] = useState([]);
   const pendingAssignments = assignments.filter(a => !submittedAssignmentIds.includes(a.id));
   const submittedAssignments = assignments.filter(a => submittedAssignmentIds.includes(a.id));
 
-  // Account label — minor accounts are writers, student accounts are classroom students
   const accountLabel =
     profile && profile.account_type === 'teacher'
       ? 'Educator account'
@@ -309,7 +302,6 @@ const [newBadges, setNewBadges] = useState([]);
       ? 'Student account'
       : 'Writer account';
 
-  // Premium trial state — standard accounts only
   const now = new Date();
   const trialExpiry = profile && profile.premium_expires_at
     ? new Date(profile.premium_expires_at)
@@ -357,115 +349,61 @@ const [newBadges, setNewBadges] = useState([]);
 
   return (
     <div style={{ minHeight: '100vh', background: '#F5EFE6', fontFamily: 'sans-serif', color: '#3A3226', padding: '0 1.25rem 5rem' }}>
-      {/* HEADER / NAV — UPDATED */}
+
+      {/* HEADER / NAV */}
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #D9C9B0', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <Link to="/dashboard" style={{ textDecoration: 'none', display: 'block' }}>
           <FictiflyLogo />
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {/* Writers button — premium/teacher only */}
           {profile && (isPremium || profile.account_type === 'teacher') && (
             <button
               onClick={() => navigate('/writers')}
-              style={{
-                background: 'transparent',
-                border: '1px solid #D9C9B0',
-                borderRadius: '8px',
-                color: '#6B5D4E',
-                fontSize: '0.82rem',
-                padding: '0.4rem 0.9rem',
-                cursor: 'pointer',
-                textDecoration: 'none',
-              }}
+              style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer' }}
             >
               Writers
             </button>
           )}
-
-          {/* My Classes button — teacher only */}
           {profile && profile.account_type === 'teacher' && (
             <button
               onClick={() => navigate('/classroom')}
-              style={{
-                background: 'transparent',
-                border: '1px solid #D9C9B0',
-                borderRadius: '8px',
-                color: '#6B5D4E',
-                fontSize: '0.82rem',
-                padding: '0.4rem 0.9rem',
-                cursor: 'pointer',
-              }}
+              style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer' }}
             >
               My Classes
             </button>
           )}
-
-          {/* My Profile button */}
           <button
             onClick={() => navigate('/profile')}
-            style={{
-              background: 'transparent',
-              border: '1px solid #D9C9B0',
-              borderRadius: '8px',
-              color: '#6B5D4E',
-              fontSize: '0.82rem',
-              padding: '0.4rem 0.9rem',
-              cursor: 'pointer',
-            }}
+            style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer' }}
           >
             My Profile
           </button>
-
-          {/* Account button — NEW */}
           <button
             onClick={() => setActiveTab('account')}
-            style={{
-              background: activeTab === 'account' ? '#3A3226' : 'transparent',
-              border: activeTab === 'account' ? 'none' : '1px solid #D9C9B0',
-              borderRadius: '8px',
-              color: activeTab === 'account' ? '#FFFCF8' : '#6B5D4E',
-              fontSize: '0.82rem',
-              padding: '0.4rem 0.9rem',
-              cursor: 'pointer',
-              fontWeight: activeTab === 'account' ? 600 : 400,
-            }}
+            style={{ background: activeTab === 'account' ? '#3A3226' : 'transparent', border: activeTab === 'account' ? 'none' : '1px solid #D9C9B0', borderRadius: '8px', color: activeTab === 'account' ? '#FFFCF8' : '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer', fontWeight: activeTab === 'account' ? 600 : 400 }}
           >
             Account
           </button>
-
-          {/* Sign out button */}
           <button
             onClick={handleSignOut}
-            style={{
-              background: 'transparent',
-              border: '1px solid #D9C9B0',
-              borderRadius: '8px',
-              color: '#6B5D4E',
-              fontSize: '0.82rem',
-              padding: '0.4rem 0.9rem',
-              cursor: 'pointer',
-            }}
+            style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer' }}
           >
             Sign out
           </button>
         </div>
       </div>
 
-      {/* ACCOUNT TAB — NEW */}
+      {/* ACCOUNT TAB */}
       {activeTab === 'account' && (
         <Account profile={profile} isPremium={isPremium} isTeacher={isTeacher} />
       )}
 
-      {/* DASHBOARD TAB (default) */}
+      {/* DASHBOARD TAB */}
       {activeTab === 'dashboard' && (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
           <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.6rem' }}>Dashboard</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <div
-              onClick={() => setShowWellModal(true)}
-              style={{ cursor: 'pointer' }}
-              title="What is The Well?"
-            >
+            <div onClick={() => setShowWellModal(true)} style={{ cursor: 'pointer' }} title="What is The Well?">
               <TheWell size="icon" darkBg={true} />
             </div>
             <h1 style={{ fontSize: '2.2rem', fontWeight: 700, margin: 0 }}>
@@ -476,14 +414,11 @@ const [newBadges, setNewBadges] = useState([]);
             </h1>
           </div>
 
-          {showWellModal && <WellModal onClose={() => setShowWellModal(false)}/>}
-          <p style={{ color: '#6B5D4E', fontSize: '0.95rem', marginBottom: '2rem' }}>
-            {accountLabel}
-          </p>
+          {showWellModal && <WellModal onClose={() => setShowWellModal(false)} />}
+          <p style={{ color: '#6B5D4E', fontSize: '0.95rem', marginBottom: '2rem' }}>{accountLabel}</p>
 
           {(isNewUser || showTrialWelcome) && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-              {/* Static simplified Well for dashboard — no animation */}
               <svg width="120" height="120" viewBox="145 137 238 224" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '0.75rem' }}>
                 <circle cx="264.45" cy="241.23" r="129.02" fill="#231f20"/>
                 <circle cx="264.34" cy="240.27" r="91.38" fill="none" stroke="#b49041" strokeDasharray="3.99 2.99" strokeWidth=".75" strokeMiterlimit="10" opacity=".5"/>
@@ -499,7 +434,6 @@ const [newBadges, setNewBadges] = useState([]);
                 <ellipse cx="256.06" cy="228.75" rx="2.87" ry="3.86" fill="#cbe6f8"/>
                 <circle cx="266.66" cy="235.03" r="46.07" fill="none" stroke="#c1a14c" strokeWidth="5" strokeMiterlimit="10"/>
                 <circle cx="266.81" cy="234.69" r="43.19" fill="none" stroke="#e4c89c" strokeWidth="2" strokeMiterlimit="10"/>
-                {/* Flor de Barcelona — static at top position */}
                 <g transform="translate(264.36,149.59)">
                   <circle r="11.09" transform="translate(-0.13,0.2) rotate(-37.29)" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
                   <path d="M11.38,0.44c4.03.95,7.03,4.57,7.03,8.89,0,5.05-4.09,9.14-9.14,9.14-4.23,0-7.79-2.87-8.83-6.77" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
@@ -524,7 +458,7 @@ const [newBadges, setNewBadges] = useState([]);
             </div>
           )}
 
-          {/* Premium trial — welcome banner (day 1 only) */}
+          {/* Premium trial — welcome banner */}
           {profile && profile.account_type === 'standard' && showTrialWelcome && (
             <div style={{ background: '#FFFCF8', border: '1px solid #D4845A', borderRadius: '14px', padding: '1.5rem', marginBottom: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)', borderLeft: '4px solid #D4845A' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.6rem' }}>
@@ -555,7 +489,7 @@ const [newBadges, setNewBadges] = useState([]);
             </div>
           )}
 
-          {/* Premium trial — countdown warning (7 days or less) */}
+          {/* Premium trial — countdown warning */}
           {profile && profile.account_type === 'standard' && showTrialWarning && (
             <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
@@ -577,9 +511,7 @@ const [newBadges, setNewBadges] = useState([]);
           {profile && profile.account_type === 'standard' && trialExpired && (
             <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '14px', padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
-                <div style={{ fontWeight: 600, color: '#B56840', marginBottom: '0.2rem', fontSize: '0.95rem' }}>
-                  Your Premium trial has ended
-                </div>
+                <div style={{ fontWeight: 600, color: '#B56840', marginBottom: '0.2rem', fontSize: '0.95rem' }}>Your Premium trial has ended</div>
                 <div style={{ fontSize: '0.82rem', color: '#B56840', lineHeight: 1.5 }}>
                   You're back on the free plan — 6 prompts/day, no story submission or directory access.
                 </div>
@@ -624,9 +556,7 @@ const [newBadges, setNewBadges] = useState([]);
             ) : dailyPrompt ? (
               <div>
                 {dailyPrompt.challenge_type === 'character' ? (
-                  // ── Character day card ────────────────────────────────────────
                   <div>
-                    {/* Active character display */}
                     {(() => {
                       const char = activeCharacter || dailyPrompt.character_data;
                       return char ? (
@@ -657,7 +587,6 @@ const [newBadges, setNewBadges] = useState([]);
                       ) : null;
                     })()}
 
-                    {/* Premium swap — saved character */}
                     {isPremium && savedCharacters.length > 0 && (
                       <div style={{ marginBottom: '1rem' }}>
                         <button
@@ -696,7 +625,6 @@ const [newBadges, setNewBadges] = useState([]);
                       </div>
                     )}
 
-                    {/* Non-premium upsell banner */}
                     {!isPremium && (
                       <div style={{ background: '#FDF5E8', border: '1px solid #C8A060', borderRadius: '8px', padding: '0.65rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '0.82rem', color: '#9A6830' }}>
@@ -709,7 +637,6 @@ const [newBadges, setNewBadges] = useState([]);
                       </div>
                     )}
 
-                    {/* Write button */}
                     {dailyWritten ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <span style={{ background: '#EDE3D4', border: '1px solid #D9C9B0', color: '#6B5D4E', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}>✓ Written today!</span>
@@ -722,7 +649,6 @@ const [newBadges, setNewBadges] = useState([]);
                     )}
                   </div>
                 ) : (
-                  // ── Standard day card ─────────────────────────────────────────
                   <div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
@@ -780,12 +706,7 @@ const [newBadges, setNewBadges] = useState([]);
                           </div>
                           {(a.action || a.word || a.location || a.object) && (
                             <div style={{ fontSize: '0.78rem', color: '#6B5D4E', marginBottom: '0.2rem' }}>
-                              {[
-                                a.action && `Action: ${a.action}`,
-                                a.word && `Word: ${a.word}`,
-                                a.location && `Location: ${a.location}`,
-                                a.object && `Object: ${a.object}`,
-                              ].filter(Boolean).join(' · ')}
+                              {[a.action && `Action: ${a.action}`, a.word && `Word: ${a.word}`, a.location && `Location: ${a.location}`, a.object && `Object: ${a.object}`].filter(Boolean).join(' · ')}
                             </div>
                           )}
                           <div style={{ fontSize: '0.72rem', color: isDueSoon ? '#B56840' : '#9A8878', fontWeight: isDueSoon ? 600 : 400 }}>
@@ -843,6 +764,7 @@ const [newBadges, setNewBadges] = useState([]);
             </div>
           )}
 
+          {/* Stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
             {stats.map((stat) => (
               <div key={stat.label} style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
@@ -852,6 +774,7 @@ const [newBadges, setNewBadges] = useState([]);
             ))}
           </div>
 
+          {/* Generators */}
           <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '1rem' }}>Start writing</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
             {generators.map((g) => (
@@ -867,6 +790,7 @@ const [newBadges, setNewBadges] = useState([]);
             ))}
           </div>
 
+          {/* Beta features */}
           {canAccessBeta && BETA_FEATURES.length > 0 && (
             <div style={{ marginBottom: '2rem' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.65rem', marginBottom: '1rem' }}>
@@ -891,13 +815,10 @@ const [newBadges, setNewBadges] = useState([]);
                           Open →
                         </button>
                       ) : (
-                        <button
-                          onClick={() => joinBeta(f.key)}
-                          disabled={isJoining}
+                        <button onClick={() => joinBeta(f.key)} disabled={isJoining}
                           style={{ background: isJoining ? '#D9C9B0' : '#3A3226', color: '#FFFCF8', border: 'none', borderRadius: '9px', padding: '0.5rem 1.1rem', fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: '0.82rem', cursor: isJoining ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'background 0.18s' }}
                           onMouseEnter={e => { if (!isJoining) e.currentTarget.style.background = '#6B5D4E'; }}
-                          onMouseLeave={e => { if (!isJoining) e.currentTarget.style.background = '#3A3226'; }}
-                        >
+                          onMouseLeave={e => { if (!isJoining) e.currentTarget.style.background = '#3A3226'; }}>
                           {isJoining ? 'Enabling…' : 'Enable beta access'}
                         </button>
                       )}
@@ -908,6 +829,7 @@ const [newBadges, setNewBadges] = useState([]);
             </div>
           )}
 
+          {/* Saved Prompts */}
           <div style={{ background: '#FFFCF8', border: '1px solid #D9C9B0', borderRadius: '14px', padding: '1.5rem', boxShadow: '0 2px 12px rgba(58,50,38,0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h2 style={{ fontSize: '1.3rem', fontWeight: 600 }}>Saved Prompts</h2>
@@ -973,19 +895,24 @@ const [newBadges, setNewBadges] = useState([]);
             )}
           </div>
 
+          {/* Badge Shelf */}
           {earnedBadges.length > 0 && (
             <div style={{ marginTop: '1rem' }}>
               <BadgeShelf earnedBadges={earnedBadges.filter(ub => ub.badges)} title="Badges" />
             </div>
           )}
-            {newBadges && newBadges.length > 0 && (
-        {newBadges && newBadges.length > 0 && (
+        </div>
+      )}
+
+      {/* Badge Modal */}
+      {newBadges && newBadges.length > 0 && (
         <BadgeModal
           badges={newBadges}
           onDismiss={() => setNewBadges(prev => prev.slice(1))}
         />
       )}
 
+      {/* Story Modal */}
       {storyModalData && (
         <StoryModal
           prompt={storyModalData.prompt}
