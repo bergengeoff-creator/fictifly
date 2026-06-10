@@ -1,42 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 400 400">
   <defs>
-    <linearGradient id="c" x1="184.46" y1="197.69" x2="215.95" y2="197.69" gradientUnits="userSpaceOnUse">
+    <linearGradient id="c" x1="171.89" y1="203.87" x2="228.29" y2="203.87" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#20466d"/>
       <stop offset=".04" stop-color="#20456b"/>
       <stop offset="1" stop-color="#0e1629"/>
     </linearGradient>
-    <linearGradient id="d" x1="184.72" y1="188.28" x2="215.46" y2="206.03" gradientUnits="userSpaceOnUse">
+    <linearGradient id="d" x1="173.72" y1="187.82" x2="226.04" y2="218.02" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#e6c749"/>
       <stop offset="1" stop-color="#917a20"/>
     </linearGradient>
-    <linearGradient id="e" x1="195.84" y1="192.87" x2="204.42" y2="201.45" xlink:href="#d"/>
+    <linearGradient id="e" x1="193.12" y1="196.08" x2="206.8" y2="209.76" xlink:href="#d"/>
   </defs>
   <g id="a" data-name="Backgrounds">
-    <rect x="92.14" y="90.22" width="215.72" height="215.72" rx="12" ry="12" fill="#f5efe7"/>
+    <rect x="8.39" y="9.81" width="383.27" height="383.27" rx="12" ry="12" fill="#f5efe7"/>
   </g>
   <g id="b" data-name="Genre Compass">
-    <path d="M165.18,189.07h-11.36v-13.97h11.36v-5.59c0-15.88,9.49-23.38,23.13-23.38,1.34,0,4.41.15,10.03.59v15.59c-2.41-.29-4.81-.44-6.82-.44-5.48,0-7.35,2.35-7.35,8.82v4.41h13.1v13.97h-13.1v62.06h-18.99v-62.06Z" fill="#d9c9b0" opacity=".15"/>
-    <path d="M213.12,189.07h-11.36v-13.97h11.36v-5.59c0-15.88,9.49-23.38,23.13-23.38,1.34,0,4.41.15,10.03.59v15.59c-2.41-.29-4.81-.44-6.82-.44-5.48,0-7.35,2.35-7.35,8.82v4.41h13.1v13.97h-13.1v62.06h-18.99v-62.06Z" fill="#d4845b" opacity=".15"/>
+    <path d="M137.36,188.43h-20.35v-25.02h20.35v-10.01c0-28.44,17-41.88,41.43-41.88,2.39,0,7.9.27,17.96,1.06v27.92c-4.31-.53-8.62-.79-12.21-.79-9.82,0-13.17,4.22-13.17,15.8v7.9h23.46v25.02h-23.46v111.15h-34v-111.15Z" fill="#d9c9b0" opacity=".15"/>
+    <path d="M223.21,188.43h-20.35v-25.02h20.35v-10.01c0-28.44,17-41.88,41.43-41.88,2.39,0,7.9.27,17.96,1.06v27.92c-4.31-.53-8.62-.79-12.21-.79-9.82,0-13.17,4.22-13.17,15.8v7.9h23.46v25.02h-23.46v111.15h-34v-111.15Z" fill="#d4845b" opacity=".15"/>
     <g>
-      <polygon points="122.19 197.34 195.55 209.44 195.55 184.88 122.19 197.34" fill="#4b3e2e"/>
-      <polygon points="281.37 197.34 208.01 209.44 208.01 184.88 281.37 197.34" fill="#2f6ea5"/>
-      <polygon points="200.31 276.75 212.41 203.39 187.85 203.39 200.31 276.75" fill="#d4845b"/>
-      <polygon points="200.22 117.57 212.32 190.93 187.76 190.93 200.22 117.57" fill="#e6c749"/>
-      <polyline points="211.66 186.89 200.31 186.27 200.22 117.57" fill="#c5a331"/>
-      <path d="M214.47,197.46c5.22,1.23,9.1,5.92,9.1,11.51,0,6.53-5.3,11.83-11.83,11.83-5.48,0-10.08-3.72-11.43-8.77" fill="none" opacity=".65" stroke="#e6c749" stroke-miterlimit="10" stroke-width="2.5"/>
-      <path d="M185.69,196.91c-5.39-1.1-9.45-5.87-9.45-11.59,0-6.53,5.3-11.83,11.83-11.83,5.68,0,10.43,4.01,11.57,9.35" fill="none" opacity=".65" stroke="#e6c749" stroke-miterlimit="10" stroke-width="2.5"/>
-      <path d="M199.23,212.94c-1.63,4.59-6.01,7.87-11.15,7.87-6.53,0-11.83-5.3-11.83-11.83,0-5.24,3.4-9.68,8.11-11.24" fill="none" opacity=".65" stroke="#e6c749" stroke-miterlimit="10" stroke-width="2.5"/>
-      <path d="M200.22,182.58c1.23-5.22,5.92-9.1,11.51-9.1,6.53,0,11.83,5.3,11.83,11.83,0,5.68-4.01,10.43-9.35,11.57" fill="none" opacity=".65" stroke="#e6c749" stroke-miterlimit="10" stroke-width="2.5"/>
-      <circle cx="200.21" cy="197.69" r="15.75" fill="url(#c)"/>
-      <circle cx="200.09" cy="197.16" r="15.75" fill="none" stroke="url(#d)" stroke-miterlimit="10" stroke-width="4"/>
-      <circle cx="200.08" cy="197.28" r="12.85" transform="translate(-35.45 44.06) rotate(-11.55)" fill="none" stroke="#c5a333" stroke-miterlimit="10" stroke-width="2"/>
-      <circle cx="200.13" cy="197.16" r="4.56" fill="#f5efe7" stroke="url(#e)" stroke-miterlimit="10" stroke-width="3"/>
-      <circle cx="201.22" cy="197.08" r="82.77" transform="translate(-80.42 200.01) rotate(-45)" fill="none" stroke="#e7c74a" stroke-dasharray=".75 6" stroke-linecap="round" stroke-miterlimit="10"/>
-      <rect x="148.99" y="230.92" width="10.24" height="10.24" rx="2.22" ry="2.22" transform="translate(-121.77 178.11) rotate(-45)" fill="#6c5e4e" opacity=".5"/>
-      <rect x="149.04" y="153.68" width="10.24" height="10.24" rx="2.22" ry="2.22" transform="translate(-67.13 155.52) rotate(-45)" fill="#d9c9b0" opacity=".5"/>
-      <rect x="242.26" y="230.93" width="10.24" height="10.24" rx="2.22" ry="2.22" transform="translate(-94.45 244.06) rotate(-45)" fill="#d4845b" opacity=".5"/>
-      <rect x="242.77" y="153.68" width="10.24" height="10.24" rx="2.22" ry="2.22" transform="translate(-39.68 221.8) rotate(-45)" fill="#2f6ea5" opacity=".5"/>
+      <polygon points="60.37 203.24 191.76 224.91 191.76 180.93 60.37 203.24" fill="#4b3e2e"/>
+      <polygon points="345.45 203.24 214.07 224.91 214.07 180.93 345.45 203.24" fill="#2f6ea5"/>
+      <polygon points="200.28 345.46 221.95 214.08 177.96 214.08 200.28 345.46" fill="#d4845b"/>
+      <polygon points="200.12 60.38 221.8 191.76 177.81 191.76 200.12 60.38" fill="#e6c749"/>
+      <polyline points="220.6 184.53 200.27 183.42 200.12 60.38" fill="#c5a331"/>
+      <path d="M225.64,203.47c9.34,2.21,16.29,10.6,16.29,20.62,0,11.7-9.49,21.19-21.19,21.19-9.81,0-18.06-6.66-20.47-15.71" fill="none" opacity=".65" stroke="#e6c749" stroke-miterlimit="10" stroke-width="2.5"/>
+      <path d="M174.09,202.47c-9.66-1.98-16.92-10.52-16.92-20.76,0-11.7,9.49-21.19,21.19-21.19,10.18,0,18.68,7.18,20.72,16.75" fill="none" opacity=".65" stroke="#e6c749" stroke-miterlimit="10" stroke-width="2.5"/>
+      <path d="M198.34,231.18c-2.92,8.21-10.76,14.09-19.97,14.09-11.7,0-21.19-9.49-21.19-21.19,0-9.38,6.09-17.33,14.53-20.12" fill="none" opacity=".65" stroke="#e6c749" stroke-miterlimit="10" stroke-width="2.5"/>
+      <path d="M200.12,176.81c2.21-9.34,10.6-16.3,20.62-16.3,11.7,0,21.19,9.49,21.19,21.19,0,10.18-7.18,18.68-16.75,20.72" fill="none" opacity=".65" stroke="#e6c749" stroke-miterlimit="10" stroke-width="2.5"/>
+      <circle cx="200.09" cy="203.87" r="28.2" fill="url(#c)"/>
+      <circle cx="199.88" cy="202.92" r="28.2" fill="none" stroke="url(#d)" stroke-miterlimit="10" stroke-width="4"/>
+      <circle cx="199.86" cy="203.14" r="23.01" transform="translate(-39.9 49.11) rotate(-12.75)" fill="none" stroke="#c5a333" stroke-miterlimit="10" stroke-width="2"/>
+      <circle cx="199.96" cy="202.92" r="8.17" fill="#f5efe7" stroke="url(#e)" stroke-miterlimit="10" stroke-width="3"/>
+      <circle cx="201.91" cy="202.78" r="148.24" transform="translate(-84.25 202.17) rotate(-45)" fill="none" stroke="#e7c74a" stroke-dasharray="3.98 19.9" stroke-linecap="round" stroke-miterlimit="10" stroke-width="4"/>
+      <rect x="108.37" y="263.38" width="18.33" height="18.33" rx="4.31" ry="4.31" transform="translate(-158.3 162.94) rotate(-45)" fill="#6c5e4e" opacity=".5"/>
+      <rect x="108.45" y="125.04" width="18.33" height="18.33" rx="4.31" ry="4.31" transform="translate(-60.45 122.48) rotate(-45)" fill="#d9c9b0" opacity=".5"/>
+      <rect x="275.41" y="263.4" width="18.33" height="18.33" rx="4.31" ry="4.31" transform="translate(-109.38 281.06) rotate(-45)" fill="#d4845b" opacity=".5"/>
+      <rect x="276.32" y="125.04" width="18.33" height="18.33" rx="4.31" ry="4.31" transform="translate(-11.28 241.19) rotate(-45)" fill="#2f6ea5" opacity=".5"/>
     </g>
   </g>
 </svg>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 400 400">
   <defs>
-    <radialGradient id="c" cx="206.17" cy="149.13" fx="206.17" fy="149.13" r="19.51" gradientTransform="translate(-57.76 -32.15) scale(1.25)" gradientUnits="userSpaceOnUse">
+    <radialGradient id="c" cx="211.9" cy="144.94" fx="211.9" fy="144.94" r="19.51" gradientTransform="translate(-327.8522 -242.9398) scale(2.4895)" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#b66840"/>
       <stop offset="0" stop-color="#d08055"/>
       <stop offset=".54" stop-color="#c2734a"/>
@@ -9,17 +9,17 @@
     </radialGradient>
   </defs>
   <g id="a" data-name="Backgrounds">
-    <rect x="92.14" y="90.22" width="215.72" height="215.72" rx="12" ry="12" fill="#f5efe7"/>
+    <rect x="8.39" y="9.81" width="383.27" height="383.27" rx="12" ry="12" fill="#f5efe7"/>
   </g>
   <g id="b" data-name="Kind Reader">
-    <path d="M133.29,155.58s18.45-34.28,67.29-34.28,67.56,34.28,67.56,34.28c0,0-23.38,33.77-67.56,33.77s-67.29-33.77-67.29-33.77Z" fill="none" stroke="#5b9ec9" stroke-miterlimit="10" stroke-width="4"/>
-    <circle cx="200.72" cy="155.32" r="34.49" fill="#5b9ec9"/>
-    <path d="M178.13,151.28s8.04,9.72,8.04,9.72l14.47,17.5s14.61-17.67,14.61-17.67c0,0,7.82-9.46,7.82-9.46,1.69-2.14,2.7-4.85,2.7-7.79,0-6.94-5.63-12.57-12.57-12.57-5.94,0-11.19,4.44-12.5,9.98-1.21-5.68-6.6-9.98-12.64-9.98-6.94,0-12.57,5.63-12.57,12.57,0,2.94,1.01,5.65,2.7,7.79" fill="url(#c)"/>
-    <ellipse cx="187.24" cy="143.17" rx="7.04" ry="4.81" transform="translate(-16.62 261.48) rotate(-67.53)" fill="#fffcf8" opacity=".65"/>
-    <line x1="136.72" y1="224.52" x2="262.09" y2="224.52" fill="none" stroke="#d9c9b0" stroke-linecap="round" stroke-miterlimit="10" stroke-width="5"/>
-    <line x1="136.72" y1="236.43" x2="241.42" y2="236.43" fill="none" stroke="#d9c9b0" stroke-linecap="round" stroke-miterlimit="10" stroke-width="5"/>
-    <line x1="136.72" y1="248.35" x2="254.65" y2="248.35" fill="none" stroke="#d9c9b0" stroke-linecap="round" stroke-miterlimit="10" stroke-width="5"/>
-    <line x1="136.72" y1="260.26" x2="228.42" y2="260.26" fill="none" stroke="#d9c9b0" stroke-linecap="round" stroke-miterlimit="10" stroke-width="5"/>
-    <line x1="136.72" y1="272.18" x2="251.58" y2="272.18" fill="none" stroke="#d9c9b0" stroke-linecap="round" stroke-miterlimit="10" stroke-width="5"/>
+    <path d="M65.89,119.52S102.55,51.42,199.55,51.42s134.21,68.1,134.21,68.1c0,0-46.43,67.07-134.21,67.07S65.89,119.52,65.89,119.52Z" fill="none" stroke="#5b9ec9" stroke-miterlimit="10" stroke-width="8"/>
+    <circle cx="199.82" cy="119.01" r="68.52" fill="#5b9ec9"/>
+    <path d="M154.95,110.97s15.97,19.32,15.97,19.32l28.74,34.76s29.02-35.1,29.02-35.1c0,0,15.54-18.8,15.54-18.8,3.36-4.25,5.37-9.63,5.37-15.47,0-13.79-11.18-24.96-24.96-24.96-11.8,0-22.22,8.82-24.82,19.83-2.4-11.28-13.11-19.83-25.1-19.83-13.79,0-24.96,11.18-24.96,24.96,0,5.84,2.01,11.21,5.37,15.47" fill="url(#c)"/>
+    <ellipse cx="173.06" cy="94.87" rx="13.99" ry="9.56" transform="translate(19.25 218.53) rotate(-67.53)" fill="#fffcf8" opacity=".65"/>
+    <line x1="72.71" y1="256.46" x2="321.74" y2="256.46" fill="none" stroke="#d9c9b0" stroke-linecap="round" stroke-miterlimit="10" stroke-width="9"/>
+    <line x1="72.71" y1="280.12" x2="280.67" y2="280.12" fill="none" stroke="#d9c9b0" stroke-linecap="round" stroke-miterlimit="10" stroke-width="9"/>
+    <line x1="72.71" y1="303.79" x2="306.96" y2="303.79" fill="none" stroke="#d9c9b0" stroke-linecap="round" stroke-miterlimit="10" stroke-width="9"/>
+    <line x1="72.71" y1="327.46" x2="254.86" y2="327.46" fill="none" stroke="#d9c9b0" stroke-linecap="round" stroke-miterlimit="10" stroke-width="9"/>
+    <line x1="72.71" y1="351.13" x2="300.85" y2="351.13" fill="none" stroke="#d9c9b0" stroke-linecap="round" stroke-miterlimit="10" stroke-width="9"/>
   </g>
 </svg>

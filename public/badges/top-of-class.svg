@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 400 400">
   <defs>
-    <linearGradient id="b" x1="92.14" y1="196.66" x2="307.86" y2="196.66" gradientUnits="userSpaceOnUse">
+    <linearGradient id="b" x1="8.39" y1="201.44" x2="391.66" y2="201.44" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#20466d"/>
       <stop offset=".04" stop-color="#20456b"/>
       <stop offset="1" stop-color="#0e1629"/>
     </linearGradient>
-    <radialGradient id="d" cx="217.09" cy="192.64" fx="217.09" fy="192.64" r="11.81" gradientTransform="translate(-285.7909 -234.6519) scale(2.237)" gradientUnits="userSpaceOnUse">
+    <radialGradient id="d" cx="223.37" cy="188.66" fx="223.37" fy="188.66" r="11.81" gradientTransform="translate(-703.6796 -562.5636) scale(4.047)" gradientUnits="userSpaceOnUse">
       <stop offset=".12" stop-color="#0098c0"/>
       <stop offset=".23" stop-color="#0293b9"/>
       <stop offset=".4" stop-color="#0985a6"/>
@@ -16,21 +16,21 @@
     </radialGradient>
   </defs>
   <g id="a" data-name="Backgrounds">
-    <rect x="92.14" y="88.8" width="215.72" height="215.72" rx="12" ry="12" fill="url(#b)"/>
+    <rect x="8.39" y="9.81" width="383.27" height="383.27" rx="12" ry="12" fill="url(#b)"/>
   </g>
   <g id="c" data-name="Top of Class">
-    <circle cx="200.39" cy="196.34" r="83.58" transform="translate(-80.14 199.21) rotate(-45)" fill="none" stroke="#8cc4e0" stroke-dasharray=".75 12.05" stroke-linecap="round" stroke-miterlimit="10" stroke-width="3"/>
-    <circle cx="199.61" cy="196.05" r="74.09" transform="translate(-80.16 198.57) rotate(-45)" fill="none" stroke="#e7c74a" stroke-linecap="round" stroke-miterlimit="10" stroke-width="7"/>
-    <circle cx="200.08" cy="196.21" r="69.07" transform="translate(-66.5 282.6) rotate(-62.4)" fill="none" stroke="#c7912e" stroke-linecap="round" stroke-miterlimit="10" stroke-width="4"/>
+    <circle cx="201.29" cy="201.05" r="151.2" transform="translate(-83.21 201.22) rotate(-45)" fill="none" stroke="#8cc4e0" stroke-dasharray=".99 29.66" stroke-linecap="round" stroke-miterlimit="10" stroke-width="6"/>
+    <circle cx="199.87" cy="200.51" r="134.04" transform="translate(-83.24 200.06) rotate(-45)" fill="none" stroke="#e7c74a" stroke-linecap="round" stroke-miterlimit="10" stroke-width="12"/>
+    <circle cx="199.72" cy="200.81" r="124.95" transform="translate(-83.49 200.04) rotate(-45)" fill="none" stroke="#c7912e" stroke-linecap="round" stroke-miterlimit="10" stroke-width="7"/>
     <g>
-      <circle id="e" data-name="flor-glass" cx="199.85" cy="196.28" r="26.43" fill="url(#d)" opacity=".72"/>
-      <circle cx="199.94" cy="196.52" r="28.61" fill="none" stroke="#e7c74a" stroke-miterlimit="10" stroke-width="5"/>
-      <path d="M189.87,193.66h-3.22v-3.95s3.22,0,3.22,0v-1.58c0-4.49,2.69-6.62,6.54-6.62.38,0,1.25.04,2.84.17v4.41c-.68-.08-1.36-.12-1.93-.12-1.55,0-2.08.67-2.08,2.5v1.25h3.71v3.95s-3.71,0-3.71,0v17.56s-5.37,0-5.37,0v-17.56Z" fill="#d9c9b0" opacity=".15"/>
-      <path d="M203.43,193.66h-3.22v-3.95s3.22,0,3.22,0v-1.58c0-4.49,2.69-6.62,6.54-6.62.38,0,1.25.04,2.84.17v4.41c-.68-.08-1.36-.12-1.93-.12-1.55,0-2.08.67-2.08,2.5v1.25h3.71v3.95s-3.71,0-3.71,0v17.56s-5.37,0-5.37,0v-17.56Z" fill="#d9c9b0" opacity=".15"/>
-      <path d="M228.95,197.15c10.39,2.46,18.12,11.79,18.12,22.93,0,13.02-10.55,23.57-23.57,23.57-10.91,0-20.08-7.41-22.77-17.47" fill="none" stroke="#e7c74a" stroke-miterlimit="10" stroke-width="5"/>
-      <path d="M171.62,196.04c-10.74-2.2-18.82-11.7-18.82-23.09,0-13.02,10.55-23.57,23.57-23.57,11.32,0,20.78,7.99,23.05,18.63" fill="none" stroke="#e7c74a" stroke-miterlimit="10" stroke-width="5"/>
-      <path d="M198.58,227.98c-3.25,9.13-11.97,15.68-22.21,15.68-13.02,0-23.57-10.55-23.57-23.57,0-10.43,6.77-19.28,16.16-22.38" fill="none" stroke="#e7c74a" stroke-miterlimit="10" stroke-width="5"/>
-      <path d="M200.57,167.51c2.46-10.39,11.79-18.12,22.94-18.12,13.02,0,23.57,10.55,23.57,23.57,0,11.32-7.99,20.78-18.63,23.05" fill="none" stroke="#e7c74a" stroke-miterlimit="10" stroke-width="5"/>
+      <circle id="e" data-name="flor-glass" cx="200.3" cy="200.94" r="47.81" fill="url(#d)" opacity=".72"/>
+      <circle cx="200.47" cy="201.37" r="51.77" fill="none" stroke="#e7c74a" stroke-miterlimit="10" stroke-width="11"/>
+      <path d="M182.25,196.2h-5.82s0-7.15,0-7.15h5.82s0-2.86,0-2.86c0-8.13,4.86-11.97,11.84-11.97.68,0,2.26.08,5.13.3v7.98c-1.23-.15-2.46-.23-3.49-.23-2.81,0-3.76,1.21-3.76,4.52v2.26h6.71s0,7.15,0,7.15h-6.71s0,31.77,0,31.77h-9.72s0-31.77,0-31.77Z" fill="#d9c9b0" opacity=".15"/>
+      <path d="M206.79,196.2h-5.82s0-7.15,0-7.15h5.82s0-2.86,0-2.86c0-8.13,4.86-11.97,11.84-11.97.68,0,2.26.08,5.13.3v7.98c-1.23-.15-2.46-.23-3.49-.23-2.81,0-3.76,1.21-3.76,4.52v2.26h6.71s0,7.15,0,7.15h-6.71s0,31.77,0,31.77h-9.72s0-31.77,0-31.77Z" fill="#d9c9b0" opacity=".15"/>
+      <path d="M252.96,202.51c18.8,4.45,32.78,21.34,32.78,41.49,0,23.55-19.09,42.64-42.64,42.64-19.73,0-36.33-13.4-41.2-31.6" fill="none" stroke="#e7c74a" stroke-miterlimit="10" stroke-width="8"/>
+      <path d="M149.24,200.5c-19.43-3.98-34.04-21.17-34.04-41.77,0-23.55,19.09-42.64,42.64-42.64,20.49,0,37.6,14.45,41.7,33.71" fill="none" stroke="#e7c74a" stroke-miterlimit="10" stroke-width="8"/>
+      <path d="M198.02,258.28c-5.87,16.53-21.65,28.36-40.19,28.36-23.55,0-42.64-19.09-42.64-42.64,0-18.87,12.26-34.87,29.24-40.49" fill="none" stroke="#e7c74a" stroke-miterlimit="10" stroke-width="8"/>
+      <path d="M201.61,148.88c4.45-18.8,21.34-32.79,41.49-32.79,23.55,0,42.64,19.09,42.64,42.64,0,20.49-14.45,37.6-33.71,41.7" fill="none" stroke="#e7c74a" stroke-miterlimit="10" stroke-width="8"/>
     </g>
   </g>
 </svg>

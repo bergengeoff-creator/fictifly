@@ -1,26 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 400 400">
   <defs>
-    <linearGradient id="c" x1="169.4" y1="164.08" x2="233.62" y2="228.3" gradientUnits="userSpaceOnUse">
-      <stop offset=".05" stop-color="#d4845b"/>
-      <stop offset=".4" stop-color="#cd7e55"/>
-      <stop offset=".88" stop-color="#bb6d45"/>
-      <stop offset="1" stop-color="#b66840"/>
+    <linearGradient id="c" x1="94.63" y1="92.07" x2="312.64" y2="310.07" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#20466d"/>
+      <stop offset="1" stop-color="#0e1629"/>
     </linearGradient>
   </defs>
   <g id="a" data-name="Backgrounds">
-    <rect x="92.14" y="90.22" width="215.72" height="215.72" rx="12" ry="12" fill="#f5efe7"/>
+    <rect x="8.39" y="9.81" width="383.27" height="383.27" rx="12" ry="12" fill="#f5efe7"/>
   </g>
-  <g id="b" data-name="First Spark">
-    <g>
-      <circle cx="201.51" cy="196.19" r="45.41" fill="url(#c)" stroke="#5a9eca" stroke-miterlimit="10" stroke-width="10"/>
-      <path d="M247.56,197.2c16.49,3.9,28.76,18.72,28.76,36.4,0,20.66-16.75,37.4-37.4,37.4-17.31,0-31.87-11.76-36.14-27.72" fill="none" stroke="#5a9eca" stroke-miterlimit="10" stroke-width="8"/>
-      <path d="M156.57,195.43c-17.04-3.49-29.87-18.57-29.87-36.64,0-20.66,16.75-37.4,37.4-37.4,17.97,0,32.98,12.67,36.58,29.57" fill="none" stroke="#5a9eca" stroke-miterlimit="10" stroke-width="8"/>
-      <path d="M199.36,246.12c-5.15,14.5-18.99,24.88-35.25,24.88-20.66,0-37.4-16.75-37.4-37.4,0-16.55,10.75-30.59,25.65-35.52" fill="none" stroke="#5a9eca" stroke-miterlimit="10" stroke-width="8"/>
-      <path d="M202.51,150.15c3.9-16.49,18.72-28.76,36.4-28.76,20.66,0,37.4,16.75,37.4,37.4,0,17.97-12.67,32.98-29.57,36.58" fill="none" stroke="#5a9eca" stroke-miterlimit="10" stroke-width="8"/>
-    </g>
-    <ellipse cx="184.25" cy="179.29" rx="10.2" ry="6.48" transform="translate(-71.41 206.33) rotate(-50.26)" fill="#fffcf8" opacity=".65"/>
-    <path d="M182.29,191.99h-5.96s0-7.32,0-7.32h5.96v-2.93c0-8.32,4.97-12.25,12.12-12.25.7,0,2.31.08,5.25.31v8.17c-1.26-.15-2.52-.23-3.57-.23-2.87,0-3.85,1.23-3.85,4.62v2.31h6.87s0,7.32,0,7.32h-6.87s0,32.52,0,32.52h-9.95s0-32.52,0-32.52Z" fill="#d9c9b0" opacity=".15"/>
-    <path d="M207.41,191.99h-5.96s0-7.32,0-7.32h5.96v-2.93c0-8.32,4.97-12.25,12.12-12.25.7,0,2.31.08,5.25.31v8.17c-1.26-.15-2.52-.23-3.57-.23-2.87,0-3.85,1.23-3.85,4.62v2.31h6.87s0,7.32,0,7.32h-6.87s0,32.52,0,32.52h-9.95s0-32.52,0-32.52Z" fill="#d9c9b0" opacity=".15"/>
+  <g id="b" data-name="First Spark Revised">
+    <circle id="d" data-name="ink-pool" cx="203.63" cy="201.07" r="154.15" fill="url(#c)" stroke="#3b6297" stroke-miterlimit="10" stroke-width="6"/>
+    <circle id="e" data-name="ink-glow-1" cx="203.63" cy="176.69" r="67.39" fill="none" opacity=".8" stroke="#5b9ec9" stroke-miterlimit="10" stroke-width="7"/>
+    <circle id="f" data-name="ink-glow-1" cx="203.63" cy="178.83" r="43.71" fill="none" opacity=".9" stroke="#5b9ec9" stroke-miterlimit="10" stroke-width="7"/>
+    <path id="g" data-name="ink-glow-1" d="M197.77,203.04c-10.77-2.79-18.72-12.57-18.72-24.22,0-9.66,5.48-18.05,13.5-22.21" fill="none" opacity=".95" stroke="#5b9ec9" stroke-linecap="round" stroke-miterlimit="10" stroke-width="7"/>
+    <path id="h" data-name="ink-glow-1" d="M209.1,154.32c11.4,2.33,19.97,12.42,19.97,24.51,0,9.67-5.49,18.06-13.52,22.22" fill="none" opacity=".95" stroke="#5b9ec9" stroke-linecap="round" stroke-miterlimit="10" stroke-width="7"/>
+    <circle id="i" data-name="ink-glow-1" cx="203.63" cy="178.83" r="86.02" fill="none" opacity=".6" stroke="#5b9ec9" stroke-miterlimit="10" stroke-width="4.5"/>
+    <circle id="j" data-name="ink-glow-1" cx="204.06" cy="178.83" r="11.51" fill="#fffcf8" opacity=".95" stroke="#5b9ec9" stroke-miterlimit="10" stroke-width="6"/>
+    <path id="k" data-name="ink-glow-1" d="M280.01,102.88c19.44,19.44,31.46,46.29,31.46,75.95,0,59.32-48.09,107.41-107.41,107.41s-107.41-48.09-107.41-107.41c0-40.78,22.73-76.26,56.21-94.45" fill="none" opacity=".6" stroke="#5b9ec9" stroke-linecap="round" stroke-miterlimit="10" stroke-width="4"/>
+    <ellipse cx="178.11" cy="126.69" rx="4.34" ry="3.8" transform="translate(-40.46 127.45) rotate(-35.62)" fill="#5b9ec9" opacity=".85"/>
+    <ellipse cx="165.74" cy="215.78" rx="3.08" ry="3.5" transform="translate(-94.76 137.23) rotate(-35.69)" fill="#5b9ec9" opacity=".75"/>
+    <ellipse cx="228.05" cy="228.43" rx="3.5" ry="3.08" transform="translate(-83.4 313.22) rotate(-60.28)" fill="#5b9ec9" opacity=".9"/>
+    <ellipse cx="228.48" cy="128" rx="4.26" ry="5.3" transform="translate(-7.2 242.19) rotate(-55.11)" fill="#5b9ec9" opacity=".9"/>
+    <ellipse cx="259.34" cy="175.64" rx="3.08" ry="3.5" transform="translate(62.4 419.21) rotate(-85.15)" fill="#5b9ec9" opacity=".75"/>
+    <line x1="195.45" y1="212.41" x2="204.06" y2="177.69" fill="none"/>
   </g>
 </svg>
