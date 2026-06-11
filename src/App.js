@@ -16,6 +16,8 @@ import VerifyEmail from './pages/VerifyEmail';
 import AuthCallback from './pages/AuthCallback';
 import WriterDirectory from './pages/WriterDirectory';
 import Onboarding from './pages/Onboarding';
+import BadgeDiscovery from './pages/Badgediscovery';
+import BadgePage from './pages/BadgePage';
 
 export default function App() {
   return (
@@ -38,6 +40,8 @@ export default function App() {
           <Route path="/generators/flash-fiction" element={<ProtectedRoute><FlashFiction /></ProtectedRoute>} />
           <Route path="/generators/character" element={<ProtectedRoute><CharacterGenerator /></ProtectedRoute>} />
           <Route path="/writers/:username" element={<PublicProfile />} />
+          <Route path="/badges" element={<BadgeDiscovery />} />
+          <Route path="/badge/:slug" element={<BadgePage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

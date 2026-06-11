@@ -115,4 +115,10 @@ export default function BadgeShelf({ earnedBadges, title = 'Badges' }) {
       </div>
     </div>
   );
+  // Add after the closing grid div, before the outer closing div:
+<div style={{ marginTop: '1rem', textAlign: 'right' }}>
+  <a href="/badges" style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>
+    View all badges →
+  </a>
+</div>
 }

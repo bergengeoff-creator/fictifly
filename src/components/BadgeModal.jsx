@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 
 // Maps each badge slug to its congratulatory copy
 const BADGE_COPY = {
@@ -108,12 +108,34 @@ const SAND_BG = '#F5EFE6';
 const DEEP_BLUE_BG = '#13233A';
 
 export default function BadgeModal({ badges, onDismiss }) {
+  const [copied, setCopied] = useState(false);
   // Show one badge at a time — the first in the array
   const badge = badges[0];
 
   const handleDismiss = useCallback(() => {
     onDismiss();
   }, [onDismiss]);
+
+  const handleShare = async () => {
+    if (!badge?.slug) return;
+    const url = `${window.location.origin}/badge/${badge.slug}`;
+    const shareData = {
+      title: `I earned the ${badge.name} badge on Fictifly`,
+      text: `I just earned the ${badge.name} badge on Fictifly — a creative writing platform.`,
+      url,
+    };
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try { await navigator.share(shareData); } catch (e) { /* cancelled */ }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      } catch (e) {
+        prompt('Copy this link:', url);
+      }
+    }
+  };
 
   // Escape key closes
   useEffect(() => {
@@ -301,12 +323,37 @@ export default function BadgeModal({ badges, onDismiss }) {
                 cursor: 'pointer',
                 fontFamily: "'DM Sans', sans-serif",
                 transition: 'background 0.15s',
+                marginBottom: '0.6rem',
               }}
               onMouseEnter={e => { e.currentTarget.style.background = '#6B5D4E'; }}
               onMouseLeave={e => { e.currentTarget.style.background = '#3A3226'; }}
             >
               {remaining > 0 ? `Next badge (${remaining} more)` : 'Keep writing'}
             </button>
+
+            {/* Share button */}
+            {badge?.slug && (
+              <button
+                onClick={handleShare}
+                style={{
+                  width: '100%',
+                  background: 'transparent',
+                  color: '#6B5D4E',
+                  border: '1px solid #D9C9B0',
+                  borderRadius: '10px',
+                  padding: '0.75rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#9A8878'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#D9C9B0'; }}
+              >
+                {copied ? '✓ Link copied!' : '↗ Share this badge'}
+              </button>
+            )}
 
             {/* Multiple badge indicator */}
             {remaining > 0 && (
