@@ -16,7 +16,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import AuthCallback from './pages/AuthCallback';
 import WriterDirectory from './pages/WriterDirectory';
 import Onboarding from './pages/Onboarding';
-import BadgeDiscovery from './pages/Badgediscovery';
+import BadgeDiscovery from './pages/BadgeDiscovery';
 import BadgePage from './pages/BadgePage';
 
 export default function App() {
