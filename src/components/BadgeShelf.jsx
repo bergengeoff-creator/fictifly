@@ -31,6 +31,7 @@ export default function BadgeShelf({ earnedBadges, title = 'Badges' }) {
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))',
         gap: '0.75rem',
+        marginBottom: '1rem',
       }}>
         {earnedBadges.map((ub) => {
           const badge = ub.badges || ub;
@@ -78,13 +79,12 @@ export default function BadgeShelf({ earnedBadges, title = 'Badges' }) {
                       objectFit: 'contain',
                     }}
                     onError={(e) => {
-                      // Fallback to icon if SVG fails to load
                       e.target.style.display = 'none';
                       e.target.nextSibling.style.display = 'flex';
                     }}
                   />
                 ) : null}
-                {/* Fallback icon — hidden if SVG loads */}
+                {/* Fallback icon */}
                 <div style={{
                   display: svgSrc ? 'none' : 'flex',
                   alignItems: 'center',
@@ -113,8 +113,9 @@ export default function BadgeShelf({ earnedBadges, title = 'Badges' }) {
           );
         })}
       </div>
-    </div>
-<div style={{ marginTop: '1rem', textAlign: 'right' }}>
+
+      {/* View all badges link */}
+      <div style={{ textAlign: 'right' }}>
         <a href="/badges" style={{ fontSize: '0.78rem', color: '#2E6DA4', textDecoration: 'none', fontWeight: 500 }}>
           View all badges →
         </a>
