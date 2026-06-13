@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext';
 import FictiflyLogo from '../components/FictiflyLogo';
 
 const EDUCATION_SLUGS = [
-  'rising-voice',
   'teachers-pick',
   'top-of-class',
   'most-improved',
