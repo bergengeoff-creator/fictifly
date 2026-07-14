@@ -62,14 +62,22 @@ function SharePopover({ badge, slug, onClose }) {
     }
   };
 
-  const handleDownload = () => {
-    const a = document.createElement('a');
-    a.href = `/badges/share/${slug}-share.png`;
-    a.download = `${badge.name.replace(/\s+/g, '-').toLowerCase()}-fictifly.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    onClose();
+const handleDownload = async () => {
+    try {
+      const response = await fetch(`/badges/share/${slug}-share.png`);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${badge.name.replace(/\s+/g, '-').toLowerCase()}-fictifly.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      onClose();
+    } catch (e) {
+      console.error('Download failed:', e);
+    }
   };
 
   const shareOptions = [
