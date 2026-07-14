@@ -303,23 +303,24 @@ export default function BadgePage() {
     fetchData();
   }, [slug, user]);
 
-  const handleShareClick = async () => {
-    const url = `${window.location.origin}/badge/${slug}`;
-    const text = `I just earned the ${badge?.name} badge on Fictifly. Can you earn it too?`;
-    const shareData = { title: `${badge?.name} — Fictifly`, text, url };
+const handleShareClick = async () => {
+  const url = `${window.location.origin}/badge/${slug}`;
+  const text = `I just earned the ${badge?.name} badge on Fictifly. Can you earn it too?`;
+  const shareData = { title: `${badge?.name} — Fictifly`, text, url };
 
-    // Use native share on mobile if available
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-      try {
-        await navigator.share(shareData);
-      } catch (e) {
-        // User cancelled — do nothing
-      }
-    } else {
-      // Desktop — show popover
-      setShowSharePopover(prev => !prev);
+  // Use native share only on mobile (touch devices)
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile && navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+    try {
+      await navigator.share(shareData);
+    } catch (e) {
+      // User cancelled — do nothing
     }
-  };
+  } else {
+    // Desktop — show popover
+    setShowSharePopover(prev => !prev);
+  }
+};
 
   const getAvatarDisplay = (profile, size = 36) => {
     if (profile.avatar_url) return (
