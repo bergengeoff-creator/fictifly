@@ -62,6 +62,16 @@ function SharePopover({ badge, slug, onClose }) {
     }
   };
 
+  const handleDownload = () => {
+    const a = document.createElement('a');
+    a.href = `/badges/share/${slug}-share.png`;
+    a.download = `${badge.name.replace(/\s+/g, '-').toLowerCase()}-fictifly.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    onClose();
+  };
+
   const shareOptions = [
     {
       name: 'X / Twitter',
@@ -183,6 +193,39 @@ function SharePopover({ badge, slug, onClose }) {
           </svg>
         </span>
         {copied ? '✓ Link copied!' : 'Copy link'}
+      </button>
+
+      {/* Download badge image */}
+      <button
+        onClick={handleDownload}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          padding: '0.75rem 1rem',
+          background: 'transparent',
+          border: 'none',
+          borderTop: '1px solid #F5EFE6',
+          color: '#3A3226',
+          fontSize: '0.88rem',
+          fontWeight: 500,
+          cursor: 'pointer',
+          textAlign: 'left',
+          transition: 'background 0.1s',
+          fontFamily: 'sans-serif',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#F5EFE6'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+      >
+        <span style={{ color: '#9A8878', display: 'flex', alignItems: 'center' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </span>
+        Download badge image
       </button>
 
       <style>{`
