@@ -64,9 +64,10 @@ export default async function handler(req, res) {
         if (method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
         return await getRubrics(req, res);
 
-      case 'createRubric':
-        if (method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+        case 'createRubric':
         return await createRubric(req, res);
+      case 'getRubricByShare':
+        return await getRubricByShare(req, res);
 
       case 'updateRubric':
         if (method !== 'PUT') return res.status(405).json({ error: 'Method not allowed' });
@@ -1187,4 +1188,46 @@ async function updatePeerReviewSettings(req, res) {
     console.error('Error in updatePeerReviewSettings:', err);
     return res.status(500).json({ error: err.message });
   }
+  async function getRubricByShare(req, res) {
+  try {
+    const { shareId } = req.body;
+ 
+    if (!shareId) {
+      return res.status(400).json({ error: 'shareId is required' });
+    }
+ 
+    // Fetch the share record (no auth required — public link)
+    const { data: shareData, error: shareError } = await supabaseAdmin
+      .from('public_rubric_shares')
+      .select('rubric_id, created_at')
+      .eq('id', shareId)
+      .maybeSingle();
+ 
+    if (shareError || !shareData) {
+      return res.status(404).json({ error: 'Rubric share not found' });
+    }
+ 
+    // Fetch rubric with categories and criteria
+    const { data: rubric, error: rubricError } = await supabaseAdmin
+      .from('rubrics')
+      .select(`
+        *,
+        rubric_categories (
+          *,
+          rubric_criteria_levels (*)
+        )
+      `)
+      .eq('id', shareData.rubric_id)
+      .maybeSingle();
+ 
+    if (rubricError || !rubric) {
+      return res.status(404).json({ error: 'Rubric not found' });
+    }
+ 
+    return res.status(200).json({ rubric });
+  } catch (err) {
+    console.error('getRubricByShare error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
 }

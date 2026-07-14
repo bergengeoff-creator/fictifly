@@ -58,6 +58,8 @@ export default function ClassroomDashboard() {
   const [assignments, setAssignments] = useState([]);
   const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [assignmentTitle, setAssignmentTitle] = useState('');
+  const [assignmentRubricId, setAssignmentRubricId] = useState('');
+  const [availableRubrics, setAvailableRubrics] = useState([]);
   const [assignmentPromptType, setAssignmentPromptType] = useState('microfiction');
   const [assignmentWordCount, setAssignmentWordCount] = useState(100);
   const [assignmentGenre, setAssignmentGenre] = useState('');
@@ -175,6 +177,22 @@ export default function ClassroomDashboard() {
     setSelectedAssignment(assignment);
     setEditingAssignment(false);
     setFeedbackSubmissionIndex(null);
+
+    // Fetch available rubrics for assignment linking
+const fetchRubrics = async () => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const response = await fetch('/api/teacher-features?action=getRubrics', {
+      headers: { 'Authorization': `Bearer ${session.access_token}` },
+    });
+    const data = await response.json();
+    if (data.rubrics) setAvailableRubrics(data.rubrics);
+  } catch (err) {
+    console.error('Failed to fetch rubrics:', err);
+  }
+};
+fetchRubrics();
     
     const { data: subs } = await supabase
       .from('submissions')
@@ -377,6 +395,7 @@ export default function ClassroomDashboard() {
       class_id: assignmentTarget === 'class' ? selectedClass.id : null,
       student_id: assignmentTarget === 'student' ? assignmentStudentId : null,
       title: assignmentTitle.trim(),
+      rubric_id: assignmentRubricId || null,
       prompt_type: assignmentPromptType,
       word_count: assignmentWordCount,
       genre: assignmentGenre || null,
@@ -394,6 +413,7 @@ export default function ClassroomDashboard() {
     setAssignments(prev => [{ ...data, submissionCount: 0 }, ...prev]);
     setShowCreateAssignment(false);
     setAssignmentTitle(''); setAssignmentGenre(''); setAssignmentAction('');
+    setAssignmentRubricId('');
     setAssignmentWord(''); setAssignmentLocation(''); setAssignmentObject('');
     setAssignmentDueDate(''); setAssignmentTarget('class'); setAssignmentStudentId('');
     setSavingAssignment(false);
@@ -857,6 +877,20 @@ export default function ClassroomDashboard() {
                         </div>
                       )}
                     </div>
+                    {availableRubrics.length > 0 && (
+                      <label style={labelStyle}>Rubric (optional)
+                        <select
+                          value={assignmentRubricId}
+                          onChange={e => setAssignmentRubricId(e.target.value)}
+                          style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem', appearance: 'none' }}
+                        >
+                          <option value="">No rubric</option>
+                          {availableRubrics.map(r => (
+                            <option key={r.id} value={r.id}>{r.name}</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
                     <label style={labelStyle}>Due date
                       <input type="date" value={assignmentDueDate} onChange={e => setAssignmentDueDate(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
                     </label>

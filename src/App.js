@@ -18,6 +18,7 @@ import WriterDirectory from './pages/WriterDirectory';
 import Onboarding from './pages/Onboarding';
 import BadgeDiscovery from './pages/BadgeDiscovery';
 import BadgePage from './pages/BadgePage';
+import RubricViewPage from './pages/RubricViewPage';
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/writers/:username" element={<PublicProfile />} />
           <Route path="/badges" element={<BadgeDiscovery />} />
           <Route path="/badge/:slug" element={<BadgePage />} />
+          <Route path="/rubric-view/:shareId" element={<RubricViewPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
