@@ -846,19 +846,37 @@ async function getCommentTemplates(req, res) {
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
-    const { data: templates, error } = await supabase
+    // Fetch teacher's own templates
+    const { data: ownTemplates, error: ownError } = await supabaseAdmin
       .from('comment_templates')
       .select('*')
-      .or(`teacher_id.eq.${user.id},is_from_library.eq.true`)
+      .eq('teacher_id', user.id)
       .order('is_favorite', { ascending: false })
       .order('usage_count', { ascending: false });
 
-    if (error) throw error;
+    if (ownError) throw ownError;
 
-    res.status(200).json({ templates: templates || [] });
-  } catch (error) {
-    console.error('Error fetching templates:', error);
-    res.status(500).json({ error: error.message });
+    // Fetch library templates separately
+    const { data: libraryTemplates, error: libError } = await supabaseAdmin
+      .from('comment_templates')
+      .select('*')
+      .eq('is_from_library', true)
+      .order('usage_count', { ascending: false });
+
+    if (libError) throw libError;
+
+    // Merge and deduplicate client-side
+    const allTemplates = [
+      ...(ownTemplates || []),
+      ...(libraryTemplates || []).filter(lt =>
+        !(ownTemplates || []).find(ot => ot.id === lt.id)
+      ),
+    ];
+
+    return res.status(200).json({ templates: allTemplates });
+  } catch (err) {
+    console.error('Error fetching templates:', err);
+    return res.status(500).json({ error: err.message });
   }
 }
 
@@ -1007,19 +1025,43 @@ async function getRubrics(req, res) {
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
-    // Phase 1.5: Exclude soft-deleted rubrics
-    const { data: rubrics, error } = await supabase
+    // Fetch teacher's own rubrics
+    const { data: ownRubrics, error: ownError } = await supabaseAdmin
       .from('rubrics')
-      .select('*')
-      .or(`and(teacher_id.eq.${user.id},is_deleted.eq.false),and(is_from_library.eq.true,is_deleted.eq.false)`)
+      .select(`
+        *,
+        rubric_categories (
+          id, name, description, max_points, weight, position, sort_order
+        )
+      `)
+      .eq('teacher_id', user.id)
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (ownError) throw ownError;
 
-    res.status(200).json({ rubrics: rubrics || [] });
-  } catch (error) {
-    console.error('Error fetching rubrics:', error);
-    res.status(500).json({ error: error.message });
+    // Fetch default templates
+    const { data: templates, error: templatesError } = await supabaseAdmin
+      .from('rubrics')
+      .select(`
+        *,
+        rubric_categories (
+          id, name, description, max_points, weight, position, sort_order
+        )
+      `)
+      .eq('is_template', true)
+      .eq('is_deleted', false)
+      .order('name', { ascending: true });
+
+    if (templatesError) throw templatesError;
+
+    return res.status(200).json({
+      rubrics: ownRubrics || [],
+      templates: templates || [],
+    });
+  } catch (err) {
+    console.error('Error fetching rubrics:', err);
+    return res.status(500).json({ error: err.message });
   }
 }
 
@@ -1030,21 +1072,17 @@ async function getRubricWithCategories(req, res) {
   const { rubricId } = req.query;
 
   try {
-    const { data: rubric, error } = await supabase
+const { data: rubric, error } = await supabaseAdmin
       .from('rubrics')
       .select(`
         *,
         rubric_categories (
-          id,
-          name,
-          description,
-          max_points,
-          weight,
-          position
+          id, name, description, max_points, weight, position, sort_order,
+          rubric_criteria_levels (id, points, label, descriptor, position)
         )
       `)
       .eq('id', rubricId)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     if (!rubric) return res.status(404).json({ error: 'Rubric not found' });
