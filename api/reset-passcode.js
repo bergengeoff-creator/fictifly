@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   const { username } = req.body;
   if (!username) return res.status(400).json({ error: 'Missing username' });
 
-  const baseUrl = process.env.REACT_APP_SUPABASE_URL;
+  const baseUrl = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const headers = {
     'Content-Type': 'application/json',
