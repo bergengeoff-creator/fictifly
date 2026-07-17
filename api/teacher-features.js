@@ -7,13 +7,15 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+const resolvedSupabaseUrl = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
+
 const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL,
+  resolvedSupabaseUrl,
   process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY
 );
 
 const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL,
+  resolvedSupabaseUrl,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 

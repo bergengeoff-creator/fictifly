@@ -4,7 +4,7 @@ import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 import FictiflyLogo from '../components/FictiflyLogo';
 import CreateAssignmentForm from '../components/CreateAssignmentForm';
-import TeacherFeedbackModal from '../components/TeacherFeedbackModal';
+import GradingModal from '../components/GradingModal';
 import RubricBuilder from '../components/RubricBuilder';
 import CommentTemplateManager from '../components/CommentTemplateManager';
 
@@ -44,6 +44,7 @@ export default function ClassroomDashboard() {
   const [newClassName, setNewClassName] = useState('');
   const [newClassGrade, setNewClassGrade] = useState('');
   const [newClassNotes, setNewClassNotes] = useState('');
+  const [newClassTermEndDate, setNewClassTermEndDate] = useState('');
   const [bulkPrefix, setBulkPrefix] = useState('');
   const [bulkCount, setBulkCount] = useState(5);
   const [generatedAccounts, setGeneratedAccounts] = useState([]);
@@ -74,7 +75,7 @@ export default function ClassroomDashboard() {
 
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [assignmentSubmissions, setAssignmentSubmissions] = useState([]);
-  
+
   const [feedbackSubmissionIndex, setFeedbackSubmissionIndex] = useState(null);
   const [showRubricBuilder, setShowRubricBuilder] = useState(false);
   const [showTemplateManager, setShowTemplateManager] = useState(false);
@@ -93,6 +94,7 @@ export default function ClassroomDashboard() {
   const [editClassName, setEditClassName] = useState('');
   const [editClassGrade, setEditClassGrade] = useState('');
   const [editClassNotes, setEditClassNotes] = useState('');
+  const [editClassTermEndDate, setEditClassTermEndDate] = useState('');
   const [savingClassEdit, setSavingClassEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingClass, setDeletingClass] = useState(false);
@@ -179,27 +181,27 @@ export default function ClassroomDashboard() {
     setFeedbackSubmissionIndex(null);
 
     // Fetch available rubrics for assignment linking
-const fetchRubrics = async () => {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    const response = await fetch('/api/teacher-features?action=getRubrics', {
-      headers: { 'Authorization': `Bearer ${session.access_token}` },
-    });
-    const data = await response.json();
-    if (data.rubrics) setAvailableRubrics(data.rubrics);
-  } catch (err) {
-    console.error('Failed to fetch rubrics:', err);
-  }
-};
-fetchRubrics();
-    
+    const fetchRubrics = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const response = await fetch('/api/teacher-features?action=getRubrics', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` },
+        });
+        const data = await response.json();
+        if (data.rubrics) setAvailableRubrics(data.rubrics);
+      } catch (err) {
+        console.error('Failed to fetch rubrics:', err);
+      }
+    };
+    fetchRubrics();
+
     const { data: subs } = await supabase
       .from('submissions')
       .select('*, users!submissions_user_id_fkey(id, username, display_name)')
       .eq('assignment_id', assignment.id)
       .eq('submitted_to_teacher', true);
-    
+
     setAssignmentSubmissions(subs || []);
   };
 
@@ -298,12 +300,23 @@ fetchRubrics();
     setSavingClassEdit(true);
     const { error: err } = await supabase
       .from('classes')
-      .update({ name: editClassName.trim(), grade_level: editClassGrade || null, notes: editClassNotes.trim() || null })
+      .update({
+        name: editClassName.trim(),
+        grade_level: editClassGrade || null,
+        notes: editClassNotes.trim() || null,
+        term_end_date: editClassTermEndDate || null,
+      })
       .eq('id', selectedClass.id);
     setSavingClassEdit(false);
     if (err) { setError(err.message); return; }
-    setSelectedClass({ ...selectedClass, name: editClassName.trim(), grade_level: editClassGrade || null, notes: editClassNotes.trim() || null });
-    setClasses(prev => prev.map(c => c.id === selectedClass.id ? { ...c, name: editClassName.trim(), grade_level: editClassGrade || null, notes: editClassNotes.trim() || null } : c));
+    const updatedFields = {
+      name: editClassName.trim(),
+      grade_level: editClassGrade || null,
+      notes: editClassNotes.trim() || null,
+      term_end_date: editClassTermEndDate || null,
+    };
+    setSelectedClass({ ...selectedClass, ...updatedFields });
+    setClasses(prev => prev.map(c => c.id === selectedClass.id ? { ...c, ...updatedFields } : c));
     setShowEditClass(false);
     setSuccess('Class updated.');
     setTimeout(() => setSuccess(null), 3000);
@@ -328,7 +341,14 @@ fetchRubrics();
     const classCode = generateClassCode();
     const { data, error: insertError } = await supabase
       .from('classes')
-      .insert({ teacher_id: user.id, name: newClassName.trim(), grade_level: newClassGrade || null, notes: newClassNotes.trim() || null, class_code: classCode })
+      .insert({
+        teacher_id: user.id,
+        name: newClassName.trim(),
+        grade_level: newClassGrade || null,
+        notes: newClassNotes.trim() || null,
+        class_code: classCode,
+        term_end_date: newClassTermEndDate || null,
+      })
       .select().single();
     if (insertError) { setError('Failed to create class: ' + insertError.message); return; }
     setClasses(prev => [data, ...prev]);
@@ -336,6 +356,7 @@ fetchRubrics();
     setNewClassName('');
     setNewClassGrade('');
     setNewClassNotes('');
+    setNewClassTermEndDate('');
     setSuccess('Class created successfully!');
     setTimeout(() => setSuccess(null), 3000);
   };
@@ -447,8 +468,8 @@ fetchRubrics();
                 <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>My Classes</h1>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <button 
-                  onClick={() => setShowCreateAssignmentModal(true)} 
+                <button
+                  onClick={() => setShowCreateAssignmentModal(true)}
                   style={btnPrimary}>
                   + New Assignment
                 </button>
@@ -525,6 +546,9 @@ fetchRubrics();
                     {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                 </label>
+                <label style={labelStyle}>Term/semester end date <span style={{ fontWeight: 400, color: '#9A8878' }}>(recommended — determines how long student feedback is retained)</span>
+                  <input type="date" value={newClassTermEndDate} onChange={(e) => setNewClassTermEndDate(e.target.value)} style={{ ...inputStyle, marginTop: '0.4rem', marginBottom: '0.75rem' }} />
+                </label>
                 <label style={labelStyle}>Notes <span style={{ fontWeight: 400, color: '#9A8878' }}>(optional)</span>
                   <textarea value={newClassNotes} onChange={(e) => setNewClassNotes(e.target.value)}
                     placeholder="e.g. 10th grade creative writing, fall semester. Focus on short fiction."
@@ -558,6 +582,11 @@ fetchRubrics();
                               🔑 {pendingCount} reset{pendingCount !== 1 ? 's' : ''} pending
                             </span>
                           )}
+                          {!cls.term_end_date && (
+                            <span style={{ background: '#FDF5E8', color: '#9A6830', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.5rem', borderRadius: '20px' }}>
+                              ⚠ No term end date set
+                            </span>
+                          )}
                         </div>
                         <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>{cls.grade_level || 'No grade level set'}</div>
                       </div>
@@ -582,13 +611,18 @@ fetchRubrics();
                 <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#D4845A', marginBottom: '0.4rem' }}>Class</div>
                 <h1 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '0.25rem' }}>{selectedClass.name}</h1>
                 <div style={{ fontSize: '0.85rem', color: '#9A8878' }}>{selectedClass.grade_level || 'No grade level'}</div>
+                {selectedClass.term_end_date && (
+                  <div style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.2rem' }}>
+                    Term ends {new Date(selectedClass.term_end_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </div>
+                )}
                 <div style={{ marginTop: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#EAF4FB', border: '1px solid #5B9EC9', borderRadius: '8px', padding: '0.35rem 0.75rem' }}>
                   <span style={{ fontSize: '0.75rem', color: '#9A8878' }}>Class code:</span>
                   <span style={{ fontWeight: 700, color: '#2E6DA4', letterSpacing: '0.15em' }}>{selectedClass.class_code}</span>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                <button onClick={() => { setEditClassName(selectedClass.name); setEditClassGrade(selectedClass.grade_level || ''); setEditClassNotes(selectedClass.notes || ''); setShowEditClass(true); setShowDeleteConfirm(false); }}
+                <button onClick={() => { setEditClassName(selectedClass.name); setEditClassGrade(selectedClass.grade_level || ''); setEditClassNotes(selectedClass.notes || ''); setEditClassTermEndDate(selectedClass.term_end_date || ''); setShowEditClass(true); setShowDeleteConfirm(false); }}
                   style={{ background: '#F5EFE6', border: '1px solid #D9C9B0', borderRadius: '8px', padding: '0.45rem 0.9rem', fontSize: '0.82rem', fontWeight: 500, color: '#6B5D4E', cursor: 'pointer', fontFamily: 'sans-serif' }}>
                   Edit class
                 </button>
@@ -613,6 +647,12 @@ fetchRubrics();
                     <option key={g} value={g}>{g}</option>
                   ))}
                 </select>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.35rem' }}>
+                  Term/semester end date
+                  <span style={{ fontWeight: 400, color: '#9A8878' }}> — determines how long student feedback is retained</span>
+                </label>
+                <input type="date" value={editClassTermEndDate} onChange={e => setEditClassTermEndDate(e.target.value)}
+                  style={{ ...inputStyle, marginBottom: '0.75rem' }} />
                 <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6B5D4E', display: 'block', marginBottom: '0.35rem' }}>Notes <span style={{ fontWeight: 400, color: '#9A8878' }}>(optional)</span></label>
                 <textarea value={editClassNotes} onChange={e => setEditClassNotes(e.target.value)}
                   placeholder="e.g. 10th grade creative writing, fall semester"
@@ -1063,16 +1103,20 @@ fetchRubrics();
             )}
 
             {classDetailTab === 'assignments' && selectedAssignment && feedbackSubmissionIndex !== null && (
-              <TeacherFeedbackModal
-                assignment={selectedAssignment}
-                submission={assignmentSubmissions[feedbackSubmissionIndex]}
-                submissions={assignmentSubmissions}
-                submissionIndex={feedbackSubmissionIndex}
-                onNavigate={(newIndex) => setFeedbackSubmissionIndex(newIndex)}
+              <GradingModal
+                key={assignmentSubmissions[feedbackSubmissionIndex]?.id}
+                submissionId={assignmentSubmissions[feedbackSubmissionIndex]?.id}
+                assignmentId={selectedAssignment.id}
+                studentId={assignmentSubmissions[feedbackSubmissionIndex]?.user_id}
+                submissionContent={assignmentSubmissions[feedbackSubmissionIndex]?.content}
+                submissionVersion={assignmentSubmissions[feedbackSubmissionIndex]?.version || 1}
+                rubricId={selectedAssignment.rubric_id}
+                hasPrevious={feedbackSubmissionIndex > 0}
+                hasNext={feedbackSubmissionIndex < assignmentSubmissions.length - 1}
+                onNavigate={(direction) => setFeedbackSubmissionIndex(prev => prev + direction)}
                 onClose={() => setFeedbackSubmissionIndex(null)}
-                onSubmit={() => {
-                  setFeedbackSubmissionIndex(null);
-                  setSuccess('All submissions graded!');
+                onSaved={() => {
+                  setSuccess('Feedback saved!');
                   setTimeout(() => setSuccess(null), 3000);
                 }}
               />
@@ -1085,8 +1129,7 @@ fetchRubrics();
       {showRubricBuilder && (
         <RubricBuilder
           onClose={() => setShowRubricBuilder(false)}
-          onSave={(rubric) => {
-            console.log('Rubric created:', rubric);
+          onRubricCreated={(rubric) => {
             setShowRubricBuilder(false);
             setSuccess('Rubric created!');
             setTimeout(() => setSuccess(null), 3000);
@@ -1100,7 +1143,7 @@ fetchRubrics();
         />
       )}
 
-      {/* NEW: CreateAssignmentForm Modal (Multi-class) */}
+      {/* CreateAssignmentForm Modal (Multi-class) */}
       {showCreateAssignmentModal && (
         <CreateAssignmentForm
           availableClasses={classes}
@@ -1109,7 +1152,6 @@ fetchRubrics();
             setShowCreateAssignmentModal(false);
             setSuccess('Assignment created successfully!');
             setTimeout(() => setSuccess(null), 3000);
-            // Optionally refresh assignments if needed
           }}
         />
       )}
