@@ -1,23 +1,34 @@
-export default function Account({ profile, isPremium, isTeacher }) {
+import { isTeacherRole, getClassLimit, getStudentLimitPerClass } from '../utils/accountTiers';
+
+export default function Account({ profile, isPremium }) {
+  const accountType = profile?.account_type;
+  const isTeacher = isTeacherRole(accountType);
+
   // Determine tier label and limits based on account type
   const getTierInfo = () => {
     if (isTeacher) {
+      const classLimit = getClassLimit(accountType);
+      const studentLimit = getStudentLimitPerClass(accountType);
+      // teacher_plus already has the upgraded limits, so there's nothing
+      // left to upsell — only show the CTA for the base 'teacher' tier.
+      const hasUpgrade = classLimit !== null && studentLimit !== null;
+
       return {
         tier: 'Educator',
         tierColor: '#2E6DA4',
         description: 'Full access to all generators for your students.',
         features: [
           { label: 'Generator requests', value: 'Unlimited' },
-          { label: 'Classes', value: '1 class' },
-          { label: 'Students per class', value: 'Up to 30' },
+          { label: 'Classes', value: classLimit === null ? 'Unlimited' : `${classLimit} class${classLimit === 1 ? '' : 'es'}` },
+          { label: 'Students per class', value: studentLimit === null ? 'Unlimited' : `Up to ${studentLimit}` },
           { label: 'Student accounts', value: 'Included' },
         ],
-        upgrade: {
+        upgrade: hasUpgrade ? {
           text: 'Upgrade for multiple classes',
           subtext: 'Manage up to 5 classes with unlimited students. School & district discounts available.',
           cta: 'View pricing',
           ctaEmail: true,
-        },
+        } : null,
       };
     }
 

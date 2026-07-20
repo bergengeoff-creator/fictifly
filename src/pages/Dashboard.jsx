@@ -404,7 +404,7 @@ export default function Dashboard() {
 
       {/* ACCOUNT TAB */}
       {activeTab === 'account' && (
-        <Account profile={profile} isPremium={isPremium} isTeacher={isTeacher} />
+        <Account profile={profile} isPremium={isPremium} />
       )}
 
       {/* DASHBOARD TAB */}
