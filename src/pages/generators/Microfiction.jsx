@@ -7,6 +7,7 @@ import StoryModal from '../../components/StoryModal';
 import AssignModal from '../../components/AssignModal';
 import { playAudioCue, playBadgeCue } from '../../utils/audioCue';
 import FictiflyLogo from '../../components/FictiflyLogo';
+import { isTeacherRole } from '../../utils/accountTiers';
 
 const GENRES = [
   "Action and/or Adventure","Comedy","Drama","Fairy Tale and/or Fantasy",
@@ -140,14 +141,16 @@ export default function Microfiction() {
   ? new Date(profile.premium_expires_at) > new Date()
   : false;
 const isPremiumUser = profile && (profile.is_premium || trialActive);
-const isTeacher = profile && profile.account_type === 'teacher';
+// Previously checked account_type === 'teacher' literally, which would
+// have dropped teacher_plus accounts to the free-tier daily limit.
+const isTeacher = profile && isTeacherRole(profile.account_type);
 const FREE_LIMIT =
-  profile && profile.account_type === 'teacher' ? Infinity
+  isTeacher ? Infinity
   : isPremiumUser ? Infinity
   : profile && profile.account_type === 'student' ? 15
   : profile && profile.account_type === 'minor' ? 10
   : 6;
-const isUnlimited = isPremiumUser || (profile && profile.account_type === 'teacher');
+const isUnlimited = isPremiumUser || isTeacher;
 
   useEffect(() => {
     fetchSavedPrompts();

@@ -6,6 +6,7 @@ import BadgeModal from '../../components/BadgeModal';
 
 import { playAudioCue, playBadgeCue } from '../../utils/audioCue';
 import FictiflyLogo from '../../components/FictiflyLogo';
+import { isTeacherRole } from '../../utils/accountTiers';
 
 const B = {
   sand: '#F5EFE6', sandMid: '#EDE3D4', sandDeep: '#D9C9B0',
@@ -248,7 +249,10 @@ export default function CharacterGenerator() {
     ? new Date(profile.premium_expires_at) > new Date()
     : false;
   const isPremiumUser = profile && (profile.is_premium || trialActive);
-  const isTeacher = profile?.account_type === 'teacher';
+  // Previously checked account_type === 'teacher' literally, which would
+  // have dropped teacher_plus accounts to the free-tier daily limit and
+  // hidden the saved-character feature (canSave) from them.
+  const isTeacher = isTeacherRole(profile?.account_type);
   const canSave = isPremiumUser || isTeacher;
   const FREE_LIMIT =
     isTeacher ? Infinity
