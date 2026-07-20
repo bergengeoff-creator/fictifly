@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import FictiflyLogo from '../components/FictiflyLogo';
 import BadgeShelf from '../components/BadgeShelf';
+import { isTeacherRole } from '../utils/accountTiers';
 
 
 const StoryModal = ({ story, onClose }) => {
@@ -185,7 +186,9 @@ export default function PublicProfile() {
             <h1 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '0.2rem' }}>{profile.display_name || profile.username}</h1>
             <div style={{ fontSize: '0.85rem', color: '#9A8878', marginBottom: '0.25rem' }}>@{profile.username}</div>
             <div style={{ fontSize: '0.78rem', color: '#9A8878' }}>
-              {profile.account_type === 'teacher' ? 'Educator' : profile.account_type === 'minor' ? 'Writer (13-17)' : 'Writer'}
+              {/* Previously checked account_type === 'teacher' literally, which
+                  would have shown teacher_plus accounts as plain 'Writer'. */}
+              {isTeacherRole(profile.account_type) ? 'Educator' : profile.account_type === 'minor' ? 'Writer (13-17)' : 'Writer'}
               {profile.region ? ` · ${profile.region}` : ''}
             </div>
           </div>
@@ -224,7 +227,9 @@ export default function PublicProfile() {
           </div>
         )}
 
-        {profile.account_type === 'teacher' && (profile.school_name || profile.subject) && (
+        {/* Previously checked account_type === 'teacher' literally, which
+            would have hidden this section for teacher_plus accounts. */}
+        {isTeacherRole(profile.account_type) && (profile.school_name || profile.subject) && (
           <div style={sectionStyle}>
             <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#9A8878', marginBottom: '0.75rem' }}>Educator</div>
             {profile.school_name && <div style={{ fontSize: '0.9rem', color: '#3A3226', marginBottom: '0.25rem' }}>{profile.school_name}</div>}
