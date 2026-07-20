@@ -1,3 +1,5 @@
+import { isPremiumWriter } from '../src/utils/accountTiers';
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -34,8 +36,7 @@ export default async function handler(req, res) {
     );
     const profileData = await profileRes.json();
     const profile = profileData[0] || {};
-    const isPremium = profile.is_premium || 
-      (profile.premium_expires_at && new Date(profile.premium_expires_at) > new Date());
+    const isPremium = isPremiumWriter(profile);
     const isStudent = profile.account_type === 'student';
     const isMinor = profile.account_type === 'minor';
 
