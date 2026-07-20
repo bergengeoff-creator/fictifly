@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
+import { isTeacherRole, isPremiumWriter } from '../utils/accountTiers';
 
 const FictiflyLogo = () => (
   <svg viewBox="0 0 250 45" xmlns="http://www.w3.org/2000/svg" style={{ width: '200px', height: '35px', display: 'block' }}>
@@ -115,15 +116,10 @@ export default function WriterDirectory() {
   const [genreFilter, setGenreFilter] = useState('');
   const [allGenres, setAllGenres] = useState([]);
 
-  // Gate: only premium (or active trial) or teacher can access
-  const trialActive = profile && profile.premium_expires_at
-    ? new Date(profile.premium_expires_at) > new Date()
-    : false;
-  const canAccess = profile && (
-    profile.is_premium ||
-    trialActive ||
-    profile.account_type === 'teacher'
-  );
+  // Gate: only premium (or active trial) or any teacher tier can access.
+  // Previously checked account_type === 'teacher' literally, which would
+  // have excluded teacher_plus accounts from the directory entirely.
+  const canAccess = profile && (isPremiumWriter(profile) || isTeacherRole(profile.account_type));
 
   useEffect(() => {
     if (!canAccess) return;
@@ -145,12 +141,13 @@ export default function WriterDirectory() {
       if (error || !writersData) { setLoading(false); return; }
 
       // Apply directory eligibility: premium writers (including active trial)
-      // OR teachers who opted in
-      const now = new Date();
+      // OR any teacher tier who opted in. Previously checked
+      // account_type === 'teacher' literally here too — a teacher_plus
+      // account with show_in_directory=true would have been silently
+      // excluded from ever appearing in the directory.
       const eligibleWriters = writersData.filter(w =>
-        w.is_premium === true ||
-        (w.premium_expires_at && new Date(w.premium_expires_at) > now) ||
-        (w.account_type === 'teacher' && w.show_in_directory === true)
+        isPremiumWriter(w) ||
+        (isTeacherRole(w.account_type) && w.show_in_directory === true)
       );
 
       if (eligibleWriters.length === 0) { setWriters([]); setLoading(false); return; }
@@ -260,7 +257,7 @@ export default function WriterDirectory() {
           <FictiflyLogo />
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {profile?.account_type === 'teacher' && (
+          {profile && isTeacherRole(profile.account_type) && (
             <Link to="/classroom" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', textDecoration: 'none' }}>My Classes</Link>
           )}
           <Link to="/dashboard" style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', textDecoration: 'none' }}>Dashboard</Link>

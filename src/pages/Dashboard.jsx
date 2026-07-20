@@ -9,9 +9,9 @@ import FictiflyLogo from '../components/FictiflyLogo';
 import Account from './Account';
 import BadgeModal from '../components/BadgeModal';
 import BadgeShelf from '../components/BadgeShelf';
+import { isTeacherRole, isStudentRole } from '../utils/accountTiers';
 
-const isStudentAccount = (profile) =>
-  profile && (profile.account_type === 'minor' || profile.account_type === 'student');
+const isStudentAccount = (profile) => profile && isStudentRole(profile.account_type);
 
 export default function Dashboard() {
   const { user, profile, signOut } = useAuth();
@@ -224,7 +224,11 @@ export default function Dashboard() {
       const trialActive = profile.premium_expires_at
         ? new Date(profile.premium_expires_at) > new Date()
         : false;
-      if (!profile.is_premium && !trialActive && profile.account_type !== 'teacher') return;
+      // Teacher-tier accounts get saved-character access as a teacher perk,
+      // same as premium writers — any teacher tier, not just the literal
+      // 'teacher' value (that strict check previously locked teacher_plus
+      // accounts out of this feature).
+      if (!profile.is_premium && !trialActive && !isTeacherRole(profile.account_type)) return;
       const { data } = await supabase
         .from('saved_characters')
         .select('id, character_data, summary, genre')
@@ -295,12 +299,17 @@ export default function Dashboard() {
   const pendingAssignments = assignments.filter(a => !submittedAssignmentIds.includes(a.id));
   const submittedAssignments = assignments.filter(a => submittedAssignmentIds.includes(a.id));
 
-  const accountLabel =
-    profile && profile.account_type === 'teacher'
-      ? 'Educator account'
-      : profile && profile.account_type === 'student'
-      ? 'Student account'
-      : 'Writer account';
+  // Was a hardcoded ternary checking only the literal 'teacher'/'student'
+  // strings (missing teacher_plus and minor entirely, both of which fell
+  // through to 'Writer account'). Now uses the same centralized role
+  // checks as the rest of the app, consistent with isStudentAccount above.
+  const accountLabel = !profile
+    ? 'Writer account'
+    : isTeacherRole(profile.account_type)
+    ? 'Educator account'
+    : isStudentAccount(profile)
+    ? 'Student account'
+    : 'Writer account';
 
   const now = new Date();
   const trialExpiry = profile && profile.premium_expires_at
@@ -314,7 +323,7 @@ export default function Dashboard() {
   const showTrialWelcome = trialActive && daysLeft === 14;
   const showTrialWarning = trialActive && daysLeft <= 7;
   const isPremium = profile && (profile.is_premium || trialActive);
-  const isTeacher = profile && profile.account_type === 'teacher';
+  const isTeacher = profile && isTeacherRole(profile.account_type);
   const canAccessBeta = isPremium || isTeacher;
 
   const [betaFeatures, setBetaFeatures] = useState({});
@@ -356,7 +365,7 @@ export default function Dashboard() {
           <FictiflyLogo />
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {profile && (isPremium || profile.account_type === 'teacher') && (
+          {profile && (isPremium || isTeacherRole(profile.account_type)) && (
             <button
               onClick={() => navigate('/writers')}
               style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer' }}
@@ -364,7 +373,7 @@ export default function Dashboard() {
               Writers
             </button>
           )}
-          {profile && profile.account_type === 'teacher' && (
+          {profile && isTeacherRole(profile.account_type) && (
             <button
               onClick={() => navigate('/classroom')}
               style={{ background: 'transparent', border: '1px solid #D9C9B0', borderRadius: '8px', color: '#6B5D4E', fontSize: '0.82rem', padding: '0.4rem 0.9rem', cursor: 'pointer' }}

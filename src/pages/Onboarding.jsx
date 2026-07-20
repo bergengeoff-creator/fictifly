@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
+import { isTeacherRole } from '../utils/accountTiers';
 
 import FictiflyLogo from '../components/FictiflyLogo';
 import TheWell from '../components/TheWell';
@@ -1379,7 +1380,18 @@ export default function Onboarding() {
     );
   }
 
-  const isTeacher = profile.account_type === 'teacher';
+  // isTeacher previously checked account_type === 'teacher' literally.
+  // Since this decides WHICH ENTIRE ONBOARDING FLOW renders (5-step
+  // teacher flow with school info + class creation vs. the 3-step
+  // regular writer flow), a teacher_plus account would have been routed
+  // into the wrong onboarding entirely — never prompted to create a
+  // class or shown the teacher safety attestation.
+  const isTeacher = isTeacherRole(profile.account_type);
+  // Deliberately left as the literal 'student' check, not broadened to
+  // isStudentRole() — StudentOnboarding is the lightweight "your teacher
+  // already set this up" flow, which fits a teacher-created student
+  // account but not a self-registered minor, who still needs the full
+  // profile-setup flow since nobody did it for them.
   const isStudent = profile.account_type === 'student';
 
   return (

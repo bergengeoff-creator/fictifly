@@ -4,6 +4,7 @@ import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
 import FictiflyLogo from '../components/FictiflyLogo';
 import BadgeShelf from '../components/BadgeShelf';
+import { isTeacherRole, isStudentRole } from '../utils/accountTiers';
 
 const GENRES = [
   'Action/Adventure','Comedy','Crime Caper','Drama','Fairy Tale','Fantasy',
@@ -11,12 +12,20 @@ const GENRES = [
   'Romance','Romantic Comedy','Sci-Fi','Spy','Suspense','Thriller','Open Genre'
 ];
 
+// NOTE: this is a duplicate of the AVATAR_STYLES object in ProfileSetup.jsx.
+// Both copies now have an explicit teacher_plus entry, but this duplication
+// itself is worth centralizing into a shared constants file at some point —
+// two copies means two places to remember to update together.
 const AVATAR_STYLES = {
   standard: [
     { id: 'notionists', name: 'Notionists' },
     { id: 'lorelei', name: 'Lorelei' },
   ],
   teacher: [
+    { id: 'notionists', name: 'Notionists' },
+    { id: 'lorelei', name: 'Lorelei' },
+  ],
+  teacher_plus: [
     { id: 'notionists', name: 'Notionists' },
     { id: 'lorelei', name: 'Lorelei' },
   ],
@@ -61,7 +70,15 @@ export default function Profile() {
   const [success, setSuccess] = useState(false);
   const [avatarError, setAvatarError] = useState(null);
   const [earnedBadges, setEarnedBadges] = useState([]);
-  const isTeacher = profile && profile.account_type === 'teacher';
+  // isTeacher previously checked account_type === 'teacher' literally,
+  // which would have hidden the school/subject fields, the directory
+  // opt-in toggle, and skipped saving them for teacher_plus accounts.
+  const isTeacher = profile && isTeacherRole(profile.account_type);
+  // Deliberately scoped to the literal 'minor' value, not the broader
+  // isStudentRole() check — this specifically controls the anonymous
+  // random-username flow for self-registered minors, which is a different
+  // concern than a teacher-managed student account's username (assigned/
+  // reset by the teacher, not user-generated here).
   const isMinor = profile && profile.account_type === 'minor';
   const getAvailableStyles = () => AVATAR_STYLES[profile ? profile.account_type : 'standard'] || AVATAR_STYLES.standard;
   const [avatarStyle, setAvatarStyle] = useState(() => getAvailableStyles()[0].id);
@@ -195,7 +212,7 @@ export default function Profile() {
               <h1 style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '0.2rem' }}>{profile.display_name || profile.username}</h1>
               <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>@{profile.username}</div>
               <div style={{ fontSize: '0.78rem', color: '#9A8878', marginTop: '0.2rem' }}>
-                {profile.account_type === 'teacher' ? 'Educator' : profile.account_type === 'minor' ? 'Student' : 'Writer'} · {profile.profile_public ? 'Public profile' : 'Private profile'}
+                {isTeacher ? 'Educator' : isStudentRole(profile.account_type) ? 'Student' : 'Writer'} · {profile.profile_public ? 'Public profile' : 'Private profile'}
               </div>
               {profile.profile_public && (
                 <a href={`/writers/${profile.username}`} target="_blank" rel="noreferrer" style={{ color: '#2E6DA4', textDecoration: 'none', fontSize: '0.78rem', marginTop: '0.3rem', display: 'inline-block' }}>

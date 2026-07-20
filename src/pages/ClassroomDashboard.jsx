@@ -7,6 +7,7 @@ import CreateAssignmentForm from '../components/CreateAssignmentForm';
 import GradingModal from '../components/GradingModal';
 import RubricBuilder from '../components/RubricBuilder';
 import CommentTemplateManager from '../components/CommentTemplateManager';
+import { isTeacherRole, CLASS_LIMIT_BY_TIER, STUDENT_LIMIT_BY_TIER } from '../utils/accountTiers';
 
 const GRADE_LEVELS = ['Elementary (K-5)', 'Middle School (6-8)', 'High School (9-12)', 'Other'];
 const GENRES = [
@@ -129,7 +130,7 @@ export default function ClassroomDashboard() {
   useEffect(() => {
     // Only check auth if profile is loaded
     if (profile === null) return; // Profile loading
-    if (profile && profile.account_type !== 'teacher') {
+    if (profile && !isTeacherRole(profile.account_type)) {
       navigate('/dashboard');
       return;
     }
@@ -364,8 +365,9 @@ export default function ClassroomDashboard() {
   const handleBulkGenerate = async () => {
     if (!bulkPrefix.trim()) { setError('Please enter a username prefix.'); return; }
     if (bulkCount < 1 || bulkCount > 30) { setError('Please generate between 1 and 30 accounts.'); return; }
-    if (classMembers.length + bulkCount > 30 && profile.account_type !== 'premium') {
-      setError('Free accounts are limited to 30 students per class. Contact us at upgrade@fictifly.com to add more.');
+    const studentLimit = STUDENT_LIMIT_BY_TIER[profile.account_type];
+    if (studentLimit && classMembers.length + bulkCount > studentLimit) {
+      setError(`Your plan is limited to ${studentLimit} students per class. Contact us at upgrade@fictifly.com to add more.`);
       return;
     }
     setGenerating(true);
@@ -474,8 +476,9 @@ export default function ClassroomDashboard() {
                   + New Assignment
                 </button>
                 <button onClick={() => {
-                  if (classes.length >= 1 && profile.account_type !== 'premium') {
-                    setError('Free accounts are limited to 1 class. Contact us to upgrade for unlimited classes.');
+                  const classLimit = CLASS_LIMIT_BY_TIER[profile.account_type];
+                  if (classLimit && classes.length >= classLimit) {
+                    setError(`Your plan is limited to ${classLimit} class${classLimit !== 1 ? 'es' : ''}. Contact us to upgrade.`);
                     return;
                   }
                   setError(null);
@@ -690,9 +693,9 @@ export default function ClassroomDashboard() {
               </div>
             )}
 
-            {classMembers.length >= 30 && profile.account_type !== 'premium' && (
+            {STUDENT_LIMIT_BY_TIER[profile.account_type] && classMembers.length >= STUDENT_LIMIT_BY_TIER[profile.account_type] && (
               <div style={{ background: '#FDF0E8', border: '1px solid #D4845A', borderRadius: '10px', padding: '0.85rem 1.1rem', fontSize: '0.85rem', color: '#B56840', marginBottom: '1rem' }}>
-                You have reached the 30 student limit. <a href="mailto:upgrade@fictifly.com" style={{ color: '#D4845A', fontWeight: 600 }}>Contact us to upgrade.</a>
+                You have reached the {STUDENT_LIMIT_BY_TIER[profile.account_type]} student limit. <a href="mailto:upgrade@fictifly.com" style={{ color: '#D4845A', fontWeight: 600 }}>Contact us to upgrade.</a>
               </div>
             )}
 
@@ -809,7 +812,7 @@ export default function ClassroomDashboard() {
 
                 <div style={sectionStyle}>
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>
-                    Students ({classMembers.length}{profile.account_type !== 'premium' ? '/30' : ''})
+                    Students ({classMembers.length}{STUDENT_LIMIT_BY_TIER[profile.account_type] ? `/${STUDENT_LIMIT_BY_TIER[profile.account_type]}` : ''})
                   </h3>
                   {classMembers.length === 0 ? (
                     <p style={{ color: '#9A8878', fontStyle: 'italic', fontSize: '0.9rem' }}>No students yet. Generate accounts or share the class code <strong style={{ color: '#2E6DA4' }}>{selectedClass.class_code}</strong> with your students.</p>

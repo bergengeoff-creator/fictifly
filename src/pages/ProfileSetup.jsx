@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
+import { isTeacherRole, isStudentRole } from '../utils/accountTiers';
 
 const GENRES = [
   'Action/Adventure','Comedy','Crime Caper','Drama','Fairy Tale','Fantasy',
@@ -15,6 +16,13 @@ const AVATAR_STYLES = {
     { id: 'lorelei', name: 'Lorelei' },
   ],
   teacher: [
+    { id: 'notionists', name: 'Notionists' },
+    { id: 'lorelei', name: 'Lorelei' },
+  ],
+  // Explicit entry rather than relying on the standard fallback below —
+  // teacher and teacher_plus should stay in sync deliberately, not by
+  // coincidence of both happening to match 'standard' today.
+  teacher_plus: [
     { id: 'notionists', name: 'Notionists' },
     { id: 'lorelei', name: 'Lorelei' },
   ],
@@ -74,9 +82,12 @@ export default function ProfileSetup() {
   const [avatarSeeds, setAvatarSeeds] = useState(generateSeeds());
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(null);
 
-  // Derived from profile — both false until profile is loaded
-  const isMinor = profile && (profile.account_type === 'minor' || profile.account_type === 'student');
-  const isTeacher = profile && profile.account_type === 'teacher';
+  // Derived from profile — both false until profile is loaded.
+  // isTeacher previously checked account_type === 'teacher' literally,
+  // which would have hidden the school/subject fields below and skipped
+  // saving them for teacher_plus accounts.
+  const isMinor = profile && isStudentRole(profile.account_type);
+  const isTeacher = profile && isTeacherRole(profile.account_type);
 
   const getAvailableStyles = (accountType) =>
     AVATAR_STYLES[accountType] || AVATAR_STYLES.standard;
