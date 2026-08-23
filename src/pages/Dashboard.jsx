@@ -357,7 +357,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F5EFE6', fontFamily: 'sans-serif', color: '#3A3226', padding: '0 1.25rem 5rem' }}>
+    <div style={{ minHeight: '100vh', background: '#F5EFE6', color: '#3A3226', padding: '0 1.25rem 5rem' }}>
 
       {/* HEADER / NAV */}
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #D9C9B0', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -428,31 +428,7 @@ export default function Dashboard() {
 
           {(isNewUser || showTrialWelcome) && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-              <svg width="120" height="120" viewBox="145 137 238 224" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: '0.75rem' }}>
-                <circle cx="264.45" cy="241.23" r="129.02" fill="#231f20"/>
-                <circle cx="264.34" cy="240.27" r="91.38" fill="none" stroke="#b49041" strokeDasharray="3.99 2.99" strokeWidth=".75" strokeMiterlimit="10" opacity=".5"/>
-                <circle cx="264.21" cy="241.62" r="119.08" transform="translate(-93.47 257.6) rotate(-45)" fill="none" stroke="#b49041" strokeWidth="3" strokeMiterlimit="10"/>
-                <rect x="260.44" y="357.71" width="6.79" height="6.79" transform="translate(332.63 -80.8) rotate(45)" fill="#c1a14c"/>
-                <rect x="141.77" y="236.02" width="6.79" height="6.79" transform="translate(211.81 -32.52) rotate(45)" fill="#c1a14c"/>
-                <rect x="379.61" y="236.28" width="6.79" height="6.79" transform="translate(281.67 -200.63) rotate(45)" fill="#c1a14c"/>
-                <rect x="260.61" y="119.55" width="6.79" height="6.79" transform="translate(164.27 -150.68) rotate(45)" fill="#c1a14c"/>
-                <circle cx="264" cy="241.05" r="66.8" fill="#20466d" stroke="#3b6297" strokeWidth=".75" strokeMiterlimit="10"/>
-                <ellipse cx="262.7" cy="236.12" rx="28.24" ry="30.49" fill="#2d6ea4"/>
-                <ellipse cx="260.15" cy="232.61" rx="13.65" ry="14.56" fill="#4d90bd"/>
-                <ellipse cx="257.96" cy="229.44" rx="6.04" ry="7.44" fill="#7fb1d3"/>
-                <ellipse cx="256.06" cy="228.75" rx="2.87" ry="3.86" fill="#cbe6f8"/>
-                <circle cx="266.66" cy="235.03" r="46.07" fill="none" stroke="#c1a14c" strokeWidth="5" strokeMiterlimit="10"/>
-                <circle cx="266.81" cy="234.69" r="43.19" fill="none" stroke="#e4c89c" strokeWidth="2" strokeMiterlimit="10"/>
-                <g transform="translate(264.36,149.59)">
-                  <circle r="11.09" transform="translate(-0.13,0.2) rotate(-37.29)" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                  <path d="M11.38,0.44c4.03.95,7.03,4.57,7.03,8.89,0,5.05-4.09,9.14-9.14,9.14-4.23,0-7.79-2.87-8.83-6.77" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                  <path d="M-10.85,0.01c-4.16-.85-7.3-4.54-7.3-8.95,0-5.05,4.09-9.14,9.14-9.14,4.39,0,8.06,3.1,8.94,7.22" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                  <path d="M-0.39,12.39c-1.26,3.54-4.64,6.08-8.61,6.08-5.05,0-9.14-4.09-9.14-9.14,0-4.04,2.63-7.47,6.27-8.68" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                  <path d="M0.38,-11.05c.95-4.03,4.57-7.03,8.89-7.03,5.05,0,9.14,4.09,9.14,9.14,0,4.39-3.1,8.06-7.22,8.94" fill="none" stroke="#b49041" strokeWidth="2.5" strokeMiterlimit="10"/>
-                  <circle r="11.19" fill="#0098c0" opacity=".72"/>
-                  <ellipse cx="-4.14" cy="-5.93" rx="1.2" ry=".89" transform="rotate(-25.31)" fill="#cbe6f8" opacity=".85"/>
-                </g>
-              </svg>
+              <TheWell size="icon" darkBg={true} style={{ marginBottom: '0.75rem' }} />
               <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
                 <div style={{ fontFamily: "'Fraunces', serif", fontSize: '1.1rem', fontStyle: 'italic', color: '#6B5D4E', marginBottom: '0.3rem' }}>Welcome to The Well</div>
                 <div style={{ fontSize: '0.82rem', color: '#9A8878' }}>Where every story begins</div>
