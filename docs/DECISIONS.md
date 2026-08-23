@@ -12,6 +12,52 @@ Dates marked `~` are approximate, reconstructed from chat history.
 
 ---
 
+## 2026-08-23 · Saved-prompt picker reads `saved_prompts` client-side
+
+`CreateAssignmentForm.jsx` called `/api/teacher-features?action=getPrompts` —
+an action that was never implemented — and expected `title` / `content` fields
+that don't exist on `saved_prompts`. The table is ingredient-shaped: `genre`,
+`prompt_type`, `word_count`, `action`, `word`, `location`, `object`. Two gaps,
+not one: a missing endpoint *and* a data model that never existed. A catch
+block swallowed the failure, so teachers saw an empty dropdown rather than an
+error.
+
+Fixed by querying `saved_prompts` directly with the user's own session, the way
+`AssignModal.jsx` and `Dashboard.jsx` already do — RLS scopes reads to the
+owner, so no server endpoint is needed. Labels and preview now compose from the
+ingredient fields, following `AssignModal.jsx`'s `{genre} · {word_count}w`
+convention. Both failure modes now surface through the form's existing error
+banner.
+
+Side effect: `assignments.prompt_title` / `prompt_content` are now neither
+written nor read anywhere. Dead columns, safe to drop.
+
+Rules out: a `getPrompts` API action, and any assumption that `saved_prompts`
+rows carry a title or body.
+
+---
+
+## 2026-08-23 · Two assignment-creation paths, both kept
+
+`CreateAssignmentForm.jsx` (classroom side, "+ New Assignment") and
+`AssignModal.jsx` (generator side, "Assign" on a prompt card) are both live and
+teacher-gated. They look like duplicates but serve different intents: planning
+an assignment from scratch versus sending a prompt you're already looking at.
+
+Recorded so this isn't mistaken for drift later.
+
+---
+
+## 2026-08-23 · Teacher pilot before legal work
+
+Early testing will be a handful of selected educators evaluating the teacher
+experience — no real students, so no student data, so the COPPA/FERPA questions
+largely don't attach at this stage. Product work moves ahead of the counsel
+session.
+
+Still required before any real classroom use: a scoped consult on the pilot
+itself, then the fuller privacy/compliance session.
+
 ## 2026-08 · Removed `api/feedback-endpoints.js`
 
 ~550 lines implementing a parallel feedback/comment/reply API. Never wired up —
