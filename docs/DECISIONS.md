@@ -12,6 +12,54 @@ Dates marked `~` are approximate, reconstructed from chat history.
 
 ---
 
+## 2026-08-23 · Waitlist stores in Supabase, not a mailing-list service
+
+Landing-page signups POST to a `waitlist` table (email, role, source,
+created_at) with an insert-only RLS policy and no select policy — so the anon
+key can ship in public static source without exposing the list. Setup lives in
+`waitlist-setup.sql` in the landing-page repo.
+
+Chosen over Kit because it's already in the stack: entries sit alongside the
+eventual `users` rows, so converting a signup into an account is a query rather
+than an export. No third-party account, no free-tier ceiling, no data held
+elsewhere.
+
+Known gap: Supabase stores but doesn't send. A mailing tool will be needed
+before emailing the list at any scale — seed it from the table then.
+
+Supersedes the earlier Kit decision (2026-08). Mailchimp remains ruled out.
+
+---
+
+## 2026-08-23 · Landing page is teacher-first, with a writer escape hatch
+
+The near-term goal is a teacher pilot, so the page leads with the classroom
+case: roster setup, assigning, grading, and the minors-safety posture. Writers
+get a masthead link and a footer band rather than equal billing.
+
+Signups carry a `role` field (`teacher` | `writer`), set by a toggle on the
+form and preselected by the writer links. The two audiences stay separable from
+the first signup, and the field maps onto `account_type` when signup moves into
+the app.
+
+Revisit when the writer side becomes the priority.
+
+---
+
+## 2026-08-23 · One-liner generator: flagged in-app, not on the landing page
+
+A fourth generator producing a single-sentence prompt — a bell-ringer for
+classroom warm-ups. Not built. Advertising it on the landing page would create
+an expectation before a pilot; showing it in the app's generator list as
+"coming soon" sets the same expectation with people who are already inside.
+
+Blocker to be settled first: `saved_prompts` is ingredient-shaped and has no
+free-text column, so a one-liner needs either a new column or a deliberate
+mapping. Same mismatch class that broke `CreateAssignmentForm`. Decide the
+schema before building.
+
+---
+
 ## 2026-08-23 · Saved-prompt picker reads `saved_prompts` client-side
 
 `CreateAssignmentForm.jsx` called `/api/teacher-features?action=getPrompts` —

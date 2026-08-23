@@ -76,6 +76,12 @@ adult/minor separation, Claude Haiku three-tier moderation.
 
 ## Open
 
+### New Products
+- [ ] One-liner generator not built. Add a `soon: true` entry to the
+      `generators` array in `Dashboard.jsx` (render disabled, like the existing
+      `new: true` pill) so pilot teachers see it's coming. Schema question
+      first — see `DECISIONS.md`.
+
 ### Bugs
 - [ ] **Student-facing feedback view missing.** Backend `getSubmissionFeedback`
       exists (`api/teacher-features.js:1723`, labelled `// STUDENT FEEDBACK VIEW`)
@@ -121,6 +127,16 @@ adult/minor separation, Claude Haiku three-tier moderation.
       SVG. May be undersized for a first-impression screen.
 - [ ] Confirm Fraunces / DM Sans actually render now that the `sans-serif`
       override is gone. If not, check the font link in `public/index.html`.
+
+### Landing page (separate static repo)
+- [ ] Replace placeholder generator samples with real output from microfiction,
+      flash fiction, and the character generator — current vocabulary is invented
+- [ ] Run `waitlist-setup.sql` in Supabase, then paste `SUPABASE_URL` and
+      `SUPABASE_ANON_KEY` into the two variables in `index.html`
+- [ ] Deploy to GitHub Pages, point `fictifly.com` DNS, enable HTTPS
+- [ ] Confirm mobile masthead doesn't crowd at 390px (logo + two links)
+- [ ] Privacy note on the page before the URL is promoted publicly
+- [ ] 401 Error. Key checks out cleanly. Fresh publishable key possible, before support call
 
 ### Launch
 - [ ] Domain: confirm `fictifly.com` registered, WHOIS privacy on
