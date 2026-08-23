@@ -63,27 +63,41 @@ export default function CreateAssignmentForm({
   useEffect(() => {
     const fetchPrompts = async () => {
       setLoadingPrompts(true);
-      setError(null);
 
+      let session;
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Not authenticated');
-
-        const response = await fetch('/api/teacher-features?action=getPrompts', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch prompts');
-        const prompts = await response.json();
-        setSavedPrompts(Array.isArray(prompts) ? prompts : []);
+        const sessionResult = await supabase.auth.getSession();
+        session = sessionResult.data.session;
       } catch (err) {
-        console.error('Failed to load prompts:', err);
+        console.error('Failed to get session for saved prompts:', err);
+        setError('Failed to load saved prompts');
         setSavedPrompts([]);
-      } finally {
         setLoadingPrompts(false);
+        return;
       }
+
+      if (!session) {
+        setSavedPrompts([]);
+        setLoadingPrompts(false);
+        return;
+      }
+
+      const { data, error: fetchError } = await supabase
+        .from('saved_prompts')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (fetchError) {
+        console.error('Failed to load saved prompts:', fetchError);
+        setError('Failed to load saved prompts');
+        setSavedPrompts([]);
+        setLoadingPrompts(false);
+        return;
+      }
+
+      setSavedPrompts(data || []);
+      setLoadingPrompts(false);
     };
 
     fetchPrompts();
@@ -170,11 +184,14 @@ export default function CreateAssignmentForm({
       let promptData = {};
 
       if (promptSource === 'saved' && selectedPromptId) {
-        const selectedPrompt = savedPrompts.find(p => p.id === selectedPromptId);
+        const chosenPrompt = savedPrompts.find(p => p.id === selectedPromptId);
         promptData = {
           prompt_id: selectedPromptId,
-          prompt_title: selectedPrompt.title,
-          prompt_content: selectedPrompt.content,
+          genre: chosenPrompt?.genre || null,
+          prompt_type: chosenPrompt?.prompt_type || null,
+          prompt_ingredients: [chosenPrompt?.action, chosenPrompt?.location, chosenPrompt?.object, chosenPrompt?.word]
+            .filter(Boolean)
+            .join(' / ') || null,
           prompt_source: 'saved',
         };
       } else if (promptSource === 'ingredients') {
@@ -643,7 +660,9 @@ export default function CreateAssignmentForm({
                   </option>
                   {savedPrompts.map(prompt => (
                     <option key={prompt.id} value={prompt.id}>
-                      {prompt.title}
+                      {[prompt.genre, prompt.word_count ? `${prompt.word_count}w` : null, prompt.action || prompt.location]
+                        .filter(Boolean)
+                        .join(' · ') || 'Untitled prompt'}
                     </option>
                   ))}
                 </select>
@@ -671,7 +690,14 @@ export default function CreateAssignmentForm({
                       margin: 0,
                       whiteSpace: 'pre-wrap',
                     }}>
-                      {selectedPrompt.content}
+                      {[
+                        selectedPrompt.genre && `Genre: ${selectedPrompt.genre}`,
+                        selectedPrompt.word_count && `Word count: ${selectedPrompt.word_count}`,
+                        selectedPrompt.action && `Action: ${selectedPrompt.action}`,
+                        selectedPrompt.location && `Location: ${selectedPrompt.location}`,
+                        selectedPrompt.object && `Object: ${selectedPrompt.object}`,
+                        selectedPrompt.word && `Word: ${selectedPrompt.word}`,
+                      ].filter(Boolean).join('\n')}
                     </p>
                   </div>
                 )}
