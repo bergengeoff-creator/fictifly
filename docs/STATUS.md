@@ -41,7 +41,8 @@ React CRA · Supabase · Vercel Pro · Anthropic API · Barceloneta design syste
 ## Built
 
 ### Accounts & auth
-- Account types: `standard`, `premium`, `teacher`, `teacher_plus`, `minor` (13–17), `student`
+- Account types: `standard`, `teacher`, `teacher_plus`, `minor` (13–17), `student`
+  (`premium` is not an account type — it's an `is_premium` / `premium_expires_at` flag on top)
 - `src/utils/accountTiers.js` is the single source of truth for role checks —
   `isTeacherRole()`, `isPremiumWriter()`, `isStudentRole()`, `CLASS_LIMIT_BY_TIER`,
   `STUDENT_LIMIT_BY_TIER`. Never compare `account_type` to a string literal.

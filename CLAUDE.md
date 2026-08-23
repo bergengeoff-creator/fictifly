@@ -11,6 +11,12 @@ teacher accounts) run classrooms with assignments, rubric-based grading, and stu
 Create React App frontend + Vercel serverless functions (`/api`), backed by Supabase (Postgres +
 Auth) and the Anthropic API for text generation.
 
+## Before starting work
+
+Read `docs/STATUS.md` — current state, open bugs, priorities.
+Decisions and their rationale: `docs/DECISIONS.md`.
+Design system: `docs/DESIGN.md`.
+
 ## Commands
 
 ```
@@ -52,9 +58,12 @@ this pattern in new/edited API files rather than reading only one or the other.
   don't already have one (e.g. first-time Google login).
 - `src/pages/` — one file per route. `src/components/` — shared UI (modals, builders, etc.)
   used across pages.
-- Styling is plain inline `style={{...}}` objects throughout — there is no CSS-in-JS library,
-  Tailwind, or CSS modules setup (aside from the untouched CRA `App.css`/`index.css`). Match this
-  convention rather than introducing a new styling approach.
+- Styling is plain inline `style={{...}}` objects throughout — no CSS-in-JS
+  library, Tailwind, or CSS modules. Keep this convention, but reference design
+  tokens rather than hex literals: `style={{ color: 'var(--text)' }}`. Tokens are
+  defined in `src/styles/theme.css` (imported once in `src/index.js`) and
+  documented in `docs/DESIGN.md`. Never inline a raw hex — if the role you need
+  doesn't exist, add it to `theme.css`.
 
 ### Auth model — two parallel flows
 There are two distinct sign-in paths, both backed by Supabase Auth:
@@ -98,16 +107,13 @@ client — this bypasses Row Level Security, so these functions are the trust bo
 privileged operations (grading, badge awards, student account creation, passcode resets).
 `api/teacher-features.js` is the exception and uses `createClient` (one client with the anon key
 to validate the caller's bearer token via `getUserFromToken()`, one admin client with the service
-role key for privileged reads/writes).
+role key for privileged reads/writes). Feedback, comment, and rubric endpoints all live in
+`api/teacher-features.js` — a superseded standalone `api/feedback-endpoints.js` was removed in
+Aug 2026 (see `docs/DECISIONS.md`).
 
 `api/generate.js` proxies to the Anthropic Messages API — the frontend never calls Anthropic
 directly. Generator pages (`src/pages/generators/*`) call `/api/generate`, then typically call
 `/api/update-streak` and `/api/check-badges` as follow-up side effects.
-
-**Known issue**: `api/feedback-endpoints.js` imports `../supabase` (a file that does not exist at
-the repo root — `src/supabase.js` is the only one) and is not referenced anywhere in `src/`. It
-appears to be superseded by the feedback/rubric actions now living in `api/teacher-features.js`.
-Don't extend it; if touching feedback/grading endpoints, look in `api/teacher-features.js` first.
 
 ### Grading & rubrics
 `RubricBuilder.jsx` / `RubricViewer.jsx` / `RubricShare.jsx` manage rubric CRUD and public

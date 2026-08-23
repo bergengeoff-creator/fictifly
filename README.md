@@ -1,70 +1,96 @@
-# Getting Started with Create React App
+# Fictifly
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A creative-writing platform for individual writers and classrooms. Generate
+AI-assisted microfiction, flash fiction, and characters; build a writer profile;
+run classrooms with assignments, rubric grading, and student rosters.
 
-## Available Scripts
+Pre-beta. Not open to public registration.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## Start here
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+| File | Holds |
+|---|---|
+| [`CLAUDE.md`](CLAUDE.md) | Architecture, conventions, API patterns, gotchas |
+| [`docs/STATUS.md`](docs/STATUS.md) | Current state, open bugs, priorities |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Choices and *why* — append-only |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | Barceloneta palette, type, component rules |
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Read `docs/STATUS.md` first after any break. Read `CLAUDE.md` before touching code.
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Stack
 
-### `npm run build`
+Create React App · Vercel serverless functions (`/api`) · Supabase (Postgres + Auth) ·
+Anthropic API · Barceloneta design system
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Running locally
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+npm install
+npm start          # http://localhost:3000
+npm run build      # production build to /build
+```
 
-### `npm run eject`
+Needs a `.env` with `REACT_APP_SUPABASE_URL`, `REACT_APP_SUPABASE_ANON_KEY`,
+and `REACT_APP_ANTHROPIC_KEY`. Never commit it. Server-side vars
+(`SUPABASE_SERVICE_ROLE_KEY` and friends) are set in Vercel, not locally.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+`/api` functions don't run under `npm start` — use `vercel dev` or deploy.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+---
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Deploying
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+npm run build      # catch ESLint errors that don't surface in dev
+git push origin main
+npx vercel --prod
+```
 
-## Learn More
+Vercel project: `bergengeoff-creators-projects/fictifly-v2`
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+---
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Layout
 
-### Code Splitting
+```
+api/                Vercel serverless functions
+docs/               Project record — read first
+src/
+  components/       Shared UI
+  context/          AuthContext — source of truth for user + profile
+  pages/
+    generators/     Microfiction, Flash Fiction, Character
+  styles/
+    theme.css       Design tokens
+  utils/
+CLAUDE.md           Architecture and conventions
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+---
 
-### Analyzing the Bundle Size
+## Accounts
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+`standard` · `teacher` · `teacher_plus` · `student` · `minor`
+(plus an `is_premium` / `premium_expires_at` trial flag on top)
 
-### Making a Progressive Web App
+Minors join by class code only — no open self-registration. Student accounts are
+teacher-created, using a synthetic `<username>@minor.fictifly.com` identity and a
+numeric passcode. Adult and minor content never share a feed.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+The privacy architecture is deliberately data-minimising. Compliance review with
+counsel is pending and gates public beta.
 
-### Advanced Configuration
+See `CLAUDE.md` for the full auth model and role-check conventions.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+---
 
-### Deployment
+## Working on this
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Solo project. End each session by updating `docs/STATUS.md` and committing it
+alongside the code.

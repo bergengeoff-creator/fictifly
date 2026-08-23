@@ -12,6 +12,16 @@ Dates marked `~` are approximate, reconstructed from chat history.
 
 ---
 
+## 2026-08 · Removed `api/feedback-endpoints.js`
+
+~550 lines implementing a parallel feedback/comment/reply API. Never wired up —
+imported a nonexistent `../supabase` path and was referenced nowhere. Superseded
+by the action-routed endpoints in `api/teacher-features.js`.
+
+Recoverable from git if the reply-threading shapes are ever wanted.
+
+Rules out: a second feedback API surface. Extend `teacher-features.js` instead.
+
 ## 2026-08 · Documentation lives in the repo, not in chat
 
 Chat sessions can't be reliably searched across, and each new session starts
@@ -80,6 +90,10 @@ across 10 files — each one silently excluded `teacher_plus`, and some excluded
 `isStudentRole()`.
 
 Rules out: comparing `account_type` to a string literal anywhere.
+
+⚠️ Verify: `CLAUDE.md` places `CLASS_LIMIT_BY_TIER` / `STUDENT_LIMIT_BY_TIER` in
+`ClassroomDashboard.jsx`, not `accountTiers.js`. If both define them, that's a
+duplicate source of truth — the exact bug class this entry was meant to close.
 
 ---
 
