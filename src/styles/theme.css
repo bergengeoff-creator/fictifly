@@ -1,0 +1,203 @@
+/* ===========================================================================
+   Barceloneta — design tokens
+   Import once, at the top of src/index.js:   import './styles/theme.css';
+
+   TWO LAYERS:
+     --p-*   palette. The existing Barceloneta pigments, unchanged.
+     roles   what components actually reference. These repoint per theme.
+
+   Components should only reference roles. If you need a --p-* directly in a
+   component, a role is missing — add it here rather than reaching through.
+   =========================================================================== */
+
+:root {
+
+  /* ---- palette (existing Barceloneta set, unchanged) ------------------ */
+  --p-ink:         #3A3226;
+  --p-ink-mid:     #6B5D4E;
+  --p-ink-light:   #9A8878;
+
+  --p-terra:       #D4845A;
+  --p-terra-dark:  #B56840;
+  --p-terra-light: #E8A882;
+
+  --p-sea:         #2E6DA4;
+  --p-sea-mid:     #5B9EC9;
+  --p-sea-light:   #A8D4F0;
+
+  --p-sand:        #F5EFE6;
+  --p-sand-mid:    #EDE3D4;
+  --p-sand-deep:   #D9C9B0;
+  --p-white:       #FFFCF8;
+  --p-ground:      #1A1610;
+
+  --p-gold:        #C8A060;
+  --p-gold-dark:   #8A6030;
+  --p-gold-light:  #E8C888;
+
+  --p-brass:       #B8903A;
+  --p-brass-dark:  #7A5A18;
+  --p-brass-light: #D8B060;
+
+  /* ---- additions ------------------------------------------------------ */
+  /* Text-safe faint tone. ink-light is 3.33:1 on white — below the 4.5:1
+     AA minimum — and it currently carries stat labels, generator copy and
+     assignment metadata. This keeps the same warm grey at 4.97:1.
+     ink-light stays in the palette: it is fine decoratively and fine as
+     text on dark ground (5.29:1). */
+  --p-ink-faint:   #7E6B59;
+
+  /* Terracotta that is legal as text on light ground. terra-dark is 4.09:1
+     — just short. Used only for text; fills and borders keep --p-terra. */
+  --p-terra-text:  #A85535;
+
+
+  /* =====================  ROLES  ====================================== */
+
+  /* surfaces */
+  --bg:            var(--p-sand);
+  --surface:       var(--p-white);
+  --surface-sunk:  var(--p-sand-mid);
+  --border:        var(--p-sand-deep);
+
+  /* text */
+  --text:          var(--p-ink);
+  --text-muted:    var(--p-ink-mid);
+  --text-faint:    var(--p-ink-faint);
+  --text-invert:   var(--p-white);
+
+  /* primary action */
+  --accent:        var(--p-sea);
+  --accent-text:   var(--p-white);
+  --accent-hover:  #275D8C;
+
+  /* secondary / "write" action */
+  --action:        var(--p-terra);
+  --action-text:   var(--p-white);
+  --action-hover:  var(--p-terra-dark);
+
+  /* status: info */
+  --info-bg:       #EAF4FB;
+  --info-edge:     var(--p-sea-mid);
+  --info-text:     var(--p-sea);
+
+  /* status: warning (trial countdown) */
+  --warn-bg:       #FDF5E8;
+  --warn-edge:     var(--p-gold);
+  --warn-text:     var(--p-gold-dark);
+
+  /* status: alert (trial expired) */
+  --alert-bg:      #FDF0E8;
+  --alert-edge:    var(--p-terra);
+  --alert-text:    var(--p-terra-text);
+
+  /* special (character days) — see note [1] */
+  --special-bg:    #FDF5E8;
+  --special-edge:  var(--p-gold);
+  --special-text:  var(--p-gold-dark);
+
+  /* elevation */
+  --shadow-card:   0 2px 12px rgba(58, 50, 38, 0.05);
+  --shadow-lift:   0 6px 20px rgba(58, 50, 38, 0.10);
+  --shadow-modal:  0 20px 50px -20px rgba(58, 50, 38, 0.45);
+
+  /* radii */
+  --r-chip: 20px;
+  --r-sm:    8px;
+  --r-md:   10px;
+  --r-lg:   14px;
+
+  /* type */
+  --font-body:    'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+}
+
+/* ===========================================================================
+   [1] Character days previously used #F5EDF5 / #7A4A90 / #B07AC0. There is no
+       violet anywhere in Barceloneta — this was drift, same as the green
+       caught earlier. Remapped to gold, which is in the palette and suits the
+       ✦ mark. If character days must NOT share a treatment with the trial
+       warning, brass is the other in-system option; don't reintroduce violet.
+
+       Also note the trial banner used #9A6830 where gold-dark is #8A6030 —
+       two digits off, invisible on screen, and exactly how a palette stops
+       being a palette.
+   =========================================================================== */
+
+
+/* ===========================================================================
+   DARK THEME
+   The palette already contains both ends of every ramp, so this is mostly
+   repointing rather than new colour. Verified contrast on #1A1610:
+     sea 3.29 FAIL -> sea-mid 6.16 ok
+     terra 6.21 ok (carries over unchanged)
+     gold 7.42 ok,  ink-light 5.29 ok
+   Commented out until you're ready. Activate with <html data-theme="dark">.
+   =========================================================================== */
+/*
+[data-theme="dark"] {
+  --bg:            var(--p-ground);
+  --surface:       #241E16;
+  --surface-sunk:  #171310;
+  --border:        #3D3428;
+
+  --text:          var(--p-sand);
+  --text-muted:    #C3B5A2;
+  --text-faint:    var(--p-ink-light);
+  --text-invert:   var(--p-ink);
+
+  --accent:        var(--p-sea-mid);
+  --accent-text:   var(--p-ground);
+  --accent-hover:  var(--p-sea-light);
+
+  --action:        var(--p-terra);
+  --action-text:   var(--p-ground);
+  --action-hover:  var(--p-terra-light);
+
+  --info-bg:       #16293A;
+  --info-text:     var(--p-sea-light);
+  --warn-bg:       #2A2113;
+  --warn-text:     var(--p-gold-light);
+  --alert-bg:      #2E1D14;
+  --alert-text:    var(--p-terra-light);
+  --special-bg:    #2A2113;
+  --special-text:  var(--p-gold-light);
+
+  --shadow-card:   0 2px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lift:   0 6px 20px rgba(0, 0, 0, 0.5);
+}
+*/
+
+
+/* ===========================================================================
+   BASE — replaces the CRA defaults currently in index.css.
+   Dashboard.jsx sets fontFamily: 'sans-serif' on its root div, which
+   overrides DM Sans for everything beneath it. Remove that inline value and
+   let this cascade instead.
+   =========================================================================== */
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
