@@ -32,6 +32,8 @@ React CRA · Supabase · Vercel Pro · Anthropic API · Barceloneta design syste
 - Deploy: `git push origin main`, then `npx vercel --prod`
 - **Build rule:** `src/components/TheWell.jsx` and `src/utils/TheWell.jsx`
   must remain identical copies. Divergence has broken the build before.
+- Landing page: `bergengeoff-creator/fictifly-site` → GitHub Pages → fictifly.com
+  DNS at Cloudflare, records must be DNS-only (grey cloud), SSL mode Full (strict)
 
 ---
 
@@ -128,20 +130,12 @@ adult/minor separation, Claude Haiku three-tier moderation.
 - [ ] Confirm Fraunces / DM Sans actually render now that the `sans-serif`
       override is gone. If not, check the font link in `public/index.html`.
 
-### Landing page (separate static repo)
+### Launch
+- [x] ~~Domain, landing page, waitlist~~ — live at fictifly.com (Aug 28)
 - [ ] Replace placeholder generator samples with real output from microfiction,
       flash fiction, and the character generator — current vocabulary is invented
-- [ ] Run `waitlist-setup.sql` in Supabase, then paste `SUPABASE_URL` and
-      `SUPABASE_ANON_KEY` into the two variables in `index.html`
-- [ ] Deploy to GitHub Pages, point `fictifly.com` DNS, enable HTTPS
-- [ ] Confirm mobile masthead doesn't crowd at 390px (logo + two links)
 - [ ] Privacy note on the page before the URL is promoted publicly
-- [ ] 401 Error. Key checks out cleanly. Fresh publishable key possible, before support call
-
-### Launch
-- [ ] Domain: confirm `fictifly.com` registered, WHOIS privacy on
-- [ ] Landing page: static build ready, needs GitHub Pages deploy + DNS
-- [ ] Waitlist: Kit account + form ID pasted into the landing page
+- [ ] Check mobile masthead at 390px (logo + two links + role toggle is tight)
 - [ ] Legal: scoped consult on running a small educator pilot, then the fuller
       privacy/compliance session before any real students
 
@@ -168,8 +162,6 @@ Feedback from a few educators is the most valuable signal available right now.
 
 **5 — Token adoption + contrast.** Every component built before it lands is one
 more to migrate later. The contrast fixes matter for school procurement.
-
-**6 — Landing page + waitlist.** Starts collecting names in the background.
 
 **7 — Legal.** Scoped consult before real students. Full session before public beta.
 

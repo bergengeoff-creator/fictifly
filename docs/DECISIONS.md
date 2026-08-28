@@ -12,6 +12,72 @@ Dates marked `~` are approximate, reconstructed from chat history.
 
 ---
 
+## 2026-08-28 · Landing page live at fictifly.com
+
+Static single page in a separate repo (`bergengeoff-creator/fictifly-site`),
+served by GitHub Pages. DNS at Cloudflare: four A records on `@` to GitHub's
+Pages IPs plus a `www` CNAME, all **DNS only (grey cloud)** — proxying breaks
+GitHub's domain validation and certificate issuance. Cloudflare SSL/TLS mode
+must be Full (strict); Flexible causes a redirect loop.
+
+Teacher-first: the pilot audience is educators, so the page leads with roster
+setup, assigning, grading, and the minors-safety posture. Writers get a
+masthead link and a footer band. Signups carry a `role` field (`teacher` |
+`writer`) that maps onto `account_type` when signup moves into the app.
+
+---
+
+## 2026-08-28 · Publishable keys do not resolve to the `anon` Postgres role
+
+Cost several hours. An RLS policy scoped `to anon` never applies when the
+request authenticates with a publishable key (`sb_publishable_*`) — every
+insert fails with 42501. Policies for public client access must be `to public`,
+with the real gatekeeping in the `with_check` expression.
+
+Two related traps found alongside it:
+- Requests need **both** `apikey` and `Authorization: Bearer` headers. Sending
+  only `apikey` returns 401 with a misleading "Invalid API key".
+- Do **not** send `Prefer: resolution=ignore-duplicates` without an
+  `on_conflict` parameter — PostgREST rejects the request. The unique index
+  still prevents duplicates; a repeat returns 409, treated as success.
+
+Checked and confirmed: no policy in the app's schema is scoped `to anon`, so
+the app is unaffected. Verify with:
+  select tablename, policyname from pg_policies
+  where schemaname='public' and 'anon' = any(roles);
+
+---
+
+## 2026-08-28 · Waitlist stores in Supabase, not a mailing-list service
+
+Signups POST to a `waitlist` table (email, role, source, created_at) with an
+insert-only RLS policy and no select policy, so the publishable key is safe in
+public page source — it can add a row but cannot read the list back.
+
+Chosen over Kit because Supabase is already in the stack: entries sit alongside
+the eventual `users` rows, so converting a signup into an account is a query
+rather than an export.
+
+Known gap: Supabase stores but doesn't send. A mailing tool will be needed
+before emailing the list at any scale.
+
+Supersedes the earlier Kit decision. Mailchimp remains ruled out.
+
+---
+
+## 2026-08-28 · One-liner generator flagged in-app, not on the landing page
+
+A fourth generator producing a single-sentence prompt — a classroom bell-ringer.
+Not built. Shown in the app's generator list as "coming soon" rather than
+advertised on the marketing page, so the expectation is set with people already
+inside rather than with prospects.
+
+Blocker to settle first: `saved_prompts` is ingredient-shaped with no free-text
+column. A one-liner needs a new column or a deliberate mapping — same mismatch
+class that broke `CreateAssignmentForm`.
+
+---
+
 ## 2026-08-23 · Waitlist stores in Supabase, not a mailing-list service
 
 Landing-page signups POST to a `waitlist` table (email, role, source,
