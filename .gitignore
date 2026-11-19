@@ -21,8 +21,9 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.env
-.env
-.env
 .vercel
+
+# env files: never commit real values (any directory)
 .env*
+**/.env*
+!.env.example

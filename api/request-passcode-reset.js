@@ -1,19 +1,18 @@
+import { handleCors, getSupabaseUrl, getServiceHeaders } from './_lib/security';
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (handleCors(req, res, 'POST')) return;
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { username } = req.body;
   if (!username) return res.status(400).json({ error: 'Missing username' });
 
-  const baseUrl = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const headers = {
-    'Content-Type': 'application/json',
-    'apikey': serviceKey,
-    'Authorization': `Bearer ${serviceKey}`,
-  };
+  if (typeof username !== 'string' || username.length > 80) {
+    return res.status(400).json({ error: 'Missing username' });
+  }
+
+  const baseUrl = getSupabaseUrl();
+  const headers = getServiceHeaders();
 
   // Look up by username — accepts both student (teacher-created) and minor (self-registered)
   const userRes = await fetch(

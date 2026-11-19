@@ -7,6 +7,7 @@ import BadgeModal from '../../components/BadgeModal';
 import { playAudioCue, playBadgeCue } from '../../utils/audioCue';
 import FictiflyLogo from '../../components/FictiflyLogo';
 import { isTeacherRole } from '../../utils/accountTiers';
+import { authFetch } from '../../utils/authFetch';
 
 const B = {
   sand: '#F5EFE6', sandMid: '#EDE3D4', sandDeep: '#D9C9B0',
@@ -512,7 +513,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
       const previousValues = {};
       fieldsToGenerate.forEach(k => { if (valuesRef.current[k]) previousValues[k] = valuesRef.current[k]; });
 
-      const fieldRes = await fetch('/api/generate', {
+      const fieldRes = await authFetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -535,7 +536,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
         if (newValues[k]) summaryValues[k] = newValues[k];
       });
 
-      const summaryRes = await fetch('/api/generate', {
+      const summaryRes = await authFetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -551,7 +552,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
       await trackUsage();
 
       // Badge check
-      const badgeRes = await fetch('/api/check-badges', {
+      const badgeRes = await authFetch('/api/check-badges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id }),
@@ -586,7 +587,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
       });
       const previousValues = values[key] ? { [key]: values[key] } : {};
 
-      const res = await fetch('/api/generate', {
+      const res = await authFetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -607,7 +608,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
       if (activeWithValues.length >= 2) {
         const summaryValues = {};
         activeWithValues.forEach(k => { summaryValues[k] = newValues[k]; });
-        const sRes = await fetch('/api/generate', {
+        const sRes = await authFetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -694,7 +695,7 @@ Respond ONLY with a valid JSON object using exactly these keys. No markdown, no 
     }
     setSavingId('saved');
     if (canSave) fetchSavedCharacters();
-    const badgeRes = await fetch('/api/check-badges', {
+    const badgeRes = await authFetch('/api/check-badges', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: user.id }),

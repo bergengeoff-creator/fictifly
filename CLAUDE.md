@@ -36,16 +36,26 @@ Vercel functions in `/api` are not run by `npm start` — they only execute when
 
 ## Environment variables
 
-Client-side (must be prefixed `REACT_APP_`, baked in at build time):
-- `REACT_APP_SUPABASE_URL`, `REACT_APP_SUPABASE_ANON_KEY` — used by `src/supabase.js`
-- `REACT_APP_ANTHROPIC_KEY` — used directly by some `/api` functions as a fallback
+See `.env.example` and `docs/SECURITY.md`. CRA embeds **every** `REACT_APP_*` variable into the
+public JS bundle, so only values that are safe for anyone to read may use that prefix.
+
+Client-side (public, baked in at build time):
+- `REACT_APP_SUPABASE_URL`, `REACT_APP_SUPABASE_ANON_KEY` — used by `src/supabase.js`. The
+  anon/publishable key is public by design and is only safe because RLS is on for every table.
 
 Server-side only (Vercel functions, never exposed to the client):
-- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`,
+  `CRON_SECRET`, optional `ALLOWED_ORIGINS`
 
-`/api` functions generally resolve config as `process.env.SUPABASE_URL ||
-process.env.REACT_APP_SUPABASE_URL` (server-side var first, `REACT_APP_` as fallback). Follow
-this pattern in new/edited API files rather than reading only one or the other.
+`/api` functions read config through `api/_lib/security.js` (`getSupabaseUrl()`,
+`getServiceHeaders()`, `getAnthropicKey()`). Only the public Supabase URL/anon key may fall back
+to a `REACT_APP_` var; secrets never do.
+
+**Any `/api` function that uses the service-role key must call `requireUser(req, res)` and take
+the caller's identity from the token** — never trust a `userId`/`teacherId` in the request body.
+Client code calls these endpoints with `authFetch()` (`src/utils/authFetch.js`), which attaches
+the Supabase access token. `npm run build` runs `scripts/verify-build.js` afterwards and fails
+if the bundle contains source maps or secrets.
 
 ## Architecture
 

@@ -331,3 +331,18 @@ never share a feed.
 
 Principle: data not collected can't be breached, subpoenaed, or mishandled.
 Pending counsel confirmation that client-side age verification is sufficient.
+---
+
+## 2026-11-19 · Secrets stay server-side; /api trusts tokens, not request bodies
+
+A security audit found the Anthropic key committed in `src/.env` (public repo,
+since April) and `/api/generate` working as an open, unauthenticated proxy to
+Anthropic. Several service-role endpoints (`save-recovery-phrase`,
+`create-students`, `update-streak`, `check-badges`, `award-badge`) acted on
+whatever `userId`/`classId` the request body named, which allowed account
+takeover of minor accounts. The leaked key was revoked.
+
+Rules now: secrets only in non-`REACT_APP_` env vars; every service-role
+endpoint authenticates with `requireUser()` and checks ownership; no wildcard
+CORS; no source maps in production; `postbuild` runs `scripts/verify-build.js`
+to block deploys that leak secrets. Details in `docs/SECURITY.md`.

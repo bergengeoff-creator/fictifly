@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 // /api/cron-retention-cleanup.js
 // Vercel Cron target (see vercel.json). Runs daily.
 //
@@ -11,8 +12,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const authHeader = req.headers.authorization;
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const authHeader = req.headers.authorization || '';
+  const expected = `Bearer ${process.env.CRON_SECRET || ''}`;
+  if (
+    !process.env.CRON_SECRET ||
+    authHeader.length !== expected.length ||
+    !crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))
+  ) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

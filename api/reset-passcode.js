@@ -1,85 +1,47 @@
+// /api/reset-passcode.js
+// Teacher approves a student's passcode reset. The caller must be a signed-in teacher with
+// the student in one of their classes. (This file had been overwritten with a copy of
+// request-passcode-reset.js, which broke the "Approve" button in ClassroomDashboard.)
+import { isTeacherRole, isStudentRole } from '../src/utils/accountTiers';
+import {
+  handleCors, requireUser, getProfile, teacherHasStudent, isUuid,
+  getSupabaseUrl, getServiceHeaders,
+} from './_lib/security';
+
+const PASSCODE_RE = /^\d{6,12}$/;
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (handleCors(req, res, 'POST')) return;
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { username } = req.body;
-  if (!username) return res.status(400).json({ error: 'Missing username' });
+  const user = await requireUser(req, res);
+  if (!user) return;
 
-  const baseUrl = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const headers = {
-    'Content-Type': 'application/json',
-    'apikey': serviceKey,
-    'Authorization': `Bearer ${serviceKey}`,
-  };
-
-  // Look up by username — accepts both student (teacher-created) and minor (self-registered)
-  const userRes = await fetch(
-    `${baseUrl}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,account_type,recovery_type`,
-    { headers }
-  );
-  const users = await userRes.json();
-
-  if (!users || users.length === 0) {
-    return res.status(404).json({ error: 'No account found with that username.' });
+  const { studentId, newPasscode } = req.body || {};
+  if (!isUuid(studentId) || !PASSCODE_RE.test(newPasscode || '')) {
+    return res.status(400).json({ error: 'Missing studentId or newPasscode' });
   }
 
-  const user = users[0];
-
-  // Only student and minor accounts use this flow
-  if (user.account_type !== 'student' && user.account_type !== 'minor') {
-    return res.status(400).json({ error: 'This account type does not use passcode login.' });
+  const teacher = await getProfile(user.id);
+  if (!teacher || !isTeacherRole(teacher.account_type)) {
+    return res.status(403).json({ error: 'Only teachers can reset passcodes.' });
+  }
+  const student = await getProfile(studentId);
+  if (!student || !isStudentRole(student.account_type)) {
+    return res.status(400).json({ error: 'That account does not use a passcode.' });
+  }
+  if (!(await teacherHasStudent(user.id, studentId))) {
+    return res.status(403).json({ error: 'That student is not in one of your classes.' });
   }
 
-  // Minor accounts with recovery_type 'phrase' should use the phrase recovery flow instead
-  if (user.account_type === 'minor' && user.recovery_type === 'phrase') {
-    return res.status(400).json({ error: 'phrase_recovery', usePhrase: true });
+  const response = await fetch(`${getSupabaseUrl()}/auth/v1/admin/users/${studentId}`, {
+    method: 'PUT',
+    headers: getServiceHeaders(),
+    body: JSON.stringify({ password: newPasscode }),
+  });
+  if (!response.ok) {
+    console.error('reset-passcode: admin update failed', response.status);
+    return res.status(500).json({ error: 'Failed to reset passcode' });
   }
-
-  // Find their class membership
-  const memberRes = await fetch(
-    `${baseUrl}/rest/v1/class_members?student_id=eq.${user.id}&select=class_id`,
-    { headers }
-  );
-  const members = await memberRes.json();
-
-  if (!members || members.length === 0) {
-    return res.status(400).json({ error: 'This account is not linked to a class. Please ask your teacher for help.' });
-  }
-
-  const classId = members[0].class_id;
-
-  // Check for existing pending request
-  const existingRes = await fetch(
-    `${baseUrl}/rest/v1/passcode_reset_requests?student_id=eq.${user.id}&status=eq.pending&select=id`,
-    { headers }
-  );
-  const existing = await existingRes.json();
-
-  if (existing && existing.length > 0) {
-    return res.status(200).json({ success: true, alreadyPending: true });
-  }
-
-  // Insert reset request
-  const insertRes = await fetch(
-    `${baseUrl}/rest/v1/passcode_reset_requests`,
-    {
-      method: 'POST',
-      headers: { ...headers, 'Prefer': 'return=minimal' },
-      body: JSON.stringify({
-        student_id: user.id,
-        class_id: classId,
-        username,
-        status: 'pending',
-      }),
-    }
-  );
-
-  if (!insertRes.ok) {
-    return res.status(500).json({ error: 'Something went wrong. Please ask your teacher for help directly.' });
-  }
-
   return res.status(200).json({ success: true });
 }

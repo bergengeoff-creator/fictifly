@@ -1,22 +1,36 @@
 // /api/award-badge.js
+// Teacher-awarded badges. The awarding teacher is the signed-in caller (never a teacherId
+// from the request body), and they can only award to students in one of their own classes.
+import { isTeacherRole } from '../src/utils/accountTiers';
+import {
+  handleCors, requireUser, getProfile, teacherHasStudent, isUuid,
+  getSupabaseUrl, getServiceHeaders,
+} from './_lib/security';
+
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (handleCors(req, res, 'POST')) return;
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const user = await requireUser(req, res);
+  if (!user) return;
 
   try {
-    const { teacherId, studentId, badgeName } = req.body;
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const { studentId, badgeName } = req.body || {};
+    if (!isUuid(studentId) || typeof badgeName !== 'string' || !badgeName.trim()) {
+      return res.status(400).json({ error: 'Missing studentId or badgeName' });
+    }
 
-    const headers = {
-      'Content-Type': 'application/json',
-      'apikey': supabaseKey,
-      'Authorization': `Bearer ${supabaseKey}`,
-    };
+    const profile = await getProfile(user.id);
+    if (!profile || !isTeacherRole(profile.account_type)) {
+      return res.status(403).json({ error: 'Only teachers can award badges.' });
+    }
+    if (!(await teacherHasStudent(user.id, studentId))) {
+      return res.status(403).json({ error: 'That student is not in one of your classes.' });
+    }
 
-    // Verify badge is teacher-awarded
+    const supabaseUrl = getSupabaseUrl();
+    const headers = getServiceHeaders();
+
     const badgeRes = await fetch(
       `${supabaseUrl}/rest/v1/badges?name=eq.${encodeURIComponent(badgeName)}&teacher_awarded=eq.true&select=id,name`,
       { headers }
@@ -26,7 +40,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Badge not found or not teacher-awarded' });
     }
 
-    // Check student doesn't already have it
     const existingRes = await fetch(
       `${supabaseUrl}/rest/v1/user_badges?user_id=eq.${studentId}&badge_id=eq.${badgeData[0].id}&select=id`,
       { headers }
@@ -36,22 +49,20 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'Student already has this badge' });
     }
 
-    // Award the badge
     await fetch(`${supabaseUrl}/rest/v1/user_badges`, {
       method: 'POST',
-      headers: { ...headers, 'Prefer': 'return=minimal' },
+      headers: { ...headers, Prefer: 'return=minimal' },
       body: JSON.stringify({
         user_id: studentId,
         badge_id: badgeData[0].id,
-        awarded_by: teacherId,
-        earned_at: new Date().toISOString()
+        awarded_by: user.id,
+        earned_at: new Date().toISOString(),
       }),
     });
 
     return res.status(200).json({ success: true, badge: badgeData[0] });
-
   } catch (err) {
     console.error('award-badge error:', err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Could not award badge.' });
   }
 }
