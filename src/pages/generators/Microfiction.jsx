@@ -8,6 +8,7 @@ import AssignModal from '../../components/AssignModal';
 import { playAudioCue, playBadgeCue } from '../../utils/audioCue';
 import FictiflyLogo from '../../components/FictiflyLogo';
 import { isTeacherRole } from '../../utils/accountTiers';
+import { authFetch } from '../../utils/authFetch';
 
 const GENRES = [
   "Action and/or Adventure","Comedy","Drama","Fairy Tale and/or Fantasy",
@@ -213,7 +214,7 @@ const isUnlimited = isPremiumUser || isTeacher;
       : selectedGenre;
     const genres = Array.from({ length: count }, () => resolvedGenre || pickRandom(GENRES));
     try {
-      const response = await fetch('/api/generate', {
+      const response = await authFetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -250,12 +251,12 @@ Respond ONLY with a JSON array, no markdown, no explanation:
       }));
       setPrompts(result);
       await trackUsage(usageCount + count);
-      await fetch('/api/update-streak', {
+      await authFetch('/api/update-streak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id }),
       });
-      const badgeRes = await fetch('/api/check-badges', {
+      const badgeRes = await authFetch('/api/check-badges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id }),
@@ -306,7 +307,7 @@ Respond ONLY with a JSON array, no markdown, no explanation:
     }).select().single();
     if (!subError && data) {
       setWrittenPrompts(prev => [...prev, savedPromptId]);
-      const badgeRes = await fetch('/api/check-badges', {
+      const badgeRes = await authFetch('/api/check-badges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id }),

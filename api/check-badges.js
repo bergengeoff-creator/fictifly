@@ -1,21 +1,19 @@
 import { isPremiumWriter } from '../src/utils/accountTiers';
+import { handleCors, requireUser, getSupabaseUrl, getServiceHeaders } from './_lib/security';
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  if (handleCors(req, res, 'POST')) return;
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // Badges are only ever evaluated for the signed-in caller; body userId is ignored.
+  const user = await requireUser(req, res);
+  if (!user) return;
 
   try {
-    const { userId, debug } = req.body;
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    const headers = {
-      'Content-Type': 'application/json',
-      'apikey': supabaseKey,
-      'Authorization': `Bearer ${supabaseKey}`,
-    };
+    const userId = user.id;
+    const debug = req.body?.debug === true;
+    const supabaseUrl = getSupabaseUrl();
+    const headers = getServiceHeaders();
 
     // ── FETCH ALL BADGES ──────────────────────────────
     const badgesRes = await fetch(`${supabaseUrl}/rest/v1/badges?select=*`, { headers });
@@ -263,6 +261,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('check-badges error:', err);
-    return res.status(500).json({ error: err.message, stack: err.stack });
+    return res.status(500).json({ error: 'Could not check badges.' });
   }
 }

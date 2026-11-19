@@ -6,6 +6,7 @@ import { isTeacherRole } from '../utils/accountTiers';
 
 import FictiflyLogo from '../components/FictiflyLogo';
 import TheWell from '../components/TheWell';
+import { authFetch } from '../utils/authFetch';
 
 // ── Brand tokens ────────────────────────────────────────────────────────────
 const B = {
@@ -681,7 +682,7 @@ function TeacherOnboarding({ user, profile, fetchProfile, navigate }) {
 
     let results;
     try {
-      const response = await fetch('/api/create-students', {
+      const response = await authFetch('/api/create-students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accounts, classId: createdClassId }),

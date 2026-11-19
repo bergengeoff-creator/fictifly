@@ -8,6 +8,7 @@ import GradingModal from '../components/GradingModal';
 import RubricBuilder from '../components/RubricBuilder';
 import CommentTemplateManager from '../components/CommentTemplateManager';
 import { isTeacherRole, CLASS_LIMIT_BY_TIER, STUDENT_LIMIT_BY_TIER } from '../utils/accountTiers';
+import { authFetch } from '../utils/authFetch';
 
 const GRADE_LEVELS = ['Elementary (K-5)', 'Middle School (6-8)', 'High School (9-12)', 'Other'];
 const GENRES = [
@@ -224,7 +225,7 @@ export default function ClassroomDashboard() {
     const newPasscode = generatePasscode();
 
     try {
-      const response = await fetch('/api/reset-passcode', {
+      const response = await authFetch('/api/reset-passcode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studentId: request.student_id, newPasscode }),
@@ -377,7 +378,7 @@ export default function ClassroomDashboard() {
       passcode: generatePasscode(),
     }));
     try {
-      const response = await fetch('/api/create-students', {
+      const response = await authFetch('/api/create-students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accounts, classId: selectedClass.id }),

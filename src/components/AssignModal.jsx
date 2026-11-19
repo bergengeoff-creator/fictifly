@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import { useAuth } from '../context/AuthContext';
+import { authFetch } from '../utils/authFetch';
 
 const B = {
   sand: '#F5EFE6', sandMid: '#EDE3D4', sandDeep: '#D9C9B0',
@@ -108,7 +109,7 @@ export default function AssignModal({ prompt, onClose, onAssigned }) {
     setError(null);
 
     try {
-      const response = await fetch('/api/generate', {
+      const response = await authFetch('/api/generate', {
         method: 'POST',
         body: JSON.stringify({
           type: 'generate_prompt_ingredients',

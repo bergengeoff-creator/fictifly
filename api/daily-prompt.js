@@ -1,16 +1,13 @@
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+import { handleCors, getSupabaseUrl, getServiceHeaders, getAnthropicKey } from './_lib/security';
 
-  const baseUrl = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const headers = {
-    'Content-Type': 'application/json',
-    'apikey': serviceKey,
-    'Authorization': `Bearer ${serviceKey}`,
-  };
+// Public, read-mostly endpoint: returns today's shared prompt, generating it once per day.
+// Prompts are fixed server-side, so callers can't steer what the Anthropic key is used for.
+export default async function handler(req, res) {
+  if (handleCors(req, res, 'GET')) return;
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+  const baseUrl = getSupabaseUrl();
+  const headers = getServiceHeaders();
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -38,7 +35,7 @@ export default async function handler(req, res) {
 
   const claudeHeaders = {
     'Content-Type': 'application/json',
-    'x-api-key': process.env.REACT_APP_ANTHROPIC_KEY,
+    'x-api-key': getAnthropicKey(),
     'anthropic-version': '2023-06-01',
   };
 
@@ -72,8 +69,8 @@ Respond ONLY with JSON, no markdown, no explanation:
     });
 
     if (!claudeRes.ok) {
-      const errText = await claudeRes.text();
-      return res.status(500).json({ error: 'Claude API error', detail: errText });
+      console.error('daily-prompt: Anthropic error', claudeRes.status);
+      return res.status(502).json({ error: 'Could not generate today\'s prompt.' });
     }
 
     const claudeData = await claudeRes.json();
@@ -82,7 +79,7 @@ Respond ONLY with JSON, no markdown, no explanation:
 
     let parsed;
     try { parsed = JSON.parse(clean); }
-    catch (e) { return res.status(500).json({ error: 'JSON parse failed', rawText: text }); }
+    catch (e) { return res.status(502).json({ error: 'Could not generate today\'s prompt.' }); }
 
     insertPayload = {
       date: today,
@@ -108,8 +105,8 @@ Respond ONLY with JSON, no markdown, no explanation:
     });
 
     if (!claudeRes.ok) {
-      const errText = await claudeRes.text();
-      return res.status(500).json({ error: 'Claude API error', detail: errText });
+      console.error('daily-prompt: Anthropic error', claudeRes.status);
+      return res.status(502).json({ error: 'Could not generate today\'s prompt.' });
     }
 
     const claudeData = await claudeRes.json();
@@ -118,10 +115,10 @@ Respond ONLY with JSON, no markdown, no explanation:
 
     let parsed;
     try { parsed = JSON.parse(clean); }
-    catch (e) { return res.status(500).json({ error: 'JSON parse failed', rawText: text }); }
+    catch (e) { return res.status(502).json({ error: 'Could not generate today\'s prompt.' }); }
 
     if (!parsed.action || !parsed.word) {
-      return res.status(500).json({ error: 'Missing fields', parsed });
+      return res.status(502).json({ error: 'Could not generate today\'s prompt.' });
     }
 
     insertPayload = {
@@ -142,6 +139,9 @@ Respond ONLY with JSON, no markdown, no explanation:
   });
 
   const inserted = await insertRes.json();
-  if (!insertRes.ok) return res.status(500).json({ error: 'DB insert failed', detail: inserted });
+  if (!insertRes.ok) {
+    console.error('daily-prompt: insert failed', insertRes.status);
+    return res.status(500).json({ error: 'Could not save today\'s prompt.' });
+  }
   return res.status(200).json(inserted[0]);
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import FictiflyLogo from '../components/FictiflyLogo';
+import { authFetch } from '../utils/authFetch';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ function RecoveryPhraseScreen({ recoveryPhrase, createdUserId, onError, error })
     setSaving(true);
     onError(null);
     try {
-      const response = await fetch('/api/save-recovery-phrase', {
+      const response = await authFetch('/api/save-recovery-phrase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: createdUserId, recoveryPhrase }),

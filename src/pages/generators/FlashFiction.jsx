@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { playAudioCue, playBadgeCue } from '../../utils/audioCue';
 import FictiflyLogo from '../../components/FictiflyLogo';
 import { isTeacherRole } from '../../utils/accountTiers';
+import { authFetch } from '../../utils/authFetch';
 
 const GENRES = [
   "Action/Adventure","Comedy","Crime Caper","Drama","Fairy Tale","Fantasy",
@@ -245,7 +246,7 @@ Be varied and keep descriptions minimal. Genres: ${genres.map((g, i) => `Prompt 
 Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
 
     try {
-      const response = await fetch('/api/generate', {
+      const response = await authFetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -268,12 +269,12 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
       }));
       setPrompts(result);
       await trackUsage(usageCount + count);
-      await fetch('/api/update-streak', {
+      await authFetch('/api/update-streak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id }),
       });
-      const badgeRes = await fetch('/api/check-badges', {
+      const badgeRes = await authFetch('/api/check-badges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id }),
@@ -329,7 +330,7 @@ Respond ONLY with JSON: [{"location":"...","object":"..."},...]`;
     }).select().single();
     if (!subError && data) {
       setWrittenPrompts(prev => [...prev, savedPromptId]);
-      const badgeRes = await fetch('/api/check-badges', {
+      const badgeRes = await authFetch('/api/check-badges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id }),

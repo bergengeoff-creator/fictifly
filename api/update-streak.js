@@ -1,21 +1,19 @@
-export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
+import { handleCors, requireUser, getSupabaseUrl, getServiceHeaders } from './_lib/security';
 
-  const { userId } = req.body;
+export default async function handler(req, res) {
+  if (handleCors(req, res, 'POST')) return;
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // The caller can only update their own streak; any userId in the body is ignored.
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const userId = user.id;
+
   const today = new Date().toISOString().split('T')[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  const headers = {
-    'Content-Type': 'application/json',
-    'apikey': supabaseKey,
-    'Authorization': `Bearer ${supabaseKey}`,
-  };
+  const supabaseUrl = getSupabaseUrl();
+  const headers = getServiceHeaders();
 
   // Get current streak
   const streakRes = await fetch(`${supabaseUrl}/rest/v1/streaks?user_id=eq.${userId}`, { headers });
